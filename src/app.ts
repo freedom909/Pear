@@ -1,113 +1,141 @@
-import express from 'express';
-import compression from 'compression'
-import session from 'express-session';
-import logger from 'morgan'
-import errorHandler from 'errorhandler';
-import path from 'path';  
+import express, { Express, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import { config } from './config/app.config';
+import { connectDatabase } from './database';
+import { configurePassport } from './config/passport.config';
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import { LoggerConfig } from './config/logger.config';
+import { ErrorResponse } from './config/error.config';
 
-import dotenv from 'dotenv';
-import MongoStore from 'connect-mongo';
-import flash from 'express-flash';
+export class App {
+  private app: Express;
 
-const upload= express.static(path.join(__dirname, 'uploads'))
-dotenv.config({path:'env'})
-/**
- * Load environment variables from .env file, where API keys and passwords are configured.
- */
-import * as homeController from './controllers/home';
-import * as userController from './controllers/user';
-// import * as apiController from './controllers/api';
-import * as contactController from './controllers/contact';
-import mongoose from 'mongoose';
-import { cookie } from 'express-validator';
-import passport from 'passport';
-import lusca from 'lusca';
-import { passportConfig } from 'config/index.config';
-
-const app = express();
-mongoose.connect(process.env.MONGODB_URI||'')
-mongoose.connection.on('error', (err) => {
-    console.error(err);
-    console.log('%s MongoDB connection error. Please make sure MongoDB is running.');
-    process.exit();
-  });
+  constructor() {
+    this.app = express();
+    this.configureMiddleware();
+    this.configureRoutes();
+    this.configureErrorHandling();
+  }
 
   /**
- * Express configuration.
- */
-  app.set('host', process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0');
-  app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080);
-  app.set('view engine', 'pug');
-  app.set('view',path.join(__dirname,'views'))
-  app.use(express.static(path.join(__dirname,'upload.html')));
-  app.use(logger('dev'))
-  app.use(session({
-    resave: true,
-    saveUninitialized: true,
-    secret: process.env.SESSION_SECRET ||'',
-    cookie: { maxAge: 1209600000 }, // Two weeks in milliseconds
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI })
-  }));
-  app.use(passport.initialize());
-  app.use(passport.session());
-  app.use(flash());
-  app.use((req, res, next) => {
-    if (req.path==='/api/upload') {
-        next();
-    }else {
-        lusca.csrf()(req, res, next);
+   * Configure application middleware
+   */
+  private configureMiddleware(): void {
+    // Security middleware
+    this.app.use(helmet());
+    
+    // CORS configuration
+    this.app.use(cors({
+      origin: config.corsOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    }));
+    
+    // Request parsing
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(cookieParser());
+    
+    // Compression
+    this.app.use(compression());
+    
+    // Logging
+    if (process.env.NODE_ENV !== 'test') {
+      this.app.use(morgan('dev'));
     }
-    });
-    app.use(lusca.xframe('SAMEORIGIN'));
-    app.use(lusca.xssProtection(true));
-    app.disable('x-powered-by');
-    app.use((req, res, next) => {
-        res.locals.user = req.user;
-        next();
-      });
-      app.use((req, res, next) => {
-        // After successful login, redirect back to the intended page
-        if (!req.user
-          && req.path !== '/login'
-          && req.path !== '/signup'
-          && !req.path.match(/^\/auth/)
-          && !req.path.match(/\./)) {
-          req.session.returnTo = req.originalUrl;
-        } else if (req.user
-          && (req.path === '/account' || req.path.match(/^\/api/))) {
-          req.session.returnTo = req.originalUrl;
-        }
-        next();
-      });
-      app.use('/', express.static(path.join(__dirname, 'public'), { maxAge: 31557600000 }));
-      app.use('/js/lib', express.static(path.join(__dirname, 'node_modules/chart.js/dist'), { maxAge: 31557600000 }));
-      app.use('/js/lib', express.static(path.join(__dirname, 'node_modules/popper.js/dist/umd'), { maxAge: 31557600000 }));
-      app.use('/js/lib', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/js'), { maxAge: 31557600000 }));
-      app.use('/js/lib', express.static(path.join(__dirname, 'node_modules/jquery/dist'), { maxAge: 31557600000 }));
-      app.use('/webfonts', express.static(path.join(__dirname, 'node_modules/@fortawesome/fontawesome-free/webfonts'), { maxAge: 31557600000 }));
+    
+    // Configure passport
+    configurePassport(this.app);
+  }
 
-     
-      app.get('/', homeController.index);
-      app.get('/login', userController.getLogin);
-/**
- * Primary app routes.
- */
-app.get('/', homeController.index);
-app.get('/login', userController.getLogin);
-app.post('/login', userController.postLogin);
-app.get('/logout', userController.logout);
-app.get('/forgot', userController.getForgot);
-app.post('/forgot', userController.postForgot);
-app.get('/reset/:token', userController.getReset);
-app.post('/reset/:token', userController.postReset);
-app.get('/signup', userController.getSignup);
-app.post('/signup', userController.postSignup);
-app.get('/contact', contactController.getContact);
-app.post('/contact', contactController.postContact);
-// app.get('/account/verify', passportConfig.isAuthenticated, userController.getVerifyEmail);
-//  app.get('/account/verify/:token', passportConfig.isAuthenticated, userController.getVerifyEmailToken);
-app.get('/account', passportConfig.isAuthenticated, userController.getAccount);
-app.post('/account/profile', passportConfig.isAuthenticated, userController.postUpdateProfile);
-app.post('/account/password', passportConfig.isAuthenticated, userController.postUpdatePassword);
-app.post('/account/delete', passportConfig.isAuthenticated, userController.postDeleteAccount);
-app.get('/account/unlink/:provider', passportConfig.isAuthenticated, userController.getOauthUnlink);
+  /**
+   * Configure application routes
+   */
+  private configureRoutes(): void {
+    // Health check
+    this.app.get('/health', (req: Request, res: Response) => {
+      res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString()
+      });
+    });
+    
+    // API routes
+    this.app.use('/api/auth', authRoutes);
+    this.app.use('/api/users', userRoutes);
+    
+    // 404 handler
+    this.app.use((req: Request, res: Response) => {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Resource not found'
+        }
+      });
+    });
+  }
+
+  /**
+   * Configure error handling
+   */
+  private configureErrorHandling(): void {
+    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      LoggerConfig.error('Application error', { error: err });
+      
+      const errorResponse = new ErrorResponse(err);
+      
+      res.status(errorResponse.statusCode).json({
+        success: false,
+        error: {
+          code: errorResponse.code,
+          message: errorResponse.message
+        }
+      });
+    });
+  }
+
+  /**
+   * Start the application
+   */
+  public async start(): Promise<void> {
+    try {
+      // Connect to database
+      await connectDatabase();
+      LoggerConfig.info('Connected to database');
+      
+      // Start server
+      const port = config.port;
+      this.app.listen(port, () => {
+        LoggerConfig.info(`Server is running on port ${port}`);
+      });
+    } catch (error) {
+      LoggerConfig.error('Failed to start application', { error });
+      process.exit(1);
+    }
+  }
+
+  /**
+   * Get Express application instance
+   */
+  public getApp(): Express {
+    return this.app;
+  }
+}
+
+// Create and export app instance
+export const app = new App();
+
+// Start application if not in test environment
+if (process.env.NODE_ENV !== 'test') {
+  app.start().catch((error) => {
+    LoggerConfig.error('Application startup error', { error });
+    process.exit(1);
+  });
+}

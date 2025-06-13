@@ -1,0 +1,26 @@
+extends layout
+
+block content
+  .container
+    .row
+      .col-md-12
+        h1.mb-4 Google 相册
+        if albums && albums.length > 0
+          .row.row-cols-1.row-cols-md-3.g-4
+            each album in albums
+              .col
+                .card.h-100
+                  if album.coverPhotoBaseUrl
+                    img.card-img-top(src=`${album.coverPhotoBaseUrl}=w400-h300-c`, alt=album.title)
+                  else
+                    .card-img-top.bg-light.d-flex.align-items-center.justify-content-center(style='height: 200px;')
+                      i.fas.fa-images.fa-3x.text-muted
+                  .card-body
+                    h5.card-title= album.title || '未命名相册'
+                    if album.mediaItemsCount
+                      p.card-text.text-muted #{album.mediaItemsCount} 张照片
+                    a.btn.btn-primary(href=`/google/photos/${album.id}`) 查看相册
+        else
+          .alert.alert-info
+            i.fas.fa-info-circle.me-2
+            | 您还没有任何相册。请在 Google Photos 中创建相册后再来查看。

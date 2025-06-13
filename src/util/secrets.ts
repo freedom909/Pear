@@ -1,4 +1,4 @@
-import logger from "./logger";
+import logger from "./logger.js";
 import dotenv from "dotenv";
 import fs from "fs";
 

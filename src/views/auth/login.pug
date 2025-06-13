@@ -1,0 +1,53 @@
+extends ../layout
+
+block content
+  .container.mt-5
+    .row.justify-content-center
+      .col-md-6
+        .card
+          .card-header
+            h3.text-center 登录
+          .card-body
+            if messages.errors && messages.errors.length > 0
+              .alert.alert-danger
+                each error in messages.errors
+                  p= error
+            
+            if messages.info && messages.info.length > 0
+              .alert.alert-info
+                each info in messages.info
+                  p= info
+            
+            if messages.success && messages.success.length > 0
+              .alert.alert-success
+                each success in messages.success
+                  p= success
+            
+            form(method='POST', action='/auth/login')
+              .mb-3
+                label.form-label(for='email') 电子邮箱
+                input.form-control(type='email', name='email', id='email', placeholder='请输入您的电子邮箱', required)
+              
+              .mb-3
+                label.form-label(for='password') 密码
+                input.form-control(type='password', name='password', id='password', placeholder='请输入您的密码', required)
+              
+              .mb-3.form-check
+                input.form-check-input(type='checkbox', name='remember', id='remember')
+                label.form-check-label(for='remember') 记住我
+              
+              .d-grid.gap-2
+                button.btn.btn-primary(type='submit') 登录
+            
+            hr
+            
+            .d-grid.gap-2
+              a.btn.btn-danger.btn-block(href='/auth/google')
+                i.fab.fa-google.me-2
+                | 使用 Google 账号登录
+            
+            .mt-3.text-center
+              p 还没有账号？ 
+                a(href='/auth/register') 注册
+              p 忘记密码？ 
+                a(href='/auth/forgot') 重置密码

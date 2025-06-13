@@ -1,0 +1,43 @@
+extends layout
+
+block content
+  .container
+    .row
+      .col-md-12
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h1= album.title || '未命名相册'
+          a.btn.btn-outline-primary(href='/google/photos')
+            i.fas.fa-arrow-left.me-2
+            | 返回相册列表
+        
+        if album.description
+          p.text-muted.mb-4= album.description
+        
+        if mediaItems && mediaItems.length > 0
+          .row.row-cols-1.row-cols-md-4.g-3
+            each item in mediaItems
+              .col
+                .card.h-100
+                  if item.mimeType && item.mimeType.startsWith('video/')
+                    .position-relative
+                      img.card-img-top(src=`${item.baseUrl}=w400-h300-c`, alt='视频缩略图')
+                      .position-absolute.top-50.start-50.translate-middle
+                        i.fas.fa-play-circle.fa-3x.text-white
+                  else
+                    img.card-img-top(src=`${item.baseUrl}=w400-h300-c`, alt=item.filename)
+                  .card-body
+                    h6.card-title.text-truncate= item.filename || '未命名文件'
+                    if item.mediaMetadata && item.mediaMetadata.creationTime
+                      p.card-text.small.text-muted= new Date(item.mediaMetadata.creationTime).toLocaleDateString()
+                  .card-footer.bg-white.border-0
+                    .btn-group.w-100
+                      a.btn.btn-sm.btn-outline-secondary(href=item.productUrl, target='_blank')
+                        i.fas.fa-external-link-alt.me-1
+                        | 在 Google Photos 中查看
+                      a.btn.btn-sm.btn-outline-primary(href=`${item.baseUrl}=d`, download=item.filename)
+                        i.fas.fa-download.me-1
+                        | 下载
+        else
+          .alert.alert-info
+            i.fas.fa-info-circle.me-2
+            | 此相册中没有照片。

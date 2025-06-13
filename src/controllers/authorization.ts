@@ -1,8 +1,8 @@
 import _ from "lodash";
-import User, { UserDocument, IUser } from "../models/User";
+import User, { UserDocument, IUser } from "../models/User.js";
 import MailOptions  from 'nodemailer';
 import validator from "validator";
-import sendMail from "../services/email";
+import sendMail from "../services/email.js";
 import { Request, Response, NextFunction } from "express";
 
 import { promisify } from "bluebird";
@@ -175,4 +175,3 @@ export const postDeleteAccount = (
     res.redirect("/");
   });
 };
-

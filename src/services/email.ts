@@ -2,7 +2,7 @@
 import nodemailerSendgrid from "nodemailer-sendgrid";
 import nodemailer, { TransportOptions, SendMailOptions } from "nodemailer";
 import { Options } from "nodemailer/lib/smtp-transport";
-import User, { UserDocument ,IUser} from "../models/User";
+import User, { UserDocument ,IUser} from "../models/User.js";
 import crypto from 'crypto';
 import dotenv from "dotenv";
 import {Response, Request,NextFunction} from 'express'; 

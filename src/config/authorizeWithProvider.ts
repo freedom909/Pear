@@ -1,6 +1,6 @@
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import passport from "passport";
-import  User  from "../models/User";
+import  User  from "../models/User.js";
 import dotenv from "dotenv";
 dotenv.config();
 import qs, { ParsedQs } from "qs";

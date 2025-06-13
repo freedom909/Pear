@@ -1,14 +1,16 @@
-import User,{  UserDocument } from "../models/User";
+import User, { UserDocument } from "../models/User.js";
 import { Express } from "express";
 import moment from "moment";
 import passport from "passport";
 import { Strategy as LocalStrategy, IVerifyOptions } from "passport-local";
 import refresh from "passport-oauth2-refresh";
 
-passport.use(
-  new LocalStrategy(
-    { usernameField: "email" },
-    async (email, password, done) => {
+export function configurePassport(app: Express) {
+  // Configure local strategy
+  passport.use(
+    new LocalStrategy(
+      { usernameField: "email" },
+      async (email, password, done) => {
       try {
         const user: UserDocument | null = await User.findOne({
           email: email.toLowerCase(),

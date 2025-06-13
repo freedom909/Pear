@@ -1,7 +1,6 @@
 import nodemailerSendgrid from "nodemailer-sendgrid";
 import nodemailer, { TransportOptions, SendMailOptions } from "nodemailer";
-import { Options } from "nodemailer/lib/smtp-transport";
-import User, { UserDocument ,IUser} from "../models/User";
+import User, { UserDocument ,IUser} from "../models/User.js";
 import crypto from 'crypto';
 import dotenv from "dotenv";
 import {Response, Request,NextFunction} from 'express'; 
@@ -20,7 +19,7 @@ dotenv.config();
     req.flash("success", "Verified email successfully");
     return res.redirect("/dashboard");
   }
-  const user = req.user as IUser;
+  const user = req.user as IUser & UserDocument;
   if (!mailChecker.isValid(user.email)) {
     req.flash(
       "errors",
@@ -42,10 +41,12 @@ dotenv.config();
         const savedUser = user
           .save()
           .then((savedUser) => {
-            console.log("user as successfully saved");
+            console.log("user saved successfully");
+            return savedUser;
           })
           .catch((err: any) => {
-            console.log("user save failed");
+            console.log("user save failed:", err);
+            throw err;
           });
       }
     });
@@ -65,7 +66,7 @@ dotenv.config();
     return res.redirect('/account');
 
   }
-  let userParams = req.user as IUser;
+  let userParams = req.user as IUser & UserDocument;
   if (req.params.token === userParams?.emailVerificationToken) {
     User.findOne({ email: req.params.email })
       .then(user => {

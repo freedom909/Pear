@@ -1,5 +1,5 @@
 import errorHandler from "errorhandler";
-import app from "./index";
+import app from "./app.js";
 
 /**
  * Error Handler. Provides full stack
