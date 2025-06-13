@@ -57,4 +57,4 @@ uploads/*
 
 # Project specific
 config/*.json
-!config/*.example.json
+!config/*.example.json.env
