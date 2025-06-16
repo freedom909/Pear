@@ -1,11 +1,12 @@
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import passport from "passport";
-import  User  from "../models/User.js";
+import { User } from "../models/user.model";
 import dotenv from "dotenv";
 dotenv.config();
 import qs, { ParsedQs } from "qs";
 
 import { Request, Response, NextFunction } from "express";
+import '../types/express'; // Import our custom type definitions
 import { ParamsDictionary } from "express-serve-static-core";
 
 import fetch from "node-fetch";

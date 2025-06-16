@@ -18,6 +18,16 @@ export default function Home() {
     // Redirect to Google OAuth URL
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   };
+  
+  const handleTwitterLogin = () => {
+    // Redirect to Twitter OAuth URL
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/twitter`;
+  };
+  
+  const handleAppleLogin = () => {
+    // Redirect to Apple OAuth URL
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/apple`;
+  };
 
   if (loading) {
     return (
@@ -44,6 +54,18 @@ export default function Home() {
             className={styles.googleButton}
           >
             Sign in with Google
+          </button>
+          <button
+            onClick={handleTwitterLogin}
+            className={styles.twitterButton}
+          >
+            Sign in with Twitter
+          </button>
+          <button
+            onClick={handleAppleLogin}
+            className={styles.appleButton}
+          >
+            Sign in with Apple
           </button>
         </div>
       </main>

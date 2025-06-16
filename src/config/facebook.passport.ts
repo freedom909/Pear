@@ -1,7 +1,7 @@
 import { Express } from "express";
 import { Strategy as FacebookStrategy, Profile } from "passport-facebook";
 import passport from "passport";
-import User from "../models/User.js";
+import User from "../models/user.model.js";
 import dotenv from "dotenv";
 dotenv.config();
 import qs, { ParsedQs } from "qs";
@@ -105,7 +105,7 @@ export async function refreshFacebookToken(user: Express.User): Promise<string |
 // Extend Express Request to include authenticated user
 declare global {
   namespace Express {
-    interface User extends IUser {}
+    interface User extends IUser {} //IUser should be UserDocument?
     
     interface AuthenticatedRequest extends Request {
       isAuthenticated(): boolean;

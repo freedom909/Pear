@@ -52,9 +52,8 @@ export const postLogin = async (
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      errors: errors.array().map((error) => ({ msg: error.msg }))
-    });
+  
+    throw errors.array().map((error) => ({ msg: error.msg }));
   }
 
   passport.authenticate(
@@ -119,14 +118,13 @@ export async function logout(
  * Signup page data.
  * @route GET /api/auth/signup
  */
-export const getSignup = (req: Request, res: Response): void => {
+export const getSignup = (req: Request, res: Response): Response => {
   if (req.user) {
-    return res.status(200).json({
-      isAuthenticated: true,
-      redirectUrl: "/"
+    return res.status(401).json({
+      errors: [{ msg: "You are already logged in" }]
     });
   }
-  res.status(200).json({
+  return res.status(200).json({
     title: "Create Account",
     isAuthenticated: false
   });
@@ -139,7 +137,7 @@ export const postSignup = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+): Promise<void> => { //(req: Request, res: Response): Response
   await check("email", "Email is not valid").isEmail().run(req);
   await check("password", "Password must be at least 4 characters long")
     .isLength({ min: 4 })

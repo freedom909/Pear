@@ -19,7 +19,7 @@ export interface Timestamps {
 /**
  * Base interface for pagination
  */
-export interface PaginationOptions {
+export interface PaginationOptions { 
   page?: number;
   limit?: number;
   sortBy?: string;

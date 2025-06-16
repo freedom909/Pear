@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { config } from './app.config';
+import { config } from './app.config.js';
 
 /**
  * Logger configuration

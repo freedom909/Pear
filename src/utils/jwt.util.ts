@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { UserDocument } from '../models/User';
+import { UserDocument } from '../models/User.js';
 
 /**
  * JWT Tokens interface

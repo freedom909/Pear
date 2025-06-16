@@ -2,7 +2,7 @@
 import nodemailerSendgrid from "nodemailer-sendgrid";
 import nodemailer, { TransportOptions, SendMailOptions } from "nodemailer";
 import { Options } from "nodemailer/lib/smtp-transport";
-import User, { UserDocument ,IUser} from "../models/User.js";
+import User, { UserDocument, IUser } from "../models/User";
 import crypto from 'crypto';
 import dotenv from "dotenv";
 import {Response, Request,NextFunction} from 'express'; 
@@ -11,16 +11,18 @@ import mailChecker from 'mailchecker';
 import { promisify } from "bluebird";
 dotenv.config();
 
-const sendMail = async (settings: {
+interface MailSettings {
   successfulType: string;
   failedType: string;
-  successfulmessage: string;
-  failedmessage: string;
+  successfulMessage: string;
+  failedMessage: string;
   errorType: string;
-  errormessage: string;
+  errorMessage: string;
   mailOptions: SendMailOptions;
-  req: any;
-}): Promise<any> => {
+  req: Request;
+}
+
+const sendMail = async (settings: MailSettings): Promise<boolean> => {
   const transportConfig: Options = process.env.SENDGRID_API_KEY
     ? nodemailerSendgrid({ apiKey: process.env.SENDGRID_API_KEY })
     : {
@@ -35,33 +37,50 @@ const sendMail = async (settings: {
   try {
     await transporter.sendMail(settings.mailOptions);
     console.log('Email sent successfully');
-    // Perform any additional actions after the email is sent successfully
+    settings.req.flash(settings.successfulType, settings.successfulMessage);
+    return true;
   } catch (error) {
     console.error('Error sending email:', error);
-    // Handle the error appropriately
+    settings.req.flash(settings.failedType, settings.failedMessage);
+    return false;
   }
 };
-export const sendForgotPasswordEmail = (user: any, req: Request) => {
+export const sendForgotPasswordEmail = (user: UserDocument, req: Request) => {
   if (!user) {
-    return;
+    return Promise.resolve(false);
   }
+  
+  const token = crypto.randomBytes(16).toString('hex');
+  user.passwordResetToken = token;
+  user.passwordResetExpires = new Date(Date.now() + 3600000); // 1 hour
+  
   const mailOptions = {
-    to: ":admin@gmail.com",
-    from: "admin@gmail.com",
-    subject: "Forgot Password",
-    text: "Forgot Password, please enter your password for this account `mailto:admin@gmail.com",
+    to: user.email,
+    from: process.env.SMTP_FROM || process.env.GMAIL_USER || '',
+    subject: "Reset your password on Pear",
+    text: `You are receiving this email because you (or someone else) have requested the reset of the password for your account.\n\n
+    Please click on the following link, or paste this into your browser to complete the process:\n\n
+    http://${req.headers.host}/reset/${token}\n\n
+    If you did not request this, please ignore this email and your password will remain unchanged.\n`
   };
+  
   const mailSettings = {
     successfulType: "success",
-    successfulmessage: "Your email ${req.user.email} has been verified",
-    failedType: "Success! Your password has been changed.",
-    failedmessage: "Your email could not be verified",
+    successfulMessage: "An email has been sent with password reset instructions",
+    failedType: "error",
+    failedMessage: "Error sending password reset email",
     errorType: "error",
-    errormessage: "Something went wrong",
+    errorMessage: "Something went wrong",
     mailOptions,
     req,
   };
-  return sendMail(mailSettings);
+  
+  return user.save()
+    .then(() => sendMail(mailSettings))
+    .catch(err => {
+      console.error('Error saving user reset token:', err);
+      return false;
+    });
 };
 
 

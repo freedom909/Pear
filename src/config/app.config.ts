@@ -48,5 +48,8 @@ export const config = {
   // Logging configuration
   logging: {
     level: process.env.LOG_LEVEL || 'info',
-  }
+  },
+
+  // Session configuration
+  sessionSecret: process.env.SESSION_SECRET || 'your-session-secret-key',
 };

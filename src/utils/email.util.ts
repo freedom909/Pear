@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { ApiError } from './api-error.util';
+import { ApiError } from './api-error.util.js';
 
 /**
  * Email configuration interface

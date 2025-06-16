@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ErrorCode, LoggerConfig } from '../config';
+import { AppError, ErrorCode, LoggerConfig } from '../config/index.js';
 
 /**
  * Error handling middleware

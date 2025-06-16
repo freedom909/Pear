@@ -1,10 +1,5 @@
-import { User, IUser, UserRole, UserStatus } from '../models';
-import { 
-  BadRequestError, 
-  NotFoundError, 
-  ConflictError,
-  ErrorCode 
-} from '../config/error.config';
+import { User, UserDocument, UserRole, UserStatus } from '../models';
+import { BadRequestError, NotFoundError, ConflictError, ErrorCode } from '../config/error.config';
 import bcrypt from 'bcryptjs';
 import { LoggerConfig } from '../config/logger.config';
 
@@ -33,7 +28,7 @@ interface UserQueryOptions {
 /**
  * Pagination result interface
  */
-interface PaginationResult<T> {
+interface PaginationResult<T> { //does this file related to the server render, is it PUG
   data: T[];
   pagination: {
     total: number;
@@ -48,9 +43,130 @@ interface PaginationResult<T> {
  */
 export class UserService {
   /**
+   * Request password reset
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    try {
+      const user = await User.findOne({ email });
+      
+      if (!user) {
+        // Return void to prevent email enumeration
+        return;
+      }
+
+      // Generate reset token
+      const resetToken = await user.generatePasswordResetToken();
+      await user.save();
+
+      // TODO: Send password reset email with token
+      LoggerConfig.info('Password reset requested', { userId: user.id, email });
+    } catch (error) {
+      LoggerConfig.error('Error requesting password reset', { error, email });
+      throw error;
+    }
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    try {
+      // Find user with valid reset token
+      const user = await User.findOne({
+        passwordResetToken: token,
+        passwordResetExpires: { $gt: Date.now() }
+      });
+
+      if (!user) {
+        throw new BadRequestError(
+          ErrorCode.INVALID_TOKEN,
+          'Password reset token is invalid or has expired'
+        );
+      }
+
+      // Update password and clear reset token
+      user.password = newPassword;
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save();
+
+      // Clear all refresh tokens for security
+      await user.clearRefreshTokens();
+
+      LoggerConfig.info('Password reset successful', { userId: user.id });
+    } catch (error) {
+      LoggerConfig.error('Error resetting password', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Request email verification
+   */
+  async requestEmailVerification(userId: string): Promise<void> {
+    try {
+      const user = await User.findById(userId);
+      
+      if (!user) {
+        throw new NotFoundError(
+          ErrorCode.NOT_FOUND,
+          'User not found'
+        );
+      }
+
+      if (user.verified) {
+        throw new BadRequestError(
+          ErrorCode.VALIDATION_ERROR,
+          'Email is already verified'
+        );
+      }
+
+      // Generate verification token
+      const verificationToken = await user.generateEmailVerificationToken();
+      await user.save();
+
+      // TODO: Send verification email with token
+      LoggerConfig.info('Email verification requested', { userId });
+    } catch (error) {
+      LoggerConfig.error('Error requesting email verification', { error, userId });
+      throw error;
+    }
+  }
+
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(token: string): Promise<void> {
+    try {
+      // Find user with valid verification token
+      const user = await User.findOne({
+        emailVerificationToken: token,
+        emailVerificationExpires: { $gt: Date.now() }
+      });
+
+      if (!user) {
+        throw new BadRequestError(
+          ErrorCode.INVALID_TOKEN,
+          'Email verification token is invalid or has expired'
+        );
+      }
+
+      // Update verification status and clear token
+      user.verified = true;
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      await user.save();
+
+      LoggerConfig.info('Email verification successful', { userId: user.id });
+    } catch (error) {
+      LoggerConfig.error('Error verifying email', { error });
+      throw error;
+    }
+  }
+  /**
    * Create a new user
    */
-  async createUser(userData: Partial<IUser>): Promise<IUser> {
+  async createUser(userData: Partial<UserDocument>): Promise<UserDocument> {
     try {
       // Check if user with email already exists
       const existingUser = await User.findOne({ email: userData.email });
@@ -76,7 +192,7 @@ export class UserService {
   /**
    * Find user by ID
    */
-  async findUserById(id: string, options: { select?: string } = {}): Promise<IUser> {
+  async findUserById(id: string, options: { select?: string } = {}): Promise<UserDocument> {
     try {
       const query = User.findById(id);
       
@@ -104,7 +220,7 @@ export class UserService {
   /**
    * Find user by email
    */
-  async findUserByEmail(email: string, options: { select?: string } = {}): Promise<IUser | null> {
+  async findUserByEmail(email: string, options: { select?: string } = {}): Promise<UserDocument | null> {
     try {
       const query = User.findOne({ email });
       
@@ -123,11 +239,59 @@ export class UserService {
   /**
    * Find user by Google ID
    */
-  async findUserByGoogleId(googleId: string): Promise<IUser | null> {
+  async findUserByGoogleId(googleId: string): Promise<UserDocument | null> {
     try {
       return await User.findOne({ googleId });
     } catch (error) {
       LoggerConfig.error('Error finding user by Google ID', { error, googleId });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by Facebook ID
+   */
+  async findUserByFacebookId(facebookId: string): Promise<UserDocument | null> {
+    try {
+      return await User.findOne({ facebookId });
+    } catch (error) {
+      LoggerConfig.error('Error finding user by Facebook ID', { error, facebookId });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by Twitter ID
+   */
+  async findUserByTwitterId(twitterId: string): Promise<UserDocument | null> {
+    try {
+      return await User.findOne({ twitterId });
+    } catch (error) {
+      LoggerConfig.error('Error finding user by Twitter ID', { error, twitterId });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by Apple ID
+   */
+  async findUserByAppleId(appleId: string): Promise<UserDocument | null> {
+    try {
+      return await User.findOne({ appleId });
+    } catch (error) {
+      LoggerConfig.error('Error finding user by Apple ID', { error, appleId });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by provider ID (generic method)
+   */
+  async findUserByProviderId(providerIdField: string, providerId: string): Promise<UserDocument | null> {
+    try {
+      return await User.findOne({ [providerIdField]: providerId });
+    } catch (error) {
+      LoggerConfig.error('Error finding user by provider ID', { error, providerIdField, providerId });
       throw error;
     }
   }
@@ -138,7 +302,7 @@ export class UserService {
   async findUsers(
     filters: UserFilter = {}, 
     options: UserQueryOptions = {}
-  ): Promise<PaginationResult<IUser>> {
+  ): Promise<PaginationResult<UserDocument>> {
     try {
       const { 
         page = 1, 
@@ -216,7 +380,7 @@ export class UserService {
   /**
    * Update user
    */
-  async updateUser(id: string, updateData: Partial<IUser>): Promise<IUser> {
+  async updateUser(id: string, updateData: Partial<UserDocument>): Promise<UserDocument> {
     try {
       // Check if user exists
       const user = await this.findUserById(id);
@@ -260,7 +424,7 @@ export class UserService {
   /**
    * Update user role (admin only)
    */
-  async updateUserRole(id: string, role: UserRole): Promise<IUser> {
+  async updateUserRole(id: string, role: UserRole): Promise<UserDocument> {
     try {
       // Check if role is valid
       if (!Object.values(UserRole).includes(role)) {
@@ -294,7 +458,7 @@ export class UserService {
   /**
    * Update user status (admin only)
    */
-  async updateUserStatus(id: string, status: UserStatus): Promise<IUser> {
+  async updateUserStatus(id: string, status: UserStatus): Promise<UserDocument> {
     try {
       // Check if status is valid
       if (!Object.values(UserStatus).includes(status)) {
@@ -340,6 +504,218 @@ export class UserService {
       }
     } catch (error) {
       LoggerConfig.error('Error deleting user', { error, id });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a user with Google OAuth
+   */
+  async createGoogleUser(userData: Partial<UserDocument>, googleId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Creating Google user', { googleId });
+      
+      // Create user with Google ID
+      const user = new User({
+        ...userData,
+        googleId,
+        verified: true, // OAuth users are considered verified
+      });
+      
+      await user.save();
+      LoggerConfig.info('Google user created', { userId: user.id, googleId });
+      
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error creating Google user', { error, googleId });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a user with Facebook OAuth
+   */
+  async createFacebookUser(userData: Partial<UserDocument>, facebookId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Creating Facebook user', { facebookId });
+      
+      // Create user with Facebook ID
+      const user = new User({
+        ...userData,
+        facebookId,
+        verified: true, // OAuth users are considered verified
+      });
+      
+      await user.save();
+      LoggerConfig.info('Facebook user created', { userId: user.id, facebookId });
+      
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error creating Facebook user', { error, facebookId });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a user with Twitter OAuth
+   */
+  async createTwitterUser(userData: Partial<UserDocument>, twitterId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Creating Twitter user', { twitterId });
+      
+      // Create user with Twitter ID
+      const user = new User({
+        ...userData,
+        twitterId,
+        verified: true, // OAuth users are considered verified
+      });
+      
+      await user.save();
+      LoggerConfig.info('Twitter user created', { userId: user.id, twitterId });
+      
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error creating Twitter user', { error, twitterId });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a user with Apple OAuth
+   */
+  async createAppleUser(userData: Partial<UserDocument>, appleId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Creating Apple user', { appleId });
+      
+      // Create user with Apple ID
+      const user = new User({
+        ...userData,
+        appleId,
+        verified: true, // OAuth users are considered verified
+      });
+      
+      await user.save();
+      LoggerConfig.info('Apple user created', { userId: user.id, appleId });
+      
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error creating Apple user', { error, appleId });
+      throw error;
+    }
+  }
+
+  /**
+   * Link Google account to existing user
+   */
+  async linkGoogleAccount(userId: string, googleId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Linking Google account to user', { userId, googleId });
+      
+      // Update user with Google ID
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $set: { googleId } },
+        { new: true }
+      );
+      
+      if (!user) {
+        throw new NotFoundError(
+          ErrorCode.NOT_FOUND,
+          'User not found'
+        );
+      }
+      
+      LoggerConfig.info('Google account linked to user', { userId, googleId });
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error linking Google account', { error, userId, googleId });
+      throw error;
+    }
+  }
+
+  /**
+   * Link Facebook account to existing user
+   */
+  async linkFacebookAccount(userId: string, facebookId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Linking Facebook account to user', { userId, facebookId });
+      
+      // Update user with Facebook ID
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $set: { facebookId } },
+        { new: true }
+      );
+      
+      if (!user) {
+        throw new NotFoundError(
+          ErrorCode.NOT_FOUND,
+          'User not found'
+        );
+      }
+      
+      LoggerConfig.info('Facebook account linked to user', { userId, facebookId });
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error linking Facebook account', { error, userId, facebookId });
+      throw error;
+    }
+  }
+
+  /**
+   * Link Twitter account to existing user
+   */
+  async linkTwitterAccount(userId: string, twitterId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Linking Twitter account to user', { userId, twitterId });
+      
+      // Update user with Twitter ID
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $set: { twitterId } },
+        { new: true }
+      );
+      
+      if (!user) {
+        throw new NotFoundError(
+          ErrorCode.NOT_FOUND,
+          'User not found'
+        );
+      }
+      
+      LoggerConfig.info('Twitter account linked to user', { userId, twitterId });
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error linking Twitter account', { error, userId, twitterId });
+      throw error;
+    }
+  }
+
+  /**
+   * Link Apple account to existing user
+   */
+  async linkAppleAccount(userId: string, appleId: string): Promise<UserDocument> {
+    try {
+      LoggerConfig.info('Linking Apple account to user', { userId, appleId });
+      
+      // Update user with Apple ID
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { $set: { appleId } },
+        { new: true }
+      );
+      
+      if (!user) {
+        throw new NotFoundError(
+          ErrorCode.NOT_FOUND,
+          'User not found'
+        );
+      }
+      
+      LoggerConfig.info('Apple account linked to user', { userId, appleId });
+      return user;
+    } catch (error) {
+      LoggerConfig.error('Error linking Apple account', { error, userId, appleId });
       throw error;
     }
   }

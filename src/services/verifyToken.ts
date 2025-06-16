@@ -1,6 +1,6 @@
 import nodemailerSendgrid from "nodemailer-sendgrid";
 import nodemailer, { TransportOptions, SendMailOptions } from "nodemailer";
-import User, { UserDocument ,IUser} from "../models/User.js";
+import User, { UserDocument, IUser } from "../models/User";
 import crypto from 'crypto';
 import dotenv from "dotenv";
 import {Response, Request,NextFunction} from 'express'; 
@@ -14,10 +14,13 @@ dotenv.config();
   res: Response,
   next: NextFunction
 ) => {
-  const userReq = req.user as UserDocument;
-  if (userReq.emailVerified) {
-    req.flash("success", "Verified email successfully");
-    return res.redirect("/dashboard");
+  const userReq = req.user as IUser & UserDocument ;//red line, UserDocument is not proper?
+  if (userReq.isEmailVerified) {
+    return res.status(200).json({
+      success: true,
+      message: "Verified email successfully",
+      redirectTo: "/dashboard"
+    });
   }
   const user = req.user as IUser & UserDocument;
   if (!mailChecker.isValid(user.email)) {
@@ -54,8 +57,7 @@ dotenv.config();
 
  const getVerifiedEmailToken = (req: Request, res: Response, next: NextFunction) => {
   const userReq = req.user as UserDocument;
-  if (userReq.emailVerified) { //message:"Property 'emailVerified' does not exist on type 'User'"
-
+  if (userReq.isEmailVerified) {
     req.flash('success', 'Verified email successfully');
     return res.redirect('/dashboard');
   }
@@ -74,10 +76,16 @@ dotenv.config();
           req.flash('errors', validationErrors.map(err => err.msg[0]));
           return res.redirect('/dashboard')
         }
-        user.emailVerificationToken = '',
-          user.emailVerified = true;
-        req.flash('success', "Verified email successfully")
-        return res.redirect('/dashboard')
+        user.emailVerificationToken = '';
+        user.isEmailVerified = true;
+        user.save().then(() => {
+          req.flash('success', "Verified email successfully");
+          return res.redirect('/dashboard');
+        }).catch((err: any) => {
+          console.log('Error saving user after email verification', err);
+          req.flash('errors', 'There was an error when updating your profile.');
+          return res.redirect('/account');
+        });
       }).catch((error: any) => {
         console.log('Error saving the user profile to the database after email verification', error);
         req.flash('errors', 'There was an error when updating your profile.  Please try again later.');

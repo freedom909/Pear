@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { config } from '../config/app.config';
-import { LoggerConfig } from '../config/logger.config';
+import { config } from '../config/app.config.js';
+import { LoggerConfig } from '../config/logger.config.js';
 
 /**
  * Connect to MongoDB database

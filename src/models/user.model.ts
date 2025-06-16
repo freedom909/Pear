@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 /**
  * User roles enum
@@ -21,7 +22,7 @@ export enum UserStatus {
 /**
  * User document interface
  */
-export interface IUser extends Document {
+export interface UserDocument extends Document {
   email: string;
   password?: string;
   firstName: string;
@@ -29,8 +30,16 @@ export interface IUser extends Document {
   role: UserRole;
   status: UserStatus;
   verified: boolean;
+  verificationToken?: string;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   googleId?: string;
-  avatar?: string;
+  facebookId?: string;
+  twitterId?: string;
+  appleId?: string;
+  photo?: string;
   refreshTokens: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -40,12 +49,19 @@ export interface IUser extends Document {
   addRefreshToken(token: string): Promise<void>;
   removeRefreshToken(token: string): Promise<void>;
   clearRefreshTokens(): Promise<void>;
+  generatePasswordResetToken(): Promise<string>;
+  generateEmailVerificationToken(): Promise<string>;
 }
+
+/**
+ * User model type
+ */
+export type UserModel = mongoose.Model<UserDocument>;
 
 /**
  * User schema
  */
-const userSchema = new Schema<IUser>({
+const userSchema = new Schema<UserDocument>({
   email: {
     type: String,
     required: true,
@@ -83,12 +99,47 @@ const userSchema = new Schema<IUser>({
     type: Boolean,
     default: false
   },
+  verificationToken: {
+    type: String,
+    select: false
+  },
+  passwordResetToken: {
+    type: String,
+    select: false
+  },
+  passwordResetExpires: {
+    type: Date,
+    select: false
+  },
+  emailVerificationToken: {
+    type: String,
+    select: false
+  },
+  emailVerificationExpires: {
+    type: Date,
+    select: false
+  },
   googleId: {
     type: String,
     sparse: true,
     unique: true
   },
-  avatar: {
+  facebookId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  twitterId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  appleId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  photo: {
     type: String
   },
   refreshTokens: [{
@@ -103,7 +154,12 @@ const userSchema = new Schema<IUser>({
  * User schema indexes
  */
 userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
+userSchema.index({ googleId: 1 }, { sparse: true });
+userSchema.index({ facebookId: 1 }, { sparse: true });
+userSchema.index({ twitterId: 1 }, { sparse: true });
+userSchema.index({ appleId: 1 }, { sparse: true });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
+userSchema.index({ emailVerificationToken: 1 }, { sparse: true });
 userSchema.index({ status: 1 });
 userSchema.index({ role: 1 });
 
@@ -148,7 +204,8 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
     // Compare passwords
     return await bcrypt.compare(candidatePassword, user.password);
   } catch (error) {
-    throw error;
+    console.error('Error comparing password:', error);
+    return false;
   }
 };
 
@@ -172,7 +229,8 @@ userSchema.methods.addRefreshToken = async function(token: string): Promise<void
       await user.save();
     }
   } catch (error) {
-    throw error;
+    console.error('Error adding refresh token:', error);
+    throw new Error(`Failed to add refresh token: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -191,10 +249,16 @@ userSchema.methods.removeRefreshToken = async function(token: string): Promise<v
     }
     
     // Remove token
+    const initialLength = user.refreshTokens.length;
     user.refreshTokens = user.refreshTokens.filter(t => t !== token);
-    await user.save();
+    
+    // Only save if token was actually removed
+    if (user.refreshTokens.length !== initialLength) {
+      await user.save();
+    }
   } catch (error) {
-    throw error;
+    console.error('Error removing refresh token:', error);
+    throw new Error(`Failed to remove refresh token: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -212,13 +276,69 @@ userSchema.methods.clearRefreshTokens = async function(): Promise<void> {
       throw new Error('User not found');
     }
     
-    // Clear tokens
-    user.refreshTokens = [];
-    await user.save();
+    // Only save if there were tokens to clear
+    if (user.refreshTokens.length > 0) {
+      user.refreshTokens = [];
+      await user.save();
+    }
   } catch (error) {
-    throw error;
+    console.error('Error clearing refresh tokens:', error);
+    throw new Error(`Failed to clear refresh tokens: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+/**
+ * Generate password reset token method
+ */
+userSchema.methods.generatePasswordResetToken = async function(): Promise<string> {
+  try {
+    // Generate random token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Hash token and set to passwordResetToken field
+    this.passwordResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+      
+    // Set expiration (1 hour)
+    this.passwordResetExpires = new Date(Date.now() + 3600000);
+    
+    await this.save();
+    return resetToken;
+  } catch (error) {
+    console.error('Error generating password reset token:', error);
+    throw new Error(`Failed to generate password reset token: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+/**
+ * Generate email verification token method
+ */
+userSchema.methods.generateEmailVerificationToken = async function(): Promise<string> {
+  try {
+    // Generate random token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    
+    // Hash token and set to emailVerificationToken field
+    this.emailVerificationToken = crypto
+      .createHash('sha256')
+      .update(verificationToken)
+      .digest('hex');
+      
+    // Set expiration (24 hours)
+    this.emailVerificationExpires = new Date(Date.now() + 86400000);
+    
+    await this.save();
+    return verificationToken;
+  } catch (error) {
+    console.error('Error generating email verification token:', error);
+    throw new Error(`Failed to generate email verification token: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
 // Create and export model
-export const User = mongoose.model<IUser>('User', userSchema);
+ const User = mongoose.model<UserDocument, UserModel>('User', userSchema);
+
+// Export default
+export default User;

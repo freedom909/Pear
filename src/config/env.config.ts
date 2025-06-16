@@ -4,6 +4,33 @@ import { cleanEnv, str, port, bool, num } from 'envalid';
  * Environment Configuration
  * Validates and provides type-safe access to environment variables
  */
+export class EnvConfig {
+  private static env: ReturnType<typeof validateEnv>;
+
+  /**
+   * Initialize environment validation
+   */
+  static init() {
+    this.env = validateEnv();
+    return this.env;
+  }
+
+  /**
+   * Get environment variable value
+   * @param key Environment variable key
+   * @returns Environment variable value
+   */
+  static get(key: string): string {
+    if (!this.env) {
+      this.init();
+    }
+    return this.env[key] || process.env[key] || '';
+  }
+}
+
+/**
+ * Validate environment variables
+ */
 export const validateEnv = () => {
   return cleanEnv(process.env, {
     // Server
@@ -125,12 +152,13 @@ LOG_FORMAT=dev
 
 // Create a .env.example file with example configuration
 if (process.env.NODE_ENV === 'development') {
-  const fs = require('fs');
-  const path = require('path');
-  
-  const envExamplePath = path.join(process.cwd(), '.env.example');
-  if (!fs.existsSync(envExamplePath)) {
-    fs.writeFileSync(envExamplePath, envExample.trim());
-    console.log('.env.example file created successfully');
-  }
+  import('fs').then(fs => {
+    import('path').then(path => {
+      const envExamplePath = path.join(process.cwd(), '.env.example');
+      if (!fs.existsSync(envExamplePath)) {
+        fs.writeFileSync(envExamplePath, envExample.trim());
+        console.log('.env.example file created successfully');
+      }
+    });
+  });
 }

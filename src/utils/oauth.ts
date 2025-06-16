@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { IUser, UserDocument } from "../models/User.js";
+import { IUser, UserDocument, User } from "../models/User.js";
 
 
 /**
@@ -29,7 +29,7 @@ export const unlinkOAuthProvider = async (
     updateObj[`${provider}Tokens`] = undefined;
     
     // Update user in database
-    await updateObj.findByIdAndUpdate(user.id, { $unset: updateObj });
+    await User.findByIdAndUpdate(user.id, { $unset: updateObj });
     
     req.flash("success", `${provider.charAt(0).toUpperCase() + provider.slice(1)} account has been unlinked.`);
     res.redirect("/account");
@@ -82,7 +82,7 @@ export const handleOAuthCallback = async (
       updateObj[`${provider}Id`] = userId;
       updateObj[`${provider}Tokens`] = tokens;
       
-      await updateObj.findByIdAndUpdate(user.id, updateObj);
+      await User.findByIdAndUpdate(user.id, updateObj);
       
       req.flash("success", `${provider.charAt(0).toUpperCase() + provider.slice(1)} account has been linked.`);
       res.redirect("/account");

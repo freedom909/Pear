@@ -1,67 +1,50 @@
 import { Request, Response, NextFunction } from 'express';
-import { authService } from '../services';
-import { BadRequestError, ErrorCode } from '../config/error.config';
+import { User } from '../models/user.model';
+import { AuthService } from '../services/auth.service';
 import { LoggerConfig } from '../config/logger.config';
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { config } from '../config/app.config';
+import { initiateGoogleAuth } from '../config/google.passport';
+import { initiateAppleAuth as startAppleAuth } from '../config/apple.passport';
 
 /**
- * Authentication controller
+ * Controller for handling authentication operations
  */
 export class AuthController {
+  private static authService = new AuthService();
+
   /**
-   * Register new user
+   * Register a new user
    */
-  async register(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password, firstName, lastName } = req.body;
-      
-      const tokens = await authService.register({
-        email,
-        password,
-        firstName,
-        lastName
+      const result = await AuthController.authService.register(req.body);
+      res.status(201).json({
+        success: true,
+        data: result
       });
-      
-      res.status(201).json(tokens);
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Login user
+   * Login user with email and password
    */
-  async login(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password } = req.body;
-      
-      const tokens = await authService.login(email, password);
-      
-      res.json(tokens);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Refresh access token
-   */
-  async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { refreshToken } = req.body;
-      
-      if (!refreshToken) {
-        throw new BadRequestError(
-          ErrorCode.VALIDATION_ERROR,
-          'Refresh token is required'
-        );
-      }
-      
-      const tokens = await authService.refreshToken(refreshToken);
-      
-      res.json(tokens);
+      const result = await AuthController.authService.login(req.body);
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+      res.json({
+        success: true,
+        data: {
+          accessToken: result.accessToken,
+          user: result.user
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -70,91 +53,204 @@ export class AuthController {
   /**
    * Logout user
    */
-  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { refreshToken } = req.body;
-      
-      if (!refreshToken) {
-        throw new BadRequestError(
-          ErrorCode.VALIDATION_ERROR,
-          'Refresh token is required'
-        );
-      }
-      
-      await authService.logout(refreshToken);
-      
-      res.status(204).end();
+      const refreshToken = req.cookies.refreshToken;
+      await AuthController.authService.logout(refreshToken);
+      res.clearCookie('refreshToken');
+      res.json({
+        success: true,
+        message: 'Logged out successfully'
+      });
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Logout from all devices
+   * Refresh access token
    */
-  async logoutAll(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user!.id;
-      
-      await authService.logoutAll(userId);
-      
-      res.status(204).end();
+      const refreshToken = req.cookies.refreshToken;
+      const result = await AuthController.authService.refreshToken(refreshToken);
+      res.json({
+        success: true,
+        data: {
+          accessToken: result.accessToken
+        }
+      });
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Initialize Google authentication
+   * Send verification email
    */
-  initiateGoogleAuth(req: Request, res: Response, next: NextFunction): void {
-    passport.authenticate('google', {
-      scope: [
-        'profile',
-        'email'
-      ],
-      accessType: 'offline',
-      prompt: 'consent'
-    })(req, res, next);
+  static async sendVerificationEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      await AuthController.authService.sendVerificationEmail(email);
+      res.json({
+        success: true,
+        message: 'Verification email sent successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify email
+   */
+  static async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token } = req.params;
+      await AuthController.authService.verifyEmail(token);
+      res.json({
+        success: true,
+        message: 'Email verified successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Initiate password reset
+   */
+  static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      await AuthController.authService.forgotPassword(email);
+      res.json({
+        success: true,
+        message: 'Password reset email sent'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Reset password
+   */
+  static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, password } = req.body;
+      await AuthController.authService.resetPassword(token, password);
+      res.json({
+        success: true,
+        message: 'Password reset successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Initiate Google authentication
+   */
+  static initiateGoogleAuth(req: Request, res: Response, next: NextFunction): void {
+    try {
+      initiateGoogleAuth(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   }
 
   /**
    * Handle Google authentication callback
    */
-  handleGoogleCallback(req: Request, res: Response, next: NextFunction): void {
-    passport.authenticate('google', { session: false }, async (err, profile) => {
-      try {
-        if (err) {
-          throw err;
-        }
-        
-        if (!profile) {
-          throw new BadRequestError(
-            ErrorCode.INVALID_CREDENTIALS,
-            'Failed to authenticate with Google'
-          );
-        }
-        
-        const tokens = await authService.googleAuth(profile);
-        
-        // Redirect to frontend with tokens
-        const redirectUrl = new URL(config.frontendUrl + '/auth/callback');
-        redirectUrl.searchParams.set('access_token', tokens.accessToken);
-        redirectUrl.searchParams.set('refresh_token', tokens.refreshToken);
-        
-        res.redirect(redirectUrl.toString());
-      } catch (error) {
-        LoggerConfig.error('Google authentication error', { error });
-        
-        // Redirect to frontend with error
-        const redirectUrl = new URL(config.frontendUrl + '/auth/callback');
-        redirectUrl.searchParams.set('error', 'Authentication failed');
-        
-        res.redirect(redirectUrl.toString());
+  static async handleGoogleCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = req.user as any;
+      if (!user) {
+        throw new Error('Google authentication failed');
       }
-    })(req, res, next);
+
+      // Generate tokens
+      const result = await AuthController.authService.googleAuth(user);
+
+      // Set refresh token in cookie
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      // Redirect to frontend with access token
+      const redirectUrl = new URL(process.env.FRONTEND_URL || 'http://localhost:3000');
+      redirectUrl.searchParams.set('accessToken', result.accessToken);
+      
+      res.redirect(redirectUrl.toString());
+    } catch (error) {
+      LoggerConfig.error('Google callback error', { error });
+      const errorUrl = new URL(process.env.FRONTEND_URL || 'http://localhost:3000');
+      errorUrl.pathname = '/login';
+      errorUrl.searchParams.set('error', 'google-auth-failed');
+      res.redirect(errorUrl.toString());
+    }
+  }
+
+  /**
+   * Initiate Apple authentication
+   */
+  static initiateAppleAuth(req: Request, res: Response, next: NextFunction): void {
+    try {
+      startAppleAuth(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Handle Apple authentication callback
+   */
+  static async handleAppleCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = req.user as any;
+      if (!user) {
+        throw new Error('Apple authentication failed');
+      }
+
+      // Generate tokens
+      const result = await AuthController.authService.appleAuth(user);
+
+      // Set refresh token in cookie
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      // Redirect to frontend with access token
+      const redirectUrl = new URL(process.env.FRONTEND_URL || 'http://localhost:3000');
+      redirectUrl.searchParams.set('accessToken', result.accessToken);
+      
+      res.redirect(redirectUrl.toString());
+    } catch (error) {
+      LoggerConfig.error('Apple callback error', { error });
+      const errorUrl = new URL(process.env.FRONTEND_URL || 'http://localhost:3000');
+      errorUrl.pathname = '/login';
+      errorUrl.searchParams.set('error', 'apple-auth-failed');
+      res.redirect(errorUrl.toString());
+    }
   }
 }
 
-// Export singleton instance
-export const authController = new AuthController();
+// Export individual methods for route handlers
+export const {
+  register,
+  login,
+  logout,
+  refreshToken,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+  initiateGoogleAuth,
+  handleGoogleCallback
+} = AuthController;

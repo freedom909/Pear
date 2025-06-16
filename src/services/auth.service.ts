@@ -350,6 +350,130 @@ export class AuthService {
       }
     };
   }
+
+  /**
+   * Send verification email to user
+   */
+  async sendVerificationEmail(email: string): Promise<void> {
+    try {
+      // Find user by email
+      const user = await userService.findUserByEmail(email);
+      
+      if (!user) {
+        throw new NotFoundError(
+          ErrorCode.NOT_FOUND,
+          'User not found'
+        );
+      }
+      
+      // Check if user is already verified
+      if (user.verified) {
+        throw new BadRequestError(
+          ErrorCode.INVALID_REQUEST,
+          'Email is already verified'
+        );
+      }
+      
+      // Generate verification token
+      const token = await user.generateEmailVerificationToken();
+      
+      // Send verification email
+      await MailUtil.sendVerificationEmail(email, token, user.username);
+    } catch (error) {
+      LoggerConfig.error('Error sending verification email', { error });
+      throw error;
+    }
+  }
+  
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(token: string): Promise<void> {
+    try {
+      // Find user by verification token
+      const user = await User.findOne({
+        emailVerificationToken: token,
+        emailVerificationExpires: { $gt: Date.now() }
+      });
+      
+      if (!user) {
+        throw new BadRequestError(
+          ErrorCode.INVALID_TOKEN,
+          'Invalid or expired verification token'
+        );
+      }
+      
+      // Update user
+      user.verified = true;
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      
+      await user.save();
+    } catch (error) {
+      LoggerConfig.error('Error verifying email', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Login or register with Apple
+   */
+  async appleAuth(profile: {
+    id: string;
+    email?: string;
+    name?: {
+      firstName?: string;
+      lastName?: string;
+    };
+  }): Promise<TokenResponse> {
+    try {
+      LoggerConfig.info('Processing Apple authentication', { appleId: profile.id });
+      
+      // Check if user exists by Apple ID
+      let user = await userService.findUserByAppleId(profile.id);
+      
+      // If not found by Apple ID and email is provided, check by email
+      if (!user && profile.email) {
+        user = await userService.findUserByEmail(profile.email);
+        
+        if (user) {
+          // Link Apple account to existing user
+          user = await userService.linkAppleAccount(user.id, profile.id);
+        } else {
+          // Create new user with Apple data
+          user = await userService.createAppleUser({
+            email: profile.email,
+            firstName: profile.name?.firstName || '',
+            lastName: profile.name?.lastName || '',
+            role: UserRole.USER,
+            status: UserStatus.ACTIVE,
+            verified: true // Apple users are automatically verified
+          }, profile.id);
+        }
+      }
+      
+      if (!user) {
+        throw new BadRequestError(
+          ErrorCode.INVALID_REQUEST,
+          'Unable to authenticate with Apple. Email is required for registration.'
+        );
+      }
+      
+      // Check if user is active
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new ForbiddenError(
+          ErrorCode.FORBIDDEN,
+          'Your account is not active'
+        );
+      }
+      
+      // Generate tokens
+      return this.generateTokenResponse(user);
+    } catch (error) {
+      LoggerConfig.error('Error with Apple authentication', { error });
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
@@ -357,3 +481,4 @@ export const authService = new AuthService();
 
 // Import NotFoundError after declaration to avoid circular dependency
 import { NotFoundError } from '../config/error.config';
+import { MailUtil } from '../utils/mail.util';

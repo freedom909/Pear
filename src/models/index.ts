@@ -1,2 +1,2 @@
 // Export user model and types
-export { User, IUser, UserRole, UserStatus } from './user.model';
+export { User, IUser, UserDocument, UserRole, UserStatus } from './user.model';

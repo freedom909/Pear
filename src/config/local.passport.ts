@@ -8,9 +8,7 @@ import refresh from "passport-oauth2-refresh";
 export function configurePassport(app: Express) {
   // Configure local strategy
   passport.use(
-    new LocalStrategy(
-      { usernameField: "email" },
-      async (email, password, done) => {
+    new LocalStrategy({ usernameField: "email" }, async (email, password, done) => {
       try {
         const user: UserDocument | null = await User.findOne({
           email: email.toLowerCase(),
@@ -132,7 +130,7 @@ export const isAuthorized = (
                 });
               });
             }
-          ); 
+          );
         }
       } else {
         res.redirect(`/auth/${provider}`);
@@ -144,3 +142,4 @@ export const isAuthorized = (
     res.redirect(`/auth/${provider}`);
   }
 };
+}

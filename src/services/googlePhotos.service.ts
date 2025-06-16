@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { UserDocument } from '../models/User.js';
+import { UserDocument } from '../models/User';
 
 /**
  * Google Photos API 服务类

@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { userController } from '../controllers';
-import { authenticate, authorize } from '../middlewares';
-import { validate } from '../middlewares';
-import { userValidation } from '../validations';
-import { UserRole } from '../models';
+import { userController } from '../controllers/index.js';
+import { authenticate, authorize } from '../middlewares/index.js';
+import { validate } from '../middlewares/index.js';
+import { userValidation } from '../validations/index.js';
+import { UserRole } from '../models/index.js';
 
 // Create router
 const router = Router();
