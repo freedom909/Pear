@@ -1,102 +1,31 @@
 import { Router } from 'express';
-import { userController } from '../controllers/index.js';
-import { authenticate, authorize } from '../middlewares/index.js';
-import { validate } from '../middlewares/index.js';
-import { userValidation } from '../validations/index.js';
-import { UserRole } from '../models/index.js';
-
-// Create router
+import {
+  getUsers, 
+  getUser,//is the same as getUserById 
+  createUser,
+  updateUser,
+  deleteUser,
+  changeUserRole,
+} from '../controllers/user.controller';
+import { protect, authorize} from '../middleware/auth';
+import { UserRole } from '../models/interface';
 const router = Router();
 
-/**
- * @route GET /api/users/profile
- * @desc Get current user profile
- * @access Private
- */
-router.get(
-  '/profile',
-  authenticate,
-  userController.getProfile.bind(userController)
-);
+// 所有用户路由都需要认证和管理员权限
+router.use(protect);
+router.use(authorize(UserRole.ADMIN));
 
-/**
- * @route PUT /api/users/profile
- * @desc Update current user profile
- * @access Private
- */
-router.put(
-  '/profile',
-  authenticate,
-  validate(userValidation.updateProfile),
-  userController.updateProfile.bind(userController)
-);
+// 用户CRUD路由
+router.route('/')
+  .get(getUsers)
+  .post(createUser);
 
-/**
- * @route PUT /api/users/change-password
- * @desc Change password
- * @access Private
- */
-router.put(
-  '/change-password',
-  authenticate,
-  validate(userValidation.changePassword),
-  userController.changePassword.bind(userController)
-);
+router.route('/:id')
+  .get(getUser)
+  .put(updateUser)
+  .delete(deleteUser);
 
-/**
- * Admin routes
- */
+router.put('/:id/role', changeUserRole);
 
-/**
- * @route GET /api/users/:id
- * @desc Get user by ID
- * @access Admin
- */
-router.get(
-  '/:id',
-  authenticate,
-  authorize(UserRole.ADMIN),
-  validate(userValidation.getUserById),
-  userController.getUserById.bind(userController)
-);
 
-/**
- * @route GET /api/users
- * @desc Get users list
- * @access Admin
- */
-router.get(
-  '/',
-  authenticate,
-  authorize(UserRole.ADMIN),
-  validate(userValidation.getUsers),
-  userController.getUsers.bind(userController)
-);
-
-/**
- * @route PUT /api/users/:id
- * @desc Update user
- * @access Admin
- */
-router.put(
-  '/:id',
-  authenticate,
-  authorize(UserRole.ADMIN),
-  validate(userValidation.updateUser),
-  userController.updateUser.bind(userController)
-);
-
-/**
- * @route DELETE /api/users/:id
- * @desc Delete user
- * @access Admin
- */
-router.delete(
-  '/:id',
-  authenticate,
-  authorize(UserRole.ADMIN),
-  validate(userValidation.deleteUser),
-  userController.deleteUser.bind(userController)
-);
-
-export { router as userRoutes };
+export default router;

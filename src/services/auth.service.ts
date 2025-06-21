@@ -1,484 +1,224 @@
-import jwt from 'jsonwebtoken';
-import { User, IUser, UserRole, UserStatus } from '../models';
-import { userService } from './user.service';
-import { config } from '../config/app.config';
-import { 
-  BadRequestError, 
-  UnauthorizedError, 
-  ForbiddenError,
-  ErrorCode 
-} from '../config/error.config';
-import { LoggerConfig } from '../config/logger.config';
+import User from '../models/user/user.model';
+import { ErrorResponse } from '../utils/errorResponse';
+import  logger  from '../utils/logger';
 
-/**
- * Token payload interface
- */
-interface TokenPayload {
-  userId: string;
-  email: string;
-  role: UserRole;
+import config from '../config/config';
+import jwt, { SignOptions, Secret } from 'jsonwebtoken';
+// 认证服务接口
+interface AuthService {
+  register(userData: RegisterDTO): Promise<AuthResponse>;
+  login(identifier: string, password: string): Promise<AuthResponse>;
+  refreshToken(token: string): Promise<AuthResponse>;
+  logout(userId: string): Promise<void>;
 }
 
-/**
- * Token response interface
- */
-export interface TokenResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+// 注册DTO
+export interface RegisterDTO {
+  username: string;
+  email: string;
+  password: string;
+}
+
+// 认证响应
+export interface AuthResponse {
   user: {
     id: string;
+    username: string;
     email: string;
-    firstName: string;
-    lastName: string;
-    role: UserRole;
-    status: UserStatus;
-    verified: boolean;
-    avatar?: string;
+    role: string;
+  };
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
   };
 }
 
-/**
- * Authentication service
- */
-export class AuthService {
+// 认证服务实现
+class AuthServiceImpl implements AuthService {
   /**
-   * Register a new user
+   * 用户注册
+   * @param userData 用户注册数据
+   * @returns 认证响应
    */
-  async register(userData: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }): Promise<TokenResponse> {
+  async register(userData: RegisterDTO): Promise<AuthResponse> {
     try {
-      // Create user
-      const user = await userService.createUser({
-        ...userData,
-        role: UserRole.USER,
-        status: UserStatus.ACTIVE,
-        verified: false
+      // 检查用户名是否已存在
+      const existingUsername = await User.findOne({ username: userData.username });
+      if (existingUsername) {
+        throw ErrorResponse.badRequest('用户名已被使用');
+      }
+
+      // 检查邮箱是否已存在
+      const existingEmail = await User.findOne({ email: userData.email });
+      if (existingEmail) {
+        throw ErrorResponse.badRequest('邮箱已被注册');
+      }
+
+      // 创建新用户
+      const user = await User.create({
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
       });
-      
-      // Generate tokens
-      return this.generateTokenResponse(user);
-    } catch (error) {
-      LoggerConfig.error('Error registering user', { error });
-      throw error;
-    }
-  }
 
-  /**
-   * Login user with email and password
-   */
-  async login(email: string, password: string): Promise<TokenResponse> {
-    try {
-      // Find user by email
-      const user = await User.findOne({ email }).select('+password');
-      
-      if (!user) {
-        throw new UnauthorizedError(
-          ErrorCode.INVALID_CREDENTIALS,
-          'Invalid email or password'
-        );
-      }
-      
-      // Check if user is active
-      if (user.status !== UserStatus.ACTIVE) {
-        throw new ForbiddenError(
-          ErrorCode.FORBIDDEN,
-          'Your account is not active'
-        );
-      }
-      
-      // Check password
-      const isPasswordValid = await user.comparePassword(password);
-      
-      if (!isPasswordValid) {
-        throw new UnauthorizedError(
-          ErrorCode.INVALID_CREDENTIALS,
-          'Invalid email or password'
-        );
-      }
-      
-      // Generate tokens
-      return this.generateTokenResponse(user);
-    } catch (error) {
-      LoggerConfig.error('Error logging in user', { error });
-      throw error;
-    }
-  }
+      // 生成令牌
+      const accessToken = user.generateAuthToken();
+      const refreshToken = user.generateRefreshToken();
 
-  /**
-   * Login or register with Google
-   */
-  async googleAuth(profile: {
-    id: string;
-    emails: Array<{ value: string }>;
-    name: { givenName: string; familyName: string };
-    photos?: Array<{ value: string }>;
-  }): Promise<TokenResponse> {
-    try {
-      const email = profile.emails[0].value;
-      const googleId = profile.id;
-      const firstName = profile.name.givenName;
-      const lastName = profile.name.familyName;
-      const avatar = profile.photos?.[0]?.value;
-      
-      // Check if user exists by Google ID
-      let user = await userService.findUserByGoogleId(googleId);
-      
-      // If not found by Google ID, check by email
-      if (!user) {
-        user = await userService.findUserByEmail(email);
-        
-        if (user) {
-          // Update existing user with Google ID
-          user.googleId = googleId;
-          if (avatar) {
-            user.avatar = avatar;
-          }
-          await user.save();
-        } else {
-          // Create new user
-          user = await userService.createUser({
-            email,
-            firstName,
-            lastName,
-            googleId,
-            avatar,
-            role: UserRole.USER,
-            status: UserStatus.ACTIVE,
-            verified: true // Google users are automatically verified
-          });
-        }
-      }
-      
-      // Check if user is active
-      if (user.status !== UserStatus.ACTIVE) {
-        throw new ForbiddenError(
-          ErrorCode.FORBIDDEN,
-          'Your account is not active'
-        );
-      }
-      
-      // Generate tokens
-      return this.generateTokenResponse(user);
+      return {
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      };
     } catch (error) {
-      LoggerConfig.error('Error with Google authentication', { error });
-      throw error;
-    }
-  }
-
-  /**
-   * Refresh access token
-   */
-  async refreshToken(refreshToken: string): Promise<TokenResponse> {
-    try {
-      // Verify refresh token
-      const payload = jwt.verify(refreshToken, config.jwtConfig.refreshSecret) as TokenPayload;
-      
-      // Find user
-      const user = await User.findById(payload.userId).select('+refreshTokens');
-      
-      if (!user) {
-        throw new UnauthorizedError(
-          ErrorCode.INVALID_TOKEN,
-          'Invalid refresh token'
-        );
-      }
-      
-      // Check if refresh token exists in user's refresh tokens
-      if (!user.refreshTokens.includes(refreshToken)) {
-        throw new UnauthorizedError(
-          ErrorCode.INVALID_TOKEN,
-          'Invalid refresh token'
-        );
-      }
-      
-      // Check if user is active
-      if (user.status !== UserStatus.ACTIVE) {
-        throw new ForbiddenError(
-          ErrorCode.FORBIDDEN,
-          'Your account is not active'
-        );
-      }
-      
-      // Remove old refresh token
-      await user.removeRefreshToken(refreshToken);
-      
-      // Generate new tokens
-      return this.generateTokenResponse(user);
-    } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
-        throw new UnauthorizedError(
-          ErrorCode.INVALID_TOKEN,
-          'Invalid refresh token'
-        );
-      }
-      
-      LoggerConfig.error('Error refreshing token', { error });
-      throw error;
-    }
-  }
-
-  /**
-   * Logout user
-   */
-  async logout(refreshToken: string): Promise<void> {
-    try {
-      // Verify refresh token
-      const payload = jwt.verify(refreshToken, config.jwtConfig.refreshSecret) as TokenPayload;
-      
-      // Find user
-      const user = await User.findById(payload.userId).select('+refreshTokens');
-      
-      if (!user) {
-        return; // User not found, nothing to do
-      }
-      
-      // Remove refresh token
-      await user.removeRefreshToken(refreshToken);
-    } catch (error) {
-      // Ignore token verification errors
-      if (!(error instanceof jwt.JsonWebTokenError)) {
-        LoggerConfig.error('Error logging out user', { error });
+      logger.error('注册失败:', error);
+      if (error instanceof ErrorResponse) {
         throw error;
       }
+      throw ErrorResponse.internal('注册失败');
     }
   }
 
   /**
-   * Logout user from all devices
+   * 用户登录
+   * @param identifier 用户名或邮箱
+   * @param password 密码
+   * @returns 认证响应
+   */
+  async login(identifier: string, password: string): Promise<AuthResponse> {
+    try {
+      // 查找用户（通过用户名或邮箱）
+      const user = await User.findOne({
+        $or: [{ username: identifier }, { email: identifier }],
+      }).select('+password');
+
+      // 检查用户是否存在
+      if (!user) {
+        throw ErrorResponse.unauthorized('无效的凭据');
+      }
+
+      // 验证密码
+      const isPasswordValid = await user.comparePassword(password);
+      if (!isPasswordValid) {
+        throw ErrorResponse.unauthorized('无效的凭据');
+      }
+
+      // 生成令牌
+      const accessToken = user.generateAuthToken();
+      const refreshToken = user.generateRefreshToken();
+
+      return {
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      };
+    } catch (error) {
+      logger.error('登录失败:', error);
+      if (error instanceof ErrorResponse) {
+        throw error;
+      }
+      throw ErrorResponse.internal('登录失败');
+    }
+  }
+
+  /**
+   * 刷新令牌
+   * @param token 刷新令牌
+   * @returns 新的认证响应
+   */
+  async refreshToken(token: string): Promise<AuthResponse> {
+    try {
+      // 验证刷新令牌
+      const decoded = jwt.verify(token, config.jwt.secret) as { sub: string };
+      
+      // 查找用户
+      const user = await User.findById(decoded.sub);
+      if (!user) {
+        throw ErrorResponse.unauthorized('无效的刷新令牌');
+      }
+
+      // 生成新令牌
+      const accessToken = user.generateAuthToken();
+      const refreshToken = user.generateRefreshToken();
+
+      return {
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+        },
+        tokens: {
+          accessToken,
+          refreshToken,
+        },
+      };
+    } catch (error) {
+      logger.error('刷新令牌失败:', error);
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw ErrorResponse.unauthorized('无效的刷新令牌');
+      }
+      if (error instanceof ErrorResponse) {
+        throw error;
+      }
+      throw ErrorResponse.internal('刷新令牌失败');
+    }
+  }
+
+  /**
+   * 用户登出
+   * @param userId 用户ID
+   */
+  async logout(userId: string): Promise<void> {
+    // 在实际应用中，可能需要将令牌添加到黑名单
+    // 或者在Redis中存储已注销的令牌
+    // 这里简单实现，不做任何操作
+    return Promise.resolve();
+  }
+
+  /*
+   * 用户登出所有设备
+   * @param userId 用户ID
    */
   async logoutAll(userId: string): Promise<void> {
-    try {
-      // Find user
-      const user = await User.findById(userId).select('+refreshTokens');
-      
-      if (!user) {
-        throw new NotFoundError(
-          ErrorCode.NOT_FOUND,
-          'User not found'
-        );
-      }
-      
-      // Clear all refresh tokens
-      await user.clearRefreshTokens();
-    } catch (error) {
-      LoggerConfig.error('Error logging out user from all devices', { error });
-      throw error;
-    }
+    // 在实际应用中，可能需要将令牌添加到黑名单
+    // 或者在Redis中存储已注销的令牌
+    // 这里简单实现，不做任何操作
+    return Promise.resolve();
   }
 
-  /**
-   * Verify access token
-   */
-  verifyAccessToken(token: string): TokenPayload {
-    try {
-      return jwt.verify(token, config.jwtConfig.accessSecret) as TokenPayload;
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedError(
-          ErrorCode.EXPIRED_TOKEN,
-          'Access token expired'
-        );
-      }
-      
-      throw new UnauthorizedError(
-        ErrorCode.INVALID_TOKEN,
-        'Invalid access token'
-      );
-    }
-  }
+  /*
+  **
+  */
+ async generateJwtForUser(user: any):Promise<string> {
+  const payload = {
+    sub: user._id,
+    role: user.role,
+  };
+  // Cast the secret to Secret
+  const secret = config.jwt.secret as Secret;
+  const expiresIn = (config.jwt.expiresIn as unknown) as SignOptions['expiresIn'];
 
-  /**
-   * Generate access token
-   */
-  private generateAccessToken(user: IUser): string {
-    const payload: TokenPayload = {
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role
-    };
-    
-    return jwt.sign(payload, config.jwtConfig.accessSecret, {
-      expiresIn: config.jwtConfig.accessExpiresIn
-    });
-  }
-
-  /**
-   * Generate refresh token
-   */
-  private async generateRefreshToken(user: IUser): Promise<string> {
-    const payload: TokenPayload = {
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role
-    };
-    
-    const token = jwt.sign(payload, config.jwtConfig.refreshSecret, {
-      expiresIn: config.jwtConfig.refreshExpiresIn
-    });
-    
-    // Add refresh token to user's refresh tokens
-    await user.addRefreshToken(token);
-    
-    return token;
-  }
-
-  /**
-   * Generate token response
-   */
-  private async generateTokenResponse(user: IUser): Promise<TokenResponse> {
-    const accessToken = this.generateAccessToken(user);
-    const refreshToken = await this.generateRefreshToken(user);
-    
-    return {
-      accessToken,
-      refreshToken,
-      expiresIn: config.jwtConfig.accessExpiresInMs,
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        status: user.status,
-        verified: user.verified,
-        avatar: user.avatar
-      }
-    };
-  }
-
-  /**
-   * Send verification email to user
-   */
-  async sendVerificationEmail(email: string): Promise<void> {
-    try {
-      // Find user by email
-      const user = await userService.findUserByEmail(email);
-      
-      if (!user) {
-        throw new NotFoundError(
-          ErrorCode.NOT_FOUND,
-          'User not found'
-        );
-      }
-      
-      // Check if user is already verified
-      if (user.verified) {
-        throw new BadRequestError(
-          ErrorCode.INVALID_REQUEST,
-          'Email is already verified'
-        );
-      }
-      
-      // Generate verification token
-      const token = await user.generateEmailVerificationToken();
-      
-      // Send verification email
-      await MailUtil.sendVerificationEmail(email, token, user.username);
-    } catch (error) {
-      LoggerConfig.error('Error sending verification email', { error });
-      throw error;
-    }
-  }
-  
-  /**
-   * Verify email with token
-   */
-  async verifyEmail(token: string): Promise<void> {
-    try {
-      // Find user by verification token
-      const user = await User.findOne({
-        emailVerificationToken: token,
-        emailVerificationExpires: { $gt: Date.now() }
-      });
-      
-      if (!user) {
-        throw new BadRequestError(
-          ErrorCode.INVALID_TOKEN,
-          'Invalid or expired verification token'
-        );
-      }
-      
-      // Update user
-      user.verified = true;
-      user.emailVerificationToken = undefined;
-      user.emailVerificationExpires = undefined;
-      
-      await user.save();
-    } catch (error) {
-      LoggerConfig.error('Error verifying email', { error });
-      throw error;
-    }
-  }
-
-  /**
-   * Login or register with Apple
-   */
-  async appleAuth(profile: {
-    id: string;
-    email?: string;
-    name?: {
-      firstName?: string;
-      lastName?: string;
-    };
-  }): Promise<TokenResponse> {
-    try {
-      LoggerConfig.info('Processing Apple authentication', { appleId: profile.id });
-      
-      // Check if user exists by Apple ID
-      let user = await userService.findUserByAppleId(profile.id);
-      
-      // If not found by Apple ID and email is provided, check by email
-      if (!user && profile.email) {
-        user = await userService.findUserByEmail(profile.email);
-        
-        if (user) {
-          // Link Apple account to existing user
-          user = await userService.linkAppleAccount(user.id, profile.id);
-        } else {
-          // Create new user with Apple data
-          user = await userService.createAppleUser({
-            email: profile.email,
-            firstName: profile.name?.firstName || '',
-            lastName: profile.name?.lastName || '',
-            role: UserRole.USER,
-            status: UserStatus.ACTIVE,
-            verified: true // Apple users are automatically verified
-          }, profile.id);
-        }
-      }
-      
-      if (!user) {
-        throw new BadRequestError(
-          ErrorCode.INVALID_REQUEST,
-          'Unable to authenticate with Apple. Email is required for registration.'
-        );
-      }
-      
-      // Check if user is active
-      if (user.status !== UserStatus.ACTIVE) {
-        throw new ForbiddenError(
-          ErrorCode.FORBIDDEN,
-          'Your account is not active'
-        );
-      }
-      
-      // Generate tokens
-      return this.generateTokenResponse(user);
-    } catch (error) {
-      LoggerConfig.error('Error with Apple authentication', { error });
-      throw error;
-    }
+  const options: SignOptions = {
+    expiresIn,
+  };
+    return jwt.sign(payload, secret, options);
   }
 }
 
-// Export singleton instance
-export const authService = new AuthService();
-
-// Import NotFoundError after declaration to avoid circular dependency
-import { NotFoundError } from '../config/error.config';
-import { MailUtil } from '../utils/mail.util';
+// 导出认证服务实例
+export const authService = new AuthServiceImpl();

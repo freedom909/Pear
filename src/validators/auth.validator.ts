@@ -1,59 +1,89 @@
-import { z } from 'zod';
+import { NextFunction, Request, Response } from 'express';
+import { body, validationResult } from 'express-validator';
+import { ErrorResponse } from '../utils/errorResponse';
 
 /**
- * Registration request validation schema
+ * 注册验证规则
  */
-export const registerSchema = z.object({
-  body: z.object({
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters long')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required')
-  })
-});
+export const registerValidator = [
+  // 验证用户名
+  body('username')
+    .notEmpty().withMessage('用户名不能为空')
+    .isLength({ min: 3, max: 20 }).withMessage('用户名长度必须在3-20个字符之间')
+    .matches(/^[a-zA-Z0-9_]+$/).withMessage('用户名只能包含字母、数字和下划线'),
+
+  // 验证邮箱
+  body('email')
+    .notEmpty().withMessage('邮箱不能为空')
+    .isEmail().withMessage('邮箱格式不正确')
+    .normalizeEmail(),
+
+  // 验证密码
+  body('password')
+    .notEmpty().withMessage('密码不能为空')
+    .isLength({ min: 6 }).withMessage('密码长度不能少于6个字符')
+    .matches(/[0-9]/).withMessage('密码必须包含数字')
+    .matches(/[a-zA-Z]/).withMessage('密码必须包含字母'),
+
+  // 处理验证结果
+  (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(
+        new ErrorResponse(
+          errors.array().map(err => err.msg).join(', '),
+          400
+        )
+      );
+    }
+    next();
+  }
+];
 
 /**
- * Login request validation schema
+ * 登录验证规则
  */
-export const loginSchema = z.object({
-  body: z.object({
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(1, 'Password is required')
-  })
-});
+export const loginValidator = [
+  // 验证用户名或邮箱
+  body('identifier')
+    .notEmpty().withMessage('用户名或邮箱不能为空'),
+
+  // 验证密码
+  body('password')
+    .notEmpty().withMessage('密码不能为空'),
+
+  // 处理验证结果
+  (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(
+        new ErrorResponse(
+          errors.array().map(err => err.msg).join(', '),
+          400
+        )
+      );
+    }
+    next();
+  }
+];
 
 /**
- * Refresh token validation schema
+ * 刷新令牌验证规则
  */
-export const refreshTokenSchema = z.object({
-  cookies: z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required')
-  })
-});
+export const refreshTokenValidator = [
+  body('refreshToken')
+    .notEmpty().withMessage('刷新令牌不能为空'),
 
-/**
- * Forgot password validation schema
- */
-export const forgotPasswordSchema = z.object({
-  body: z.object({
-    email: z.string().email('Invalid email address')
-  })
-});
-
-/**
- * Reset password validation schema
- */
-export const resetPasswordSchema = z.object({
-  body: z.object({
-    token: z.string().min(1, 'Token is required'),
-    password: z.string().min(8, 'Password must be at least 8 characters long')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character')
-  })
-});
+  (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(
+        new ErrorResponse(
+          errors.array().map(err => err.msg).join(', '),
+          400
+        )
+      );
+    }
+    next();
+  }
+];

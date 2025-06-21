@@ -1,120 +1,138 @@
 import express from 'express';
-import compression from 'compression';
 import cors from 'cors';
-import helmet from 'helmet';
 import morgan from 'morgan';
-import session from 'express-session';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import mongoSanitize from 'express-mongo-sanitize';
+import { rateLimit } from 'express-rate-limit';
+import hpp from 'hpp';
+import path from 'path';
+import { errorHandler, notFound } from './middleware/error.ts';
+import logger,{  logStream } from './utils/logger.ts';
+import { initRedis } from './utils/redis.ts';
+import userRoutes from './routes/userRoutes.ts';
+
+import googleRoutes from './routes/google.route.ts';
+import authRoutes from './routes/auth.routes.ts';
+import { initPassportStrategies } from './passport/setupStrategies.ts';
+
+
+import { connectDB } from './config/database.ts';
 import passport from 'passport';
-import flash from 'express-flash';
-// Check if the file path is correct. Maybe the file is missing or the path is misspelled.
-// If the file exists but the issue persists, ensure the 'config' export is defined correctly.
-import { config } from './config/app.config.js';
-import { LoggerConfig } from './config/logger.config.js';
-import { errorHandler } from './middlewares/error.middleware.js';
-import { notFoundHandler } from './middlewares/not-found.middleware.js';
-import { apiRoutes } from './routes/index.js';
-import { connectDatabase } from './database/index.js';
-import { MailUtil } from './utils/mail.util.js';
-import { configurePassport } from './config/google.passport.js';
+import session from 'express-session';
+import { userService } from './services/user.service.ts';
 
-/**
- * Main application class
- */
-class App {
-  public app: express.Application;
+// 初始化Express应用
+const app = express();
 
-  /**
-   * Constructor
-   */
-  constructor() {
-    this.app = express();
-    this.configureMiddleware();
-    this.configureRoutes();
-    this.configureErrorHandling();
+// 配置session中间件
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24小时
   }
+}));
 
-  /**
-   * Configure middleware
-   */
-  private configureMiddleware(): void {
-    // Security middleware
-    this.app.use(helmet());
-    this.app.use(cors());
+// 初始化Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
-    // Request parsing
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+// 配置Passport序列化和反序列化
+passport.serializeUser((user: any, done) => {
+  done(null, user.id);
+});
 
-    // Performance middleware
-    this.app.use(compression());
-
-    // Logging
-    if (process.env.NODE_ENV !== 'test') {
-      this.app.use(morgan('dev'));
-    }
-
-    // Session configuration
-    this.app.use(
-      session({
-        secret: config.sessionSecret || 'secret',
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 24 * 60 * 60 * 1000, // 1 day
-        },
-      })
-    );
-
-    // Flash messages
-    this.app.use(flash());
-
-    // Passport initialization
-    this.app.use(passport.initialize());
-    this.app.use(passport.session());
+passport.deserializeUser(async (id: string, done) => {
+  try {
+    const user = await userService.findById(id);
+    done(null, user);
+  } catch (error) {
+    done(error, null);
   }
+});
 
-  /**
-   * Configure API routes
-   */
-  private configureRoutes(): void {
-    this.app.use('/api', apiRoutes);
-  }
+// 初始化OAuth策略
+initPassportStrategies();
 
-  /**
-   * Configure error handling
-   */
-  private configureErrorHandling(): void {
-    this.app.use(notFoundHandler);
-    this.app.use(errorHandler);
-  }
+// 初始化Express应用
+app.use((req, res, next) => {
+  res.locals.user = req.user;
+  next();
+  logger.info('Express app initialized');
+});
 
-  /**
-   * Start the application
-   */
-  public async start(): Promise<void> {
-    try {
-      // Connect to database
-      await connectDatabase();
-      LoggerConfig.info('Connected to database');
+// 连接数据库
+connectDB();
 
-      // Initialize mail service
-      await MailUtil.initialize();
-      LoggerConfig.info('Mail service initialized');
+// 初始化Redis
+initRedis();
 
-      // Configure Passport
-      configurePassport(this.app);
-      LoggerConfig.info('Passport configured');
+// 信任代理
+app.set('trust proxy', true);
 
-      // Start server
-      const port = config.port;
-      this.app.listen(port, () => {
-        LoggerConfig.info(`Server running on port ${port}`);
-      });
-    } catch (error) {
-      LoggerConfig.error('Failed to start server', { error });
-      throw error;
-    }
-  }
-}
-export default new App();
+// 安全中间件
+app.use(helmet());
+app.use(cors());
+app.use(mongoSanitize());
+app.use(hpp());
+
+// 请求解析中间件
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// 压缩响应
+app.use(compression());
+
+// 日志中间件
+app.use(
+  morgan('combined', {
+    stream: logStream,
+    skip: (req) => req.url === '/health'
+  })
+);
+
+// 静态文件服务
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 全局速率限制
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 100, // 每个IP限制100个请求
+  message: '请求过于频繁，请稍后再试'
+});
+app.use(limiter);
+
+// 健康检查端点
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Google OAuth已在上方初始化，此处无需重复
+
+// API路由
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api', googleRoutes);
+
+// 错误处理中间件
+app.use(notFound);
+app.use(errorHandler);
+
+// 未捕获的异常处理
+process.on('uncaughtException', (err) => {
+  logger.error(`未捕获的异常: ${err.message}`);
+  process.exit(1);
+});
+
+// 未处理的Promise拒绝
+process.on('unhandledRejection', (err: Error) => {
+  logger.error(`未处理的拒绝: ${err.message}`);
+  process.exit(1);
+});
+
+export default app;

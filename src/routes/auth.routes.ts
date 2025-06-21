@@ -1,102 +1,72 @@
 import { Router } from 'express';
-import passport from 'passport';
-import { LoggerConfig } from '../config/logger.config.js';
-import { AuthController } from '../controllers/auth.controller.js';
+import {
+  register,
+  login,
+  logout,
+  getMe,
+  forgotPassword,
+  resetPassword,
+  updateDetails,
+  updatePassword,
+} from '../controllers/auth.controller';
+import { auth } from '../middleware/auth';
+
+import {
+  googleLogin,
+  googleCallback,
+} from '../controllers/oauth/google.controller';
+import {
+  facebookLogin,
+  facebookCallback,
+} from '../controllers/oauth/facebook.controller';
+import {
+  appleLogin,
+  appleCallback,
+} from '../controllers/oauth/apple.controller';
+import {
+  twitterLogin,
+  twitterCallback,
+} from '../controllers/oauth/twitter.controller';
 
 const router = Router();
 
 /**
- * Google OAuth routes
+ * ========================
+ * Local Auth
+ * ========================
  */
-// Import Google authentication handlers
-import { initiateGoogleAuthentication, handleGoogleCallback, unlinkGoogle } from '../config/google.passport.js';
+router.post('/register', register);               // POST /api/v1/auth/register
+router.post('/login', login);                     // POST /api/v1/auth/login
+router.get('/logout', logout);                    // GET /api/v1/auth/logout
+router.post('/forgotpassword', forgotPassword);   // POST /api/v1/auth/forgotpassword
+router.put('/resetpassword/:token', resetPassword); // PUT /api/v1/auth/resetpassword/:token
+
+// Authenticated user
+router.use(auth); // Require auth for the routes below
+router.get('/me', getMe);                         // GET /api/v1/auth/me
+router.put('/updatedetails', updateDetails);      // PUT /api/v1/auth/updatedetails
+router.put('/updatepassword', updatePassword);    // PUT /api/v1/auth/updatepassword
 
 /**
- * Google OAuth routes
+ * ========================
+ * OAuth Providers
+ * ========================
  */
-router.get('/google', initiateGoogleAuthentication);
 
-router.get('/google/callback', handleGoogleCallback);
+// Google OAuth
+router.get('/google', googleLogin);                // GET /api/v1/auth/google
+router.get('/google/callback', googleCallback);    // GET /api/v1/auth/google/callback
 
-// Route to unlink Google account
-router.get('/google/unlink', unlinkGoogle);
+// Facebook OAuth
+router.get('/facebook', facebookLogin);            // GET /api/v1/auth/facebook
+router.get('/facebook/callback', facebookCallback);// GET /api/v1/auth/facebook/callback
 
-/**
- * Facebook OAuth routes
- */
-router.get(
-  '/facebook',
-  passport.authenticate('facebook', { scope: ['email'] })
-);
+// Apple OAuth
+router.get('/apple', appleLogin);                  // GET /api/v1/auth/apple
+router.get('/apple/callback', appleCallback);      // GET /api/v1/auth/apple/callback
 
-router.get(
-  '/facebook/callback',
-  passport.authenticate('facebook', { failureRedirect: '/login' }),
-  (req, res) => {
-    LoggerConfig.info('Facebook authentication successful');
-    res.redirect('/');
-  }
-);
+// Twitter OAuth
+router.get('/twitter', twitterLogin);              // GET /api/v1/auth/twitter
+router.get('/twitter/callback', twitterCallback);  // GET /api/v1/auth/twitter/callback
 
-/**
- * Twitter OAuth routes
- */
-router.get(
-  '/twitter',
-  passport.authenticate('twitter')
-);
-
-router.get(
-  '/twitter/callback',
-  passport.authenticate('twitter', { failureRedirect: '/login' }),
-  (req, res) => {
-    LoggerConfig.info('Twitter authentication successful');
-    res.redirect('/');
-  }
-);
-
-/**
- * Apple OAuth routes
- */
-router.get(
-  '/apple',
-  AuthController.initiateAppleAuth
-);
-
-router.get(
-  '/apple/callback',
-  passport.authenticate('apple', { session: false, failureRedirect: '/login' }),
-  AuthController.handleAppleCallback
-);
-
-/**
- * Logout route
- */
-router.get('/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      LoggerConfig.error('Error during logout', { error: err });
-      return res.status(500).json({ error: 'Error during logout' });
-    }
-    LoggerConfig.info('User logged out successfully');
-    res.redirect('/login');
-  });
-});
-
-/**
- * Get current user route
- */
-router.get('/user', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  res.json(req.user);
-});
-
-/**
- * Email verification routes
- */
-router.post('/send-verification-email', AuthController.sendVerificationEmail);
-router.get('/verify-email', AuthController.verifyEmail);
-
-export const authRoutes = router;
+export default router;
