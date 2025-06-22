@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { ErrorResponse } from '../utils/errorResponse';
 import { asyncHandler } from '../middleware/error';
-import User, { UserRole } from '../models/user/model';
+import { UserRole } from '../models/interface/index';
+import User from '../models/user/user.model';
 import { 
   RegisterUserDTO, 
   LoginUserDTO, 
@@ -16,6 +17,7 @@ import { validateRequest } from '../middleware/validateRequest';
 import  logger  from '../utils/logger';
 import { auth } from '../middleware/auth';
 import emailService from '../utils/email';
+import crypto from 'crypto';
 
 /**
  * 注册用户
@@ -23,8 +25,8 @@ import emailService from '../utils/email';
 export const register = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // 验证请求数据
-    const dto = await validateRequest(RegisterUserDTO)(req, res, next);
-    if (!dto) return;
+    const dto = await validateRequest(RegisterUserDTO)(req, res, next) as any;
+    if (!dto || !dto.name || !dto.email || !dto.password) return;
 
     // 检查邮箱是否已注册
     const existingUser = await User.findOne({ email: dto.email });
@@ -64,7 +66,7 @@ export const register = asyncHandler(
 export const login = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // 验证请求数据
-    const dto = await validateRequest(LoginUserDTO)(req, res, next);
+    const dto = await validateRequest(LoginUserDTO)(req, res, next) as any;
     if (!dto) return;
 
     // 检查用户是否存在
@@ -110,7 +112,7 @@ export const getMe = asyncHandler(
 export const updateUser = asyncHandler(
   async (req: any, res: Response, next: NextFunction) => {
     // 验证请求数据
-    const dto = await validateRequest(UpdateUserDTO)(req, res, next);
+    const dto = await validateRequest(UpdateUserDTO)(req, res, next) as any;
     if (!dto) return;
 
     const fieldsToUpdate = {
@@ -137,22 +139,22 @@ export const updateUser = asyncHandler(
 export const updatePassword = asyncHandler(
   async (req: any, res: Response, next: NextFunction) => {
     // 验证请求数据
-    const dto = await validateRequest(UpdatePasswordDTO)(req, res, next);
+    const dto = await validateRequest(UpdatePasswordDTO)(req, res, next)as any;
     if (!dto) return;
 
     const user = await User.findById(req.user.id).select('+password');
 
     // 验证当前密码
-    const isMatch = await user.matchPassword(dto.currentPassword);
+    const isMatch = await (user as any).matchPassword(dto.currentPassword) as boolean;
     if (!isMatch) {
       return next(new ErrorResponse('当前密码不正确', 401));
     }
 
-    user.password = dto.newPassword;
-    await user.save();
+    ( user as any ).password = dto.newPassword as string;
+    await (user as any ).save();
 
     // 生成新的JWT令牌
-    const token = user.getSignedJwtToken();
+    const token = (user as any).getSignedJwtToken();
 
     res.status(200).json({
       success: true,
@@ -167,7 +169,7 @@ export const updatePassword = asyncHandler(
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // 验证请求数据
-    const dto = await validateRequest(ForgotPasswordDTO)(req, res, next);
+    const dto = await validateRequest(ForgotPasswordDTO)(req, res, next) as any;
     if (!dto) return;
 
     const user = await User.findOne({ email: dto.email });
@@ -212,12 +214,12 @@ export const forgotPassword = asyncHandler(
 export const resetPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // 验证请求数据
-    const dto = await validateRequest(ResetPasswordDTO)(req, res, next);
+    const dto = await validateRequest(ResetPasswordDTO)(req, res, next) as any;
     if (!dto) return;
 
     // 获取哈希后的令牌
     const resetPasswordToken = crypto
-      .createHash('sha256')
+const hash = crypto.createHash('sha256')
       .update(req.params.resettoken)
       .digest('hex');
 
@@ -250,7 +252,7 @@ export const resetPassword = asyncHandler(
       success: true,
       data: new LoginResponseDTO(token, user)
     });
-  }
+    }
 );
 
 /**
@@ -292,7 +294,7 @@ export const getUser = asyncHandler(
 export const updateUserAdmin = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     // 验证请求数据
-    const dto = await validateRequest(UpdateUserDTO)(req, res, next);
+    const dto = await validateRequest(UpdateUserDTO)(req, res, next) as any;
     if (!dto) return;
 
     const user = await User.findByIdAndUpdate(req.params.id, dto, {

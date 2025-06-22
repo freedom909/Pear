@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { ErrorResponse } from '../utils/errorResponse.ts';
-import  logger  from '../utils/logger.ts';
+import { ErrorResponse } from '../utils/errorResponse';
+import  logger  from '../utils/logger';
 import { ValidationError } from 'class-validator';
 
 /**

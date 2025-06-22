@@ -1,8 +1,8 @@
 import passport from 'passport';
-import { UserService } from '../services/user.ts';
-import { OAuthStrategyFactory } from '../strategies/auth.factory.ts';
-import { OAuthConfiguration } from '../config/oauth.ts';
-import { Log } from '../logger/logger.ts';
+import { UserService } from '../services/user';
+import { OAuthStrategyFactory } from '../strategies/auth.factory';
+import { OAuthConfiguration } from '../config/oauth';
+import { Log } from '../logger/logger';
 
 export class PassportConfig {
     private static oauthFactory: OAuthStrategyFactory;

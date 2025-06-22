@@ -1,8 +1,7 @@
-import Redis from 'redis';
-import { ErrorResponse } from './errorResponse.ts';
-import  logger  from './logger.ts';
 import { createClient, RedisClientType } from 'redis';
-import { create } from 'domain';
+import { ErrorResponse } from './errorResponse';
+import logger from './logger';
+
 // Redis配置接口
 interface RedisConfig {
   host: string;
@@ -11,14 +10,31 @@ interface RedisConfig {
   db?: number;
   tls?: any;
 }
-  // 创建Redis客户端
 
-let client: RedisClientType | null = null;// Cannot use namespace 'Redis' as a type.
+// Redis客户端
+let redisClient: RedisClientType | null = null;
+// 创建Redis客户端
+export const getRedisClient = async (): Promise<RedisClientType> => {
 
+
+  try {
+    // Explicitly type-cast the result of initRedis to RedisClientType
+    redisClient = await initRedis() as RedisClientType;
+  } catch (err) {
+    logger.error('初始化Redis失败:', err);
+    throw new ErrorResponse('Redis连接失败', 500);
+  }
+  if (!redisClient) {
+    throw new ErrorResponse('Redis客户端未初始化', 500);
+  }
+  return redisClient;
+};
+
+/**
 /**
  * 初始化Redis连接
  */
-export const initRedis = () => {
+export const initRedis = async () => {
   try {
     const config: RedisConfig = {
       host: process.env.REDIS_HOST || 'localhost',
@@ -26,29 +42,26 @@ export const initRedis = () => {
       db: parseInt(process.env.REDIS_DB || '0')
     };
 
-    // 如果有密码，添加密码
     if (process.env.REDIS_PASSWORD) {
       config.password = process.env.REDIS_PASSWORD;
     }
 
-    // 如果是生产环境且使用TLS，添加TLS配置
     if (process.env.NODE_ENV === 'production' && process.env.REDIS_TLS === 'true') {
       config.tls = {};
     }
 
-    redisClient = new Redis(config);
+    const client = createClient(config);
 
-    // 监听连接事件
-    redisClient.on('connect', () => {
+    client.on('connect', () => {
       logger.info('Redis连接已建立');
     });
 
-    // 监听错误事件
-    redisClient.on('error', (err) => {
+    client.on('error', (err) => {
       logger.error('Redis错误:', err);
     });
 
-    return redisClient;
+    await client.connect();
+    return client;
   } catch (err) {
     logger.error('初始化Redis失败:', err);
     throw new ErrorResponse('Redis连接失败', 500);
@@ -58,12 +71,12 @@ export const initRedis = () => {
 /**
  * 获取Redis客户端
  */
-export const getRedisClient = () => {
-  if (!redisClient) {
-    throw new ErrorResponse('Redis客户端未初始化', 500);
-  }
-  return redisClient;
-};
+
+
+/**
+ * 初始化Redis连接
+ */
+
 
 /**
  * 关闭Redis连接
@@ -86,11 +99,13 @@ export const setCache = async (key: string, value: any, ttl?: number) => {
   try {
     const client = getRedisClient();
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-    
+
     if (ttl) {
-      await client.setex(key, ttl, stringValue);
+      const redisClientInstance = await client;
+      await redisClientInstance.setEx(key, ttl, stringValue);
     } else {
-      await client.set(key, stringValue);
+      const redisClientInstance = await client;
+      await redisClientInstance.set(key, stringValue);
     }
   } catch (err) {
     logger.error('设置缓存失败:', err);
@@ -106,7 +121,8 @@ export const setCache = async (key: string, value: any, ttl?: number) => {
 export const getCache = async <T>(key: string): Promise<T | null> => {
   try {
     const client = getRedisClient();
-    const value = await client.get(key);
+    const redisClientInstance = await client;
+    const value = await redisClientInstance.get(key);
     if (!value) return null;
 
     try {
@@ -127,7 +143,8 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
 export const deleteCache = async (key: string) => {
   try {
     const client = getRedisClient();
-    await client.del(key);
+    const redisClientInstance = await client;
+    await redisClientInstance.del(key);
   } catch (err) {
     logger.error('删除缓存失败:', err);
     throw new ErrorResponse('缓存删除失败', 500);
@@ -142,7 +159,8 @@ export const deleteCache = async (key: string) => {
 export const exists = async (key: string): Promise<boolean> => {
   try {
     const client = getRedisClient();
-    const result = await client.exists(key);
+    const redisClientInstance = await client;
+    const result = await redisClientInstance.exists(key);
     return result === 1;
   } catch (err) {
     logger.error('检查键是否存在失败:', err);
@@ -160,7 +178,8 @@ export const hset = async (key: string, field: string, value: any) => {
   try {
     const client = getRedisClient();
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-    await client.hset(key, field, stringValue);
+    const redisClientInstance = await client;
+    await redisClientInstance.hSet(key, field, stringValue);
   } catch (err) {
     logger.error('设置哈希表字段失败:', err);
     throw new ErrorResponse('哈希表设置失败', 500);
@@ -176,7 +195,8 @@ export const hset = async (key: string, field: string, value: any) => {
 export const hget = async <T>(key: string, field: string): Promise<T | null> => {
   try {
     const client = getRedisClient();
-    const value = await client.hget(key, field);
+    const redisClientInstance = await client;
+    const value = await redisClientInstance.hGet(key, field);
     if (!value) return null;
 
     try {

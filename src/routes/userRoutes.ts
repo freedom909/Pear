@@ -11,10 +11,11 @@ import {
   getUser,
   updateUserAdmin,
   deleteUser
-} from '../controllers/userController';
-import { auth } from '../middleware/auth';
-import { UserRole } from '../models/interface';
-import { loginLimiter } from '../middleware/rateLimiter';
+} from '../controllers/userController.ts';
+import { auth } from '../middleware/auth.ts';
+import {UserRole}  from '../models/interface/index.ts';
+import { role } from '../middleware/auth.ts';
+import { loginLimiter } from '../middleware/rateLimiter.ts';
 
 const router = express.Router();
 
@@ -32,7 +33,12 @@ router.put('/updatedetails', updateUser);
 router.put('/updatepassword', updatePassword);
 
 // 管理员路由
-router.use([UserRole.ADMIN, UserRole.SUPER_ADMIN]);// is this ok?
+router.use((req, res, next) => {
+// Assuming UserRole is an enum and needs to be imported correctly as a value
+// If UserRole is a type, we need to have a corresponding value representation
+// Here we assume UserRole is an enum and the import is correct as a value
+  role([UserRole.ADMIN, UserRole.SUPER_ADMIN] as any)(req, res, next);//'UserRole' only refers to a type, but is being used as a value here
+});
 
 router.get('/', getUsers);
 router.get('/:id', getUser);

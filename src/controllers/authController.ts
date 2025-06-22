@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { ErrorResponse } from '../utils/errorResponse';
 import { asyncHandler } from '../middleware/error';
-import  User  from '../models/user/model';
+import  User  from '../models/user/user.model';
 import { LoginResponseDTO, UserResponseDTO } from '../dtos/userDTO';
-import { logger } from '../utils/logger';
+import  logger from '../utils/logger';
 
 /**
  * Initiate Google OAuth login

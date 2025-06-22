@@ -10,11 +10,6 @@ import {
   updatePassword,
 } from '../controllers/auth.controller';
 import { auth } from '../middleware/auth';
-
-import {
-  googleLogin,
-  googleCallback,
-} from '../controllers/oauth/google.controller';
 import {
   facebookLogin,
   facebookCallback,
@@ -27,6 +22,11 @@ import {
   twitterLogin,
   twitterCallback,
 } from '../controllers/oauth/twitter.controller';
+
+import {
+  googleLogin,
+  googleCallback,
+} from '../controllers/oauth/google.controller';
 
 const router = Router();
 
@@ -70,3 +70,6 @@ router.get('/twitter', twitterLogin);              // GET /api/v1/auth/twitter
 router.get('/twitter/callback', twitterCallback);  // GET /api/v1/auth/twitter/callback
 
 export default router;
+
+
+

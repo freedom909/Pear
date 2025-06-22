@@ -187,7 +187,7 @@ export const createErrorResponse = (error: Error) => {
       status: 'error',
       code: 'DUPLICATE_KEY',
       message: '资源已存在',
-      details: (error as any).keyValue,
+...((error as any).keyValue && { details: (error as any).keyValue }),
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     };
   }

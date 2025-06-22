@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import User, { UserRole } from '../models/interface/index';
+import  { UserRole } from '../models/interface/index';
+import  User  from '../models/user/user.model';
 import { ErrorResponse } from '../utils/errorResponse';
-import { logger } from '../utils/logger';
+import  logger  from '../utils/logger';
 import crypto from 'crypto';
 
 /**
@@ -308,7 +309,7 @@ const sendTokenResponse = (user: any, statusCode: number, res: Response) => {
 
   const options = {
     expires: new Date(
-      Date.now() + (process.env.JWT_COOKIE_EXPIRE || 30) * 24 * 60 * 60 * 1000
+      Date.now() + (process.env.JWT_COOKIE_EXPIRE as unknown as number) || 30 * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

@@ -1,26 +1,26 @@
 import { PassportStatic } from 'passport';
-import { UserService } from '../services/user.ts';
-import { GoogleOAuthStrategy } from './google.ts';
-import { FacebookOAuthStrategy } from './facebook.ts';
-import { TwitterOAuthStrategy } from './twitter.ts';
+import  userService  from '../services/user.service';
+import { GoogleOAuthStrategy } from './google';
+import { FacebookOAuthStrategy } from './facebook';
+import { TwitterOAuthStrategy } from './twitter';
 
-import { AppleOAuthStrategy } from './apple.ts';
-
-import { BaseOAuthStrategy } from './base.ts';
-import { OAuthConfig } from './base.ts';
-import { Log} from '../logger/logger.ts';
+import { AppleOAuthStrategy } from './apple';
+import  UserService from '../services/user.service';
+import { BaseStrategy } from './base';
+import { OAuthConfig } from '../models/interface/index';
+import { Log} from '../logger/logger';
 
 
 /**
  * OAuth strategy factory class
  */
 export class OAuthStrategyFactory {
-    protected strategies: Map<string, BaseOAuthStrategy> = new Map();
+    protected strategies: Map<string, BaseStrategy> = new Map();
     protected passport: PassportStatic;
-    protected userService: UserService;
+    protected userService: typeof UserService;
     protected configs: Record<string, OAuthConfig>;
   
-    constructor(passport: PassportStatic,configs: Record<string, OAuthConfig>,userService: UserService) {
+    constructor(passport: PassportStatic,configs: Record<string, OAuthConfig>,userService: typeof UserService) {
       this.passport = passport;
       this.userService = userService;
       this.configs = configs;
@@ -38,7 +38,7 @@ export class OAuthStrategyFactory {
         if (configs.google?.clientID && configs.google?.clientSecret) {
         this.strategies.set(
           'google',
-          new GoogleOAuthStrategy(this.passport, configs.google, this.userService)
+          new GoogleOAuthStrategy()
         );
         Log.info('Google OAuth strategy initialized');
       }
@@ -48,7 +48,7 @@ export class OAuthStrategyFactory {
         if (configs.facebook?.clientID && configs.facebook?.clientSecret) {
         this.strategies.set(
           'facebook',
-          new FacebookOAuthStrategy(this.passport, configs.facebook, this.userService)
+          new FacebookOAuthStrategy()
         );
         Log.info('Facebook OAuth strategy initialized');
       }
@@ -59,7 +59,7 @@ export class OAuthStrategyFactory {
         if (configs.twitter?.clientID && configs.twitter?.clientSecret) {
         this.strategies.set(
           'twitter',
-          new TwitterOAuthStrategy(this.passport, configs.twitter, this.userService)
+          new TwitterOAuthStrategy()
         );
         Log.info('Twitter OAuth strategy initialized');
       }
@@ -69,7 +69,7 @@ export class OAuthStrategyFactory {
         if (configs.apple?.clientID && configs.apple?.clientSecret) {
         this.strategies.set(
           'apple',
-          new AppleOAuthStrategy(this.passport, configs.apple, this.userService)
+          new AppleOAuthStrategy()
         );
         Log.info('Apple OAuth strategy initialized');
       }
@@ -101,8 +101,7 @@ export class OAuthStrategyFactory {
       // Deserialize user from session
       this.passport.deserializeUser(async (id: string, done) => {
         try {
-        
-          const user = await this.userService.findUserById(id);
+          const user = await userService.getUserById(id);//it said that Property 'getUserById' does not exist on type 'UserService', why?
           if (!user?.id) {
             return done(new Error('Invalid user object'));
           }

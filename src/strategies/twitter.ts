@@ -1,84 +1,46 @@
 import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PassportStatic } from 'passport';
-import { BaseOAuthStrategy } from './base';
-import { UserService } from '../services/user';
-import { Log } from '../logger/logger';
-import User from '../models/user/model';
-import { OAuthConfig } from 'models/user/index';
-import { IUserModel, IUserProfile } from '../models/interface';
-import { OAuthConfiguration } from 'config/oauth';
+import { BaseStrategy } from './base';
+import  userService  from '../services/user.service';
+
 /**
  * ** Twitter OAuth Strategy
- */
+ */// src/passport/strategies/AppleStrategy.ts
 
 
 
-export class TwitterOAuthStrategy extends BaseOAuthStrategy {
-  protected passport: PassportStatic;
-  protected config: OAuthConfig;
-  protected userService: UserService;
-  constructor(
-      passport: PassportStatic, config: OAuthConfig, userService: UserService
-    ) {
-      super(config, userService);
-      this.passport = passport;// Property 'passport' does not exist on type 'GoogleOAuthStrategy'
-      this.userService = userService;
-      this.config = config;
-    }
-
-    async init(): Promise<void> {
-      const strategy = this.configureStrategy();
-      this.passport.use('twitter', strategy);
-    }
-  
-    configureStrategy(): TwitterStrategy {
-      return new TwitterStrategy(
+export class TwitterOAuthStrategy extends BaseStrategy {
+  init(passport: PassportStatic): void {
+    passport.use(
+      new TwitterStrategy(
         {
-          consumerKey: this.config.clientID,
-          consumerSecret: this.config.clientSecret,
-          callbackURL: this.config.callbackURL,
-          includeEmail: true, // Request email from Twitter API if available
+          consumerKey: process.env.TWITTER_CONSUMER_KEY!,
+          consumerSecret: process.env.TWITTER_CONSUMER_SECRET!,
+          callbackURL: "/api/v1/auth/twitter/callback",
+          passReqToCallback: true,
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (_req, accessToken, refreshToken, profile, done) => {
           try {
-            // Find existing user or create a new one
-            const existingUser = await UserService.findUserByProviderId( 
-              'twitter',
-              profile.id,
-            ) as IUserProfile | null;
-  
-            if (existingUser) {
-              // Update existing user with latest profile info
-              existingUser.firstName = profile.name?.givenName || '';
-              existingUser.lastName = profile.displayName;
-              existingUser.avatar = profile.photos?.[0]?.value || '';
-              // Twitter doesn't always provide email
-              if (profile.emails && profile.emails.length > 0) {
-                existingUser.email = profile.emails[0].value;
-              }
-              existingUser.lastLogin = new Date();
-              
-              const updatedUser = await existingUser.save();
-              return done(null, updatedUser);
+            let user = await userService.findOne({ twitterId: profile.id });
+            if (!user) {
+              user = await userService.create({
+                email: profile.emails?.[0]?.value || '',
+                name: profile.displayName || profile.username || '',
+                provider: 'twitter',
+                accessToken,
+                refreshToken,
+                profile: {
+                  twitterId: profile.id,
+                } ,
+                avatar: profile.photos?.[0]?.value,
+              });
             }
-  
-            // Create new user
-            const newUser = new User({
-              name: profile.displayName,
-              // Twitter doesn't always provide email
-              email: profile.emails?.[0]?.value || `twitter_${profile.id}@placeholder.com`,
-              avatar: profile.photos?.[0]?.value || '',
-              provider: 'twitter',
-              providerId: profile.id,
-              lastLogin: new Date(),
-            });
-  
-            const savedUser = await newUser.save();
-            return done(null, savedUser);
+            done(null, user);
           } catch (error) {
-            return done(error as Error);
+            done(error, null);
           }
-        },
-      );
-    }
+        }
+      )
+    );
   }
+}

@@ -1,9 +1,11 @@
 import nodemailer from 'nodemailer';
 import { ErrorResponse } from './errorResponse';
-import { logger } from '../logger/logger';
+import  Log  from '../utils/logger';
 import path from 'path';
 import fs from 'fs';
-import handlebars from 'handlebars';
+// Try to import handlebars with a more specific path if possible, or install the 'handlebars' package.
+// If the package is not installed, run 'npm install handlebars @types/handlebars' or 'yarn add handlebars @types/handlebars'.
+import * as handlebars from 'handlebars';// how to write the handlebars
 
 // 邮件配置接口
 interface EmailConfig {
@@ -78,9 +80,9 @@ class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      log.info(`邮件已发送至: ${options.email}`);
+      Log.info(`邮件已发送至: ${options.email}`);
     } catch (error) {
-      log.error('发送邮件失败:', error);
+      Log.error('发送邮件失败:', error);
       throw new ErrorResponse('发送邮件失败', 500);
     }
   }

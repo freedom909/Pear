@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
-import User ,{  UserDocument } from '../../models/user/model';
-
+import {  UserDocument } from '../../models/interface/index';
+import User from '../../models/user/user.model';
 import { ApiResponse } from '../../utils/api-response.util';
 
 /**

@@ -1,63 +1,44 @@
-import { PassportStatic } from 'passport';
-import { Strategy as AppleStrategy } from 'passport-apple';
-import { UserService } from '../services/user';
-import { BaseOAuthStrategy } from './base';
-import { Log } from '../logger/logger';
-import {OAuthConfig} from '../models/interface/index';
+// src/passport/strategies/AppleStrategy.ts
+import { BaseStrategy } from "./base";
+import { PassportStatic } from "passport";
+import { Strategy as AppleStrategy } from "passport-apple";
+import  userService  from "../services/user.service";
 
-export class AppleOAuthStrategy extends BaseOAuthStrategy {
-  constructor(
-    private readonly passport: PassportStatic,
-    config: OAuthConfig,
-    userService: UserService
-  ) {
-    super(config, userService);
-    this.configureStrategy();
-  }
-
-  protected configureStrategy(): void {
-    try {
-      this.passport.use(
-        new AppleStrategy( 
-          {
-            clientID: this.config.clientID!,
-            teamID: this.config.teamID!,
-            keyID: this.config.keyID!,
-            privateKeyLocation: this.config.privateKeyLocation!,
-            callbackURL: this.config.callbackURL,
-            scope: this.config.scope || ['name', 'email'],
-            passReqToCallback: false
-          },
-          async (accessToken: string, refreshToken: string, profile: any, done: any) => {
-            try {
-              // Apple profile structure is different from other providers
-              // It might not have all the fields we expect
-              const user = await this.validateOAuthProfile(
-                accessToken as unknown as string,            
-                refreshToken as unknown as string,
-                {
-                  id: profile.id,
-                  provider: 'apple',
-                  emails: profile.emails || [],
-                  photos: profile.photos || [],
-                  name: {
-                    givenName: profile.name?.firstName || '',
-                    familyName: profile.name?.lastName || '',
-                  },
-                }
-              );
-              return done(null, user);
-            } catch (error) {
-              Log.error('Error validating Apple profile', { error });
-              return done(error as Error);
+export class AppleOAuthStrategy extends BaseStrategy {
+  init(passport: PassportStatic): void {
+    passport.use(
+      new AppleStrategy(
+        {
+          clientID: process.env.APPLE_CLIENT_ID!,
+          teamID: process.env.APPLE_TEAM_ID!,
+          keyID: process.env.APPLE_KEY_ID!,
+          privateKey: process.env.APPLE_PRIVATE_KEY!,
+          callbackURL: "/api/v1/auth/apple/callback",
+          scope: ['email', 'name'],
+          passReqToCallback: true,
+        } as any,
+        async (_req: any, accessToken: any, refreshToken: any, _idToken: any, profile: any, done: any) => {
+          try {
+            let user = await userService.findOne({ appleId: profile.id });
+            if (!user) {
+              user = await userService.create({
+                provider: 'apple',
+                email: profile.emails[0].value,
+                name: profile.name.givenName,
+                accessToken,             // pass the token too
+                refreshToken,            // pass the refresh token too
+                profile: {
+                  appleId: profile.id,   // ✅ store under appleId
+                },
+                avatar: profile.photos[0].value,
+              });
             }
+                done(null, user);
+          } catch (error) {
+            done(error as any, null as any);
           }
-        )
-      );
-      Log.info('Apple OAuth strategy configured');
-    } catch (error) {
-      Log.error('Error configuring Apple OAuth strategy', { error });
-      throw error;
-    }
+        }
+      )
+    );
   }
 }

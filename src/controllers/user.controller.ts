@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import User, { UserRole } from '../models/interface';
+import { UserRole } from '../models/interface/index';
+import User from '../models/user/user.model';
 import { ErrorResponse } from '../utils/errorResponse';
-import { logger } from '../utils/logger';
+import  logger  from '../utils/logger';
 
 /**
  * @desc    获取所有用户

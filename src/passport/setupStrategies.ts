@@ -4,7 +4,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { Strategy as AppleStrategy } from 'passport-apple';
 import { Strategy as TwitterStrategy } from 'passport-twitter';
-import { userService } from '../services/user.service';
+import userService  from '../services/user.service';
 import { UserDocument } from '@/models/interface';
 
 // Shared callback logic for all OAuth strategies

@@ -1,3 +1,32 @@
+/**
+ * Google OAuth Controller
+ * 
+ * Handles Google OAuth authentication flow with two main endpoints:
+ * 1. googleLogin - Initiates the OAuth flow by redirecting to Google's consent screen
+ * 2. googleCallback - Handles the callback from Google after authentication
+ * 
+ * @module GoogleOAuthController
+ */
+
+/**
+ * Initiates Google OAuth flow by redirecting to Google's consent screen.
+ * Uses passport.js Google strategy with 'profile' and 'email' scopes.
+ * 
+ * @function googleLogin
+ * @route GET /api/v1/auth/google
+ */
+
+/**
+ * Handles Google OAuth callback after authentication.
+ * On success: Generates JWT token and returns user data with token.
+ * On failure: Redirects to login page with error or passes error to error handler.
+ * 
+ * @function googleCallback
+ * @route GET /api/v1/auth/google/callback
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Express next middleware function
+ */
 // src/controllers/oauth/google.controller.ts
 
 import { Request, Response, NextFunction } from 'express';

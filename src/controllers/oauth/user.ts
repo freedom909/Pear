@@ -17,7 +17,7 @@ export class UserController {
         return ApiResponse.unauthorized(res, 'Unauthorized');
       }
 
-      const user = await User.findById(req.user.id).select('-password');
+      const user = await User.findById((req as any).user.id).select('-password');
       
       if (!user) {
         return ApiResponse.notFound(res, 'User not found');
@@ -50,7 +50,7 @@ export class UserController {
       
       // Check if email is already taken
       if (email) {
-        const existingUser = await User.findOne({ email, _id: { $ne: req.user.id } });
+        const existingUser = await User.findOne({ email, _id: { $ne: (req as any).user.id } });
         if (existingUser) {
           return ApiResponse.validationError(res, [
             { field: 'email', message: 'Email is already taken' }
@@ -64,7 +64,7 @@ export class UserController {
       if (email) updateData.email = email;
       
       const updatedUser = await User.findByIdAndUpdate(
-        req.user.id,
+        (req as any).user.id,
         { $set: updateData },
         { new: true }
       ).select('-password');

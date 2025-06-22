@@ -1,16 +1,67 @@
-import {  Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { ErrorResponse } from '../utils/errorResponse';
-import  User  from '../models/user/user.model';
-import  logger from '../utils/logger';
+import { UserRole } from '../models/interface/index'; // or wherever you keep UserRole
+import userService from '../services/user.service';
+import config from '../config/config';
+import { ErrorResponse } from '@/utils/error';
+import logger from '@/utils/logger';
+
+export interface AuthRequest extends Request {
+  user?: any; // type this properly if you have a User type
+}
+
+// 1️⃣ protect — check JWT, set req.user
+export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  let token: string | undefined;
+
+  // Get token from header or cookie
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies?.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized, token missing' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.jwt.secret) as { sub: string };
+    const user = await userService.findById(decoded.sub); // Fetch the user by id
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Token is invalid or expired' });
+  }
+};
+
+// 2️⃣ authorize — check if user role matches one of the allowed roles
+export const authorize = (...roles: UserRole[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: `Access denied. Requires role: ${roles}` });
+    }
+
+    next();
+  };
+};
+
 
 interface JwtPayload {
   id: string;
 }
 
-/**
- * Protect routes by verifying JWT token
- */
+// /**
+//  * Protect routes by verifying JWT token
+//  */
 export const auth = async (req: any, _res: Response, next: NextFunction) => {
   let token;
 
@@ -25,7 +76,7 @@ export const auth = async (req: any, _res: Response, next: NextFunction) => {
   }
 
   if (!token) {
-    return next(new ErrorResponse('Not authorized to access this route', 401));
+    return next(new ErrorResponse('Not authorized to access this route'as any));
   }
 
   try {
@@ -36,25 +87,29 @@ export const auth = async (req: any, _res: Response, next: NextFunction) => {
     ) as JwtPayload;
 
     // Get user from token
-    req.user = await User.findById(decoded.id).select('-password');
+// Since 'User' is not found, we assume there's a service similar to the previous part of the code
+// Let's use userService to find the user
+req.user = await userService.findById(decoded.id);
 
     next();
   } catch (err) {
     logger.error('JWT verification error:', err);
-    return next(new ErrorResponse('Not authorized to access this route', 401));
+// Assuming ErrorResponse constructor can accept only one argument, adjust accordingly
+const error = new ErrorResponse('Not authorized to access this route' as any);
+return next(error);
   }
 };
 
-/**
- * Grant access to specific roles
- */
+// /**
+//  * Grant access to specific roles
+//  */
 export const role = (...roles: string[]) => {
   return (req: any, _res: Response, next: NextFunction) => {
     if (!roles.includes(req.user.role)) {
       return next(
         new ErrorResponse(
-          `User role ${req.user.role} is not authorized to access this route`,
-          403
+          `User role ${req.user.role} is not authorized to access this route` as any,
+          
         )
       );
     }

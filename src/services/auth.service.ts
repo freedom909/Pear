@@ -67,7 +67,7 @@ class AuthServiceImpl implements AuthService {
 
       return {
         user: {
-          id: user._id,
+          id: user._id as string,
           username: user.username,
           email: user.email,
           role: user.role,
@@ -82,7 +82,7 @@ class AuthServiceImpl implements AuthService {
       if (error instanceof ErrorResponse) {
         throw error;
       }
-      throw ErrorResponse.internal('注册失败');
+      throw ErrorResponse.internalError('注册失败');
     }
   }
 
@@ -116,7 +116,7 @@ class AuthServiceImpl implements AuthService {
 
       return {
         user: {
-          id: user._id,
+          id: user._id as string,
           username: user.username,
           email: user.email,
           role: user.role,
@@ -131,7 +131,7 @@ class AuthServiceImpl implements AuthService {
       if (error instanceof ErrorResponse) {
         throw error;
       }
-      throw ErrorResponse.internal('登录失败');
+      throw ErrorResponse.internalError('登录失败');
     }
   }
 
@@ -157,7 +157,7 @@ class AuthServiceImpl implements AuthService {
 
       return {
         user: {
-          id: user._id,
+          id: user._id as string,
           username: user.username,
           email: user.email,
           role: user.role,
@@ -175,7 +175,7 @@ class AuthServiceImpl implements AuthService {
       if (error instanceof ErrorResponse) {
         throw error;
       }
-      throw ErrorResponse.internal('刷新令牌失败');
+      throw ErrorResponse.internalError('刷新令牌失败');
     }
   }
 

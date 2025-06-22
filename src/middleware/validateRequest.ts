@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ErrorResponse } from '../utils/errorResponse';
-import { logger } from '../utils/logger';
+import logger  from '../utils/logger';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 
@@ -52,7 +52,11 @@ export const validateRequest = <T extends object>(
       }
 
       // 验证通过，将验证后的数据附加到请求对象
-      req.validatedBody = dto;
+// Extend the Request type to include the validatedBody property
+interface CustomRequest extends Request {
+  validatedBody?: T;
+}
+(req as CustomRequest).validatedBody = dto;
       next();
     } catch (error) {
       logger.error('请求验证中间件错误:', error);
@@ -82,7 +86,11 @@ export const validateQuery = <T extends object>(dtoClass: new () => T) => {
         return next(new ErrorResponse(`查询参数验证失败: ${errorMessages}`, 400));
       }
 
-      req.validatedQuery = dto;
+// Extend the Request type to include the validatedQuery property
+interface CustomRequestQuery extends Request {
+  validatedQuery?: T;
+}
+(req as CustomRequestQuery).validatedQuery = dto;
       next();
     } catch (error) {
       logger.error('查询参数验证中间件错误:', error);
@@ -112,7 +120,11 @@ export const validateParams = <T extends object>(dtoClass: new () => T) => {
         return next(new ErrorResponse(`路径参数验证失败: ${errorMessages}`, 400));
       }
 
-      req.validatedParams = dto;
+// Extend the Request type to include the validatedParams property
+interface CustomRequestParams extends Request {
+  validatedParams?: T;
+}
+(req as CustomRequestParams).validatedParams = dto;
       next();
     } catch (error) {
       logger.error('路径参数验证中间件错误:', error);

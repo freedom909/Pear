@@ -1,62 +1,53 @@
 import { PassportStatic } from 'passport';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
-import { UserService } from '../services/user';
-import { BaseOAuthStrategy,  } from './base';
+import  userService  from '../services/user.service';
+import { BaseStrategy } from './base';
 import { Log } from '../logger/logger';
-import { OAuthConfig } from 'models/user/index';
+import { Request } from 'express';
+import { Profile } from 'passport';
+import { VerifyCallback } from 'passport-oauth2';
 
-export class FacebookOAuthStrategy extends BaseOAuthStrategy { protected passport: PassportStatic;
-  protected config: OAuthConfig;
-  protected userService: UserService;
-  constructor(
-      passport: PassportStatic, config: OAuthConfig, userService: UserService
-    ) {
-      super(config, userService);
-      this.passport = passport;// Property 'passport' does not exist on type 'GoogleOAuthStrategy'
-      this.userService = userService;
-      this.config = config;
-    }
+export class FacebookOAuthStrategy extends BaseStrategy {
+  init(passport: PassportStatic): void {
+    passport.use(
+      new FacebookStrategy(
+        {
+          clientID: process.env.FACEBOOK_APP_ID!,
+          clientSecret: process.env.FACEBOOK_APP_SECRET!,
+          callbackURL: '/api/v1/auth/facebook/callback',
+          profileFields: ['id', 'emails', 'name', 'photos'],
+          passReqToCallback: true,
+        },
+        async (
+          _req: Request,
+          accessToken: string,
+          refreshToken: string,
+          profile: Profile,
+          done: VerifyCallback
+        ) => {
+          Log.info('FacebookStrategy', { accessToken, refreshToken, profile });
 
-  protected configureStrategy(): void {
-    try {
-      this.passport.use(
-        new FacebookStrategy(
-          {
-            clientID: this.config.clientID,
-            clientSecret: this.config.clientSecret,
-            callbackURL: this.config.callbackURL,
-            profileFields: ['id', 'emails', 'name', 'picture.type(large)'],
-            scope: this.config.scope || ['email'],
-          },
-          async (accessToken, refreshToken, profile, done) => {
-            try {
-              // Facebook profile structure is a bit different
-              const user = await this.validateOAuthProfile(
+          try {
+            let user = await userService.findOne({ facebookId: profile.id });
+            if (!user) {
+              user = await userService.create({
+                provider: 'facebook',
+                email: profile.emails?.[0]?.value || '',
+                name: profile.name?.givenName || '',
                 accessToken,
                 refreshToken,
-                {
-                  id: profile.id,
-                  provider: 'facebook',
-                  emails: profile.emails,
-                  photos: profile.photos,
-                  name: {
-                    givenName: profile.name?.givenName,
-                    familyName: profile.name?.familyName,
-                  },
-                }
-              );
-              return done(null, user);
-            } catch (error) {
-              Log.error('Error validating Facebook profile', { error });
-              return done(error as Error);
+                profile: {
+                  facebookId: profile.id,
+                },
+                avatar: profile.photos?.[0]?.value,
+              });
             }
+            return done(null, user);
+          } catch (error) {
+            return done(error);
           }
-        )
-      );
-      Log.info('Facebook OAuth strategy configured');
-    } catch (error) {
-      Log.error('Error configuring Facebook OAuth strategy', { error });
-      throw error;
-    }
+        }
+      )
+    );
   }
 }

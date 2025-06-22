@@ -8,20 +8,20 @@ import mongoSanitize from 'express-mongo-sanitize';
 import { rateLimit } from 'express-rate-limit';
 import hpp from 'hpp';
 import path from 'path';
-import { errorHandler, notFound } from './middleware/error.ts';
-import logger,{  logStream } from './utils/logger.ts';
-import { initRedis } from './utils/redis.ts';
-import userRoutes from './routes/userRoutes.ts';
+import { errorHandler, notFound } from './middleware/error';
+import logger,{  logStream } from './utils/logger';
+import { initRedis } from './utils/redis';
+import userRoutes from './routes/userRoutes';
 
-import googleRoutes from './routes/google.route.ts';
-import authRoutes from './routes/auth.routes.ts';
-import { initPassportStrategies } from './passport/setupStrategies.ts';
+// import googleRoutes from './routes/google.route.ts';
+import authRoutes from './routes/auth.routes';
+import { initPassportStrategies } from './passport/setupStrategies';
 
 
-import { connectDB } from './config/database.ts';
+import { connectDB } from './config/database';
 import passport from 'passport';
 import session from 'express-session';
-import { userService } from './services/user.service.ts';
+import  userService  from './services/user.service';
 
 // 初始化Express应用
 const app = express();
@@ -117,7 +117,7 @@ app.get('/health', (_req, res) => {
 // API路由
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-app.use('/api', googleRoutes);
+// app.use('/api', googleRoutes);
 
 // 错误处理中间件
 app.use(notFound);

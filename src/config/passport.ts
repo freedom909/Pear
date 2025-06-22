@@ -2,7 +2,7 @@ import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import User from '../models/user/user.model';
 import config from './config';
-import { logger } from '../utils/logger';
+import logger  from '../utils/logger';
 
 // JWT选项
 const opts = {

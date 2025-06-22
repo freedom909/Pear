@@ -1,0 +1,41 @@
+// src/controllers/oauth/google.controller.ts
+
+import { Request, Response, NextFunction } from 'express';
+import passport from 'passport';
+import { authService } from '../../services/auth.service';    // your JWT‐issuing service
+import { UserDocument } from '../../models/interface/index';  // for typing
+
+/**
+ * Step 1: Redirect to Google for consent.
+ * Route: GET /api/v1/auth/google
+ */
+export const facebookLogin = passport.authenticate('facebook', {
+  scope: ['profile', 'email'],
+});
+
+/**
+ * Step 2: Handle Google callback.
+ * Route: GET /api/v1/auth/google/callback
+ */
+export const facebookCallback = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate('facebook', {
+    session: false, failureRedirect: '/api/v1/auth/login?error=oauth_failed' },
+    async (err: Error, user: UserDocument, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        // OAuth failed, redirect or JSON error
+        return res.redirect('/api/v1/auth/login?error=oauth_failed');
+      }
+      try {
+        // Here you generate a JWT or start a session
+        const token = await authService.generateJwtForUser(user as UserDocument);
+        // Return user + token (or set as cookie, etc.)
+        return res.json({ success: true, user, token });
+      } catch (e) {
+        return next(e);
+      }
+    }
+  )(req, res, next);
+};

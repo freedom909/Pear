@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import Math from 'mathjs'
 import bcrypt from 'bcryptjs';
 import {OAuthTokenInfo} from '../models/interface/index';
-import {IUserProfile,UserDocument,Profile} from '../models/interface/index';
+import {IUser,UserDocument,Profile} from '../models/interface/index';
 
 // 用户服务接口
 interface UserService {
@@ -22,7 +22,8 @@ interface UserService {
     provider: string;
     accessToken: string;
     refreshToken: string;
-    profile?:Partial<IUserProfile>;
+    profile?:Partial<IUser>;//IUser constains all the properties providerId
+    avatar?:string;
   }): Promise<UserDocument>;
   findOneOrCreate(profile: any, tokenInfo: OAuthTokenInfo): Promise<UserDocument>;
 }
@@ -317,7 +318,8 @@ class UserServiceImpl implements UserService {
     provider: string;
     accessToken: string;
     refreshToken: string;
-    profile?:Partial<IUserProfile>
+    avatar?:string;
+    profile?:Partial<IUser>
   }): Promise<UserDocument> {
     try {
       // 创建新用户
@@ -461,6 +463,6 @@ class UserServiceImpl implements UserService {
   }
   
 }
-
+const userService = new UserServiceImpl();
 // 导出用户服务实例
-export const userService = new UserServiceImpl();
+export default userService;

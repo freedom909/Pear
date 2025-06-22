@@ -1,16 +1,62 @@
 import { Document, Model } from 'mongoose';
 
-export enum UserRole {
-  SUPER_ADMIN = 'super_admin',
-  ADMIN = 'admin',
-  USER = 'user',
+export interface IUser extends Document {
+  email: string;
+  password?: string;
+  name: string;
+  role?: UserRole | "";
+  emailVerified: boolean;
+  profilePhoto?: string;
+  bio?: string;
+  
+  // OAuth 相关字段
+  googleId?: string;
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
+  
+  facebookId?: string;
+  facebookAccessToken?: string;
+  facebookRefreshToken?: string;
+  
+  twitterId?: string;
+  twitterAccessToken?: string;
+  twitterRefreshToken?: string;
+  
+  appleId?: string;
+  appleAccessToken?: string;
+  appleRefreshToken?: string;
+  
+  // 账户状态
+  isActive: boolean;
+  lastLogin?: Date;
+  
+  // 时间戳
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // 生成令牌
+  generateAuthToken(): string;
+  generateRefreshToken(): string;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+  generateEmailVerificationToken(): Promise<string>;
+  generatePasswordResetToken(): Promise<string>;
 }
 
-export enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
-}
+export const UserRole = {
+  SUPER_ADMIN: 'super_admin' as const,
+  ADMIN: 'admin' as const,
+  USER: 'user' as const,
+};
+
+export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+export const UserStatus = {
+  ACTIVE: 'active' as const,
+  INACTIVE: 'inactive' as const,
+  SUSPENDED: 'suspended' as const,
+};
+
+export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
 
 export interface Profile {
   _id: string;
@@ -35,17 +81,7 @@ export interface Profile {
   gender?: 'male' | 'female' | 'other';
 }
 
-// export interface IUser extends Document {
-//   username: string;
-//   email: string;
-//   password: string;
-//   role: 'user' | 'admin';
-//   createdAt: Date;
-//   updatedAt: Date;
-//   comparePassword(password: string): Promise<boolean>;
-//   generateAuthToken(): string;
-//   generateRefreshToken(): string;
-// }
+
 export interface JwtTokens {
   accessToken: string;
   refreshToken: string;
@@ -240,48 +276,6 @@ export interface OAuthConfig {
 }
 
 export interface IUserProfile {
-  
   authenticate: (req: any, options: any, callback: any) => void;
   userProfile: (accessToken: string, done: (err: any, profile?: any) => void) => void;
-}
-export interface IUser extends Document {
-  email: string;
-  password?: string;
-  name: string;
-  role: UserRole;
-  emailVerified: boolean;
-  profilePhoto?: string;
-  bio?: string;
-  
-  // OAuth 相关字段
-  googleId?: string;
-  googleAccessToken?: string;
-  googleRefreshToken?: string;
-  
-  facebookId?: string;
-  facebookAccessToken?: string;
-  facebookRefreshToken?: string;
-  
-  twitterId?: string;
-  twitterAccessToken?: string;
-  twitterRefreshToken?: string;
-  
-  appleId?: string;
-  appleAccessToken?: string;
-  appleRefreshToken?: string;
-  
-  // 账户状态
-  isActive: boolean;
-  lastLogin?: Date;
-  
-  // 时间戳
-  createdAt: Date;
-  updatedAt: Date;
-  
-  // 生成令牌
-  generateAuthToken(): string;
-  generateRefreshToken(): string;
-  comparePassword(candidatePassword: string): Promise<boolean>;
-  generateEmailVerificationToken(): Promise<string>;
-  generatePasswordResetToken(): Promise<string>;
 }
