@@ -8,7 +8,7 @@ import { AppleOAuthStrategy } from './apple';
 import  UserService from '../services/user.service';
 import { BaseStrategy } from './base';
 import { OAuthConfig } from '../models/interface/index';
-import { Log} from '../logger/logger';
+import logger from '../utils/logger';
 
 
 /**
@@ -30,7 +30,7 @@ export class OAuthStrategyFactory {
    */
   public initializeStrategies(configs: Record<string, OAuthConfig>): void {
     try {
-      Log.info('Initializing OAuth strategies');
+      logger.info('Initializing OAuth strategies');
 
       // Initialize Google strategy if config exists
       if (configs.google) {
@@ -40,7 +40,7 @@ export class OAuthStrategyFactory {
           'google',
           new GoogleOAuthStrategy()
         );
-        Log.info('Google OAuth strategy initialized');
+        logger.info('Google OAuth strategy initialized');
       }
     }
       // Initialize Facebook strategy if config exists
@@ -50,7 +50,7 @@ export class OAuthStrategyFactory {
           'facebook',
           new FacebookOAuthStrategy()
         );
-        Log.info('Facebook OAuth strategy initialized');
+        logger.info('Facebook OAuth strategy initialized');
       }
     }
 
@@ -61,7 +61,7 @@ export class OAuthStrategyFactory {
           'twitter',
           new TwitterOAuthStrategy()
         );
-        Log.info('Twitter OAuth strategy initialized');
+        logger.info('Twitter OAuth strategy initialized');
       }
     }
       // Initialize Apple strategy if config exists
@@ -71,14 +71,14 @@ export class OAuthStrategyFactory {
           'apple',
           new AppleOAuthStrategy()
         );
-        Log.info('Apple OAuth strategy initialized');
+        logger.info('Apple OAuth strategy initialized');
       }
     }
       // Configure Passport serialization
       this.configurePassportSerialization();
-      Log.info('OAuth strategies initialization completed');
+      logger.info('OAuth strategies initialization completed');
     } catch (error) {
-      Log.error('Error initializing OAuth strategies', { error });
+      logger.error('Error initializing OAuth strategies', { error });
       throw error;
     }
   }
@@ -94,7 +94,7 @@ export class OAuthStrategyFactory {
         if (!user?.id) {
             return done(new Error('Invalid user object'));
           }
-        Log.debug('Serializing user', { userId: user.id });
+        logger.debug('Serializing user', { userId: user.id });
         done(null, user.id);
       });
 
@@ -105,17 +105,17 @@ export class OAuthStrategyFactory {
           if (!user?.id) {
             return done(new Error('Invalid user object'));
           }
-          Log.debug('Deserializing user', { userId: id });
+          logger.debug('Deserializing user', { userId: id });
           done(null, user);
         } catch (error) {
-          Log.error('Error deserializing user', { error, userId: id });
+          logger.error('Error deserializing user', { error, userId: id });
           done(error);
         }
       });
 
-      Log.info('Passport serialization configured');
+      logger.info('Passport serialization configured');
     } catch (error) {
-      Log.error('Error configuring Passport serialization', { error });
+      logger.error('Error configuring Passport serialization', { error });
       throw error;
     }
   }

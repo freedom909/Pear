@@ -4,7 +4,8 @@ import config from '../config/config';
 import User  from '../models/user/user.model';
 import { UserDocument } from '../models/interface/index';
 import userService from '../services/user.service';
-
+import { UnauthorizedError } from '@/utils/error';
+import {ErrorCode} from '../utils/errors/error-code';
 import { UserRole} from '../models/interface/index';
 
 
@@ -142,6 +143,67 @@ async generateJwtForUser(user: UserDocument): Promise<string> {
   async logoutAll(): Promise<void> {
     return;
   }
-}
+  
+  /**
+   * Verify access token
+   */
+  verifyAccessToken(token: string): TokenPayload {
+    try {
+      return jwt.verify(token, config.jwt.secret) as TokenPayload;
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new UnauthorizedError(
+          ErrorCode.EXPIRED_TOKEN,
+          'Access token expired'
+        );
+      }
+      
+      throw new UnauthorizedError(
+        ErrorCode.INVALID_TOKEN,
+        'Invalid access token'
+      );
+    }
+  }
 
+  /**
+   * Generate access token
+   */
+  // private generateAccessToken(user: UserDocument): string {
+  //   const payload: TokenPayload = {
+  //     userId: user.id as unknown as string,
+  //     email: user.email,
+  //     role: user.role
+  //   };
+    
+  //   return jwt.sign(payload, config.jwt.secret, {
+  //     expiresIn: config.jwt.expiresIn as unknown as number,
+  //   });
+  // }
+
+  /**
+   * Generate refresh token
+   */
+  // private async generateRefreshToken(user: UserDocument): Promise<string> {
+  //   const payload: TokenPayload = {
+  //     userId: user._id as unknown as string,
+  //     email: user.email,
+  //     role: user.role
+  //   };
+    
+  //   const token = jwt.sign(payload, config.jwt.secret, {
+  //     expiresIn: config.jwt.expiresIn as unknown as number,
+  //   });
+    
+  //   // Add refresh token to user's refresh tokens
+  //   await user.addRefreshToken(token);
+    
+  //   return token;
+  // }
+}
 export const authService = new AuthService();
+// Export singleton instance
+export default authService;
+
+
+
+

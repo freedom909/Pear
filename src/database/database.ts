@@ -1,29 +1,29 @@
 import mongoose from 'mongoose';
 import  config  from '../config/config';
-import { Log} from '../logger/logger';
+import logger from '../utils/logger';
 
 
 export class database {
     static async connect() {
         try {
 // Assume the correct property is 'mongo' instead of 'database' based on the error
-await mongoose.connect(config.mongo.uri );
-            Log.info('Database connected');
+            await mongoose.connect(config.mongo.uri);
+            logger.info('Database connected');
             // Handle process termination
       process.on('SIGINT', async () => {
         await this.disconnect();
         process.exit(0);
       });
         } catch (error : any) {
-            Log.error(error);
+            logger.error(error);
         }
     }
     static async disconnect() : Promise<void>{
         try {
             await mongoose.connection.close();
-            Log.info('Database disconnected');
+            logger.info('Database disconnected');
         } catch (error : any) {
-            Log.error(error);
+            logger.error(error);
         }
     }
 
@@ -31,16 +31,16 @@ await mongoose.connect(config.mongo.uri );
         try {
             await this.connect();
         } catch (error : any) {
-            Log.error('Error initializing database', error);
+            logger.error('Error initializing database', error);
         }
     }
 
     static async close() : Promise<void>{
         try {
             await this.disconnect();
-            Log.info('Database connection closed');
+            logger.info('Database connection closed');
         } catch (error : any) {
-            Log.error('Error closing database connection', error);
+            logger.error('Error closing database connection', error);
         }
     }
 
@@ -49,7 +49,7 @@ await mongoose.connect(config.mongo.uri );
             await this.init();
             await this.close();
         } catch (error : any) {
-            Log.error('Error initializing and closing database connection', error);
+            logger.error('Error initializing and closing database connection', error);
         }
     }
 
@@ -58,7 +58,7 @@ await mongoose.connect(config.mongo.uri );
             await this.init();
             await this.close();
         } catch (error : any) {
-            Log.error('Error initializing and closing database connection', error);
+            logger.error('Error initializing and closing database connection', error);
         }
     }
 
@@ -67,18 +67,18 @@ await mongoose.connect(config.mongo.uri );
             await this.init();
             await this.close();
         } catch (error : any) {
-            Log.error('Error initializing and closing database connection', error);
+            logger.error('Error initializing and closing database connection', error);
             await this.connect();
         }
     }
-    static async initAndCloseWithErrorHandlingAndReconnectionAndLog() : Promise<void>{
+    static async initAndCloseWithErrorHandlingAndReconnectionAndlogger() : Promise<void>{
         try {
             await this.init();
             await this.close();
         } catch (error : any) {
-            Log.error('Error initializing and closing database connection', error);
+            logger.error('Error initializing and closing database connection', error);
             await this.connect();
-            Log.info('Database reconnected');
+            logger.info('Database reconnected');
         }
     }
 
@@ -87,9 +87,9 @@ await mongoose.connect(config.mongo.uri );
             await this.init();
             await this.close();
         } catch (error : any) {
-            Log.error('Error initializing and closing database connection', error);
+            logger.error('Error initializing and closing database connection', error);
             await this.connect();
-            Log.info('Database reconnected');
+            logger.info('Database reconnected');
         }
     }
     static async initAndCloseWithErrorHandlingAndReconnectionAndLogOnErrorAndLogOnClose() : Promise<void>{
@@ -97,9 +97,9 @@ await mongoose.connect(config.mongo.uri );
             await this.init();
             await this.close();
         } catch (error : any) {
-            Log.error('Error initializing and closing database connection', error);
+            logger.error('Error initializing and closing database connection', error);
             await this.connect();
-            Log.info('Database reconnected');
+            logger.info('Database reconnected');
         }
     }
 
@@ -108,9 +108,9 @@ await mongoose.connect(config.mongo.uri );
             await this.init();
             await this.close();
         } catch (error : any) {
-            Log.error('Error initializing and closing database connection', error);
+            logger.error('Error initializing and closing database connection', error);
             await this.connect();
-            Log.info('Database reconnected');
+            logger.info('Database reconnected');
         }
     }
 
@@ -123,7 +123,7 @@ await mongoose.connect(config.mongo.uri );
               }
             }
          catch (error : any) {
-            Log.error('Error creating indexes', error);
+            logger.error('Error creating indexes', error);
         }
     }
 
@@ -136,7 +136,7 @@ await mongoose.connect(config.mongo.uri );
               }
             }
          catch (error : any) {
-            Log.error('Error creating indexes', error);
+            logger.error('Error creating indexes', error);
         }
     }
     static async createIndexesForModel(modelName: string) : Promise<void>{
@@ -144,7 +144,7 @@ await mongoose.connect(config.mongo.uri );
             const model = mongoose.model(modelName);
             await model.createIndexes();
         } catch (error : any) {
-            Log.error('Error creating indexes', error);
+            logger.error('Error creating indexes', error);
         }
     }   
 

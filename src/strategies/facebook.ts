@@ -2,7 +2,7 @@ import { PassportStatic } from 'passport';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import  userService  from '../services/user.service';
 import { BaseStrategy } from './base';
-import { Log } from '../logger/logger';
+import logger from '../utils/logger';
 import { Request } from 'express';
 import { Profile } from 'passport';
 import { VerifyCallback } from 'passport-oauth2';
@@ -25,7 +25,7 @@ export class FacebookOAuthStrategy extends BaseStrategy {
           profile: Profile,
           done: VerifyCallback
         ) => {
-          Log.info('FacebookStrategy', { accessToken, refreshToken, profile });
+          logger.info('FacebookStrategy', { accessToken, refreshToken, profile });
 
           try {
             let user = await userService.findOne({ facebookId: profile.id });
