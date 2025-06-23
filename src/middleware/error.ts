@@ -18,9 +18,9 @@ export const asyncHandler = (fn: Function) => {
  */
 export const errorHandler = (
   err: any,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   let error = { ...err };
   error.message = err.message;
@@ -79,7 +79,7 @@ export const errorHandler = (
 /**
  * 404 处理中间件
  */
-export const notFound = (req: Request, res: Response, next: NextFunction) => {
+export const notFound = (req: Request, _res: Response, next: NextFunction) => {
   const error = new ErrorResponse(`找不到 ${req.originalUrl}`, 404);
   next(error);
 };

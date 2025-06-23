@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path from 'path';
 import dotenv from 'dotenv';
-import logger from './utils/logger.ts';
+import logger from './utils/logger';
 import './server.ts';
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 

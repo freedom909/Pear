@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { ErrorResponse } from '../utils/errorResponse';
-import { logger } from '../utils/logger';
+import  logger  from '../utils/logger';
 import RedisStore from 'rate-limit-redis';
 import redisClient from '../utils/redis';
 
@@ -19,12 +19,11 @@ export const rateLimiter = (
   message = '请求过于频繁，请稍后再试',
   skipFailedRequests = false
 ) => {
-  const store = redisClient
-    ? new RedisStore({
-        client: redisClient,
-        prefix: 'rate_limit:'
-      })
-    : undefined;
+  const store = new RedisStore({
+    // ❗ rate-limit-redis expects a sendCommand method:
+    sendCommand: (...args: string[]) => (redisClient as any).sendCommand(args),
+    prefix: 'rate_limit:', // optional prefix
+  });
 
   return rateLimit({
     windowMs, // 时间窗口（毫秒）
@@ -32,7 +31,7 @@ export const rateLimiter = (
     message,
     skipFailedRequests, // 是否跳过失败的请求
     store,
-    handler: (req: Request, res: Response, next: NextFunction) => {
+    handler: (req: Request, _res: Response, next: NextFunction) => {
       logger.warn(`速率限制触发: IP ${req.ip} 超过限制`);
       next(new ErrorResponse(message, 429));
     },

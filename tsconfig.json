@@ -1,20 +1,19 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
     "types": ["node", "jest"],
-    "allowArbitraryExtensions": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "sourceMap": true,
@@ -27,28 +26,27 @@
     "noImplicitThis": true,
     "alwaysStrict": true,
     "noUnusedLocals": true,
-    "noEmit": false,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "allowUmdGlobalAccess": true,
     "resolveJsonModule": true,
-    "allowJs": true,
-    "checkJs": false,
+    "allowJs": false,
     "typeRoots": [
       "./node_modules/@types",
       "./src/types"
     ]
   },
-  "include": [
-    "src/**/*",
-    "tests/**/*",
-    ".env"
-  ],
+  "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.spec.ts",
     "**/*.test.ts"
-  ]
+  ],
+  "baseUrl": "./src",
+"paths": {
+  "@/*": ["*"]
+}
+
 }

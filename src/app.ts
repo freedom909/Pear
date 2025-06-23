@@ -11,9 +11,7 @@ import path from 'path';
 import { errorHandler, notFound } from './middleware/error';
 import logger,{  logStream } from './utils/logger';
 import { initRedis } from './utils/redis';
-import userRoutes from './routes/userRoutes';
-
-// import googleRoutes from './routes/google.route.ts';
+import userRoutes from './routes/userAndAuth.routes';
 import authRoutes from './routes/auth.routes';
 import { initPassportStrategies } from './passport/setupStrategies';
 

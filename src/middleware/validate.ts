@@ -9,7 +9,7 @@ import { AppError } from '../utils/appError';
  * @param property 要验证的请求属性，默认为body
  */
 export const validate = (schema: Joi.Schema, property: 'body' | 'query' | 'params' = 'body') => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     const { error } = schema.validate(req[property], {
       abortEarly: false, // 返回所有错误
       stripUnknown: true, // 删除未知字段

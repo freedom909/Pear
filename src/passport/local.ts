@@ -1,8 +1,9 @@
-import { Express, Request, Response, NextFunction } from "express";
+import { Express} from "express";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 
-import User from "../models/user/model"; // Make sure path is correct
+import User from "../models/user/user.model"; // Make sure path is correct
+
 
 export function configurePassport(app: Express) {
   // Local strategy

@@ -49,4 +49,12 @@ export const disconnectDB = async (): Promise<void> => {
     logger.error(`MongoDB断开连接失败: ${error}`);
     process.exit(1);
   }
-};
+}
+  export const clearDB = async (): Promise<void> => {
+    try {
+      await mongoose.connection.dropDatabase();
+      logger.info('MongoDB数据库已清空');
+    } catch (error) {
+      logger.error(`清空MongoDB数据库失败: ${error}`);
+    }
+  };

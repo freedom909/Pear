@@ -20,7 +20,7 @@ export const facebookLogin = passport.authenticate('facebook', {
 export const facebookCallback = (req: Request, res: Response, next: NextFunction) => {
   passport.authenticate('facebook', {
     session: false, failureRedirect: '/api/v1/auth/login?error=oauth_failed' },
-    async (err: Error, user: UserDocument, info: any) => {
+    async (err: Error, user: UserDocument, _info: any) => {
       if (err) {
         return next(err);
       }

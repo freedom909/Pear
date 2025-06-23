@@ -7,11 +7,12 @@ import { ErrorResponse } from '@/utils/error';
 import logger from '@/utils/logger';
 
 export interface AuthRequest extends Request {
-  user?: any; // type this properly if you have a User type
+  user?: { id: string; role: UserRole };
 }
 
 // 1️⃣ protect — check JWT, set req.user
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const protect = async (req: AuthRequest, res: Response, next: NextFunction) :Promise<Response|void>=> {
+
   let token: string | undefined;
 
   // Get token from header or cookie
@@ -32,7 +33,10 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       return res.status(401).json({ message: 'User not found' });
     }
 
-    req.user = user;
+    req.user = {
+      id: user._id as string,
+      role: user.role
+    };
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Token is invalid or expired' });
@@ -41,16 +45,21 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
 // 2️⃣ authorize — check if user role matches one of the allowed roles
 export const authorize = (...roles: UserRole[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
+  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<Response<any, Record<string, any>> | void> => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
 
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: `Access denied. Requires role: ${roles}` });
-    }
+      if (!roles.includes(req.user.role)) {
+        return res.status(403).json({ message: `Access denied. Requires role: ${roles}` });
+      }
 
-    next();
+      next();
+    } catch (err) {
+      logger.error('Authorize error:', err);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
   };
 };
 

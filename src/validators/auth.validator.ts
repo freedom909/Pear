@@ -26,7 +26,7 @@ export const registerValidator = [
     .matches(/[a-zA-Z]/).withMessage('密码必须包含字母'),
 
   // 处理验证结果
-  (req: Request, res: Response, next: NextFunction) => {
+async  (req: Request, _res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return next(
@@ -53,7 +53,7 @@ export const loginValidator = [
     .notEmpty().withMessage('密码不能为空'),
 
   // 处理验证结果
-  (req: Request, res: Response, next: NextFunction) => {
+async  (req: Request, _res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return next(
@@ -74,7 +74,7 @@ export const refreshTokenValidator = [
   body('refreshToken')
     .notEmpty().withMessage('刷新令牌不能为空'),
 
-  (req: Request, res: Response, next: NextFunction) => {
+ async (req: Request, _res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return next(

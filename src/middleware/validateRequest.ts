@@ -13,7 +13,7 @@ export const validateRequest = <T extends object>(
   dtoClass: new () => T,
   skipMissingProperties = false
 ) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       // 将请求体转换为DTO实例
       const dto = plainToInstance(dtoClass, req.body);
@@ -70,7 +70,7 @@ interface CustomRequest extends Request {
  * @param dtoClass DTO类
  */
 export const validateQuery = <T extends object>(dtoClass: new () => T) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const dto = plainToInstance(dtoClass, req.query);
       const errors = await validate(dto, {
@@ -104,7 +104,7 @@ interface CustomRequestQuery extends Request {
  * @param dtoClass DTO类
  */
 export const validateParams = <T extends object>(dtoClass: new () => T) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       const dto = plainToInstance(dtoClass, req.params);
       const errors = await validate(dto, {

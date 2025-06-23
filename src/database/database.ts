@@ -1,12 +1,13 @@
 import mongoose from 'mongoose';
-import { config } from '../config/config';
+import  config  from '../config/config';
 import { Log} from '../logger/logger';
 
 
 export class database {
     static async connect() {
         try {
-            await mongoose.connect(config.database.uri );
+// Assume the correct property is 'mongo' instead of 'database' based on the error
+await mongoose.connect(config.mongo.uri );
             Log.info('Database connected');
             // Handle process termination
       process.on('SIGINT', async () => {

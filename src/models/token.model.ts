@@ -1,6 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { AppError } from '../utils/appError';
-import logger from '../utils/logger';
+
 
 // 定义令牌接口
 export interface IToken extends Document {
@@ -54,7 +53,7 @@ const tokenSchema = new Schema<IToken>(
   {
     timestamps: true,
     toJSON: {
-      transform: function (doc, ret) {
+      transform: function (_doc, ret) {
         delete ret.__v;
         return ret;
       },

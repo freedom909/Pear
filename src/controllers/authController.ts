@@ -3,7 +3,7 @@ import passport from 'passport';
 import { ErrorResponse } from '../utils/errorResponse';
 import { asyncHandler } from '../middleware/error';
 import  User  from '../models/user/user.model';
-import { LoginResponseDTO, UserResponseDTO } from '../dtos/userDTO';
+import { UserResponseDTO } from '../dtos/userDTO';
 import  logger from '../utils/logger';
 
 /**
@@ -103,7 +103,7 @@ export const getCurrentUser = asyncHandler(
  * Logout user
  */
 export const logout = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (_req: Request, res: Response, _next: NextFunction) => {
     res.cookie('token', 'none', {
       expires: new Date(Date.now() + 10 * 1000),
       httpOnly: true,

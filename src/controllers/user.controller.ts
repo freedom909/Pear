@@ -10,7 +10,7 @@ import  logger  from '../utils/logger';
  * @access  私有/管理员
  */
 export const getUsers = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -38,7 +38,7 @@ export const getUsers = async (
  * @route   GET /api/v1/users/:id
  * @access  私有/管理员
  */
-export const getUser = async (
+export const getUserById = async (
   req: Request,
   res: Response,
   next: NextFunction

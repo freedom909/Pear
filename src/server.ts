@@ -1,6 +1,6 @@
 import http from 'http';
-import  logger  from './utils/logger.ts';
-import app from './app.ts';
+import  logger  from './utils/logger';
+import app from './app';
 
 
 // 获取端口并转换为数字类型

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { Document, FilterQuery } from 'mongoose';
+import {  FilterQuery } from 'mongoose';
 import {  UserDocument } from '../models/interface/index';
 import User from '../models/user/user.model';
 import { Log as LoggerConfig } from '../logger/logger';

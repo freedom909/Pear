@@ -51,6 +51,7 @@ export const UserRole = {
 export type UserRole = typeof UserRole[keyof typeof UserRole];
 
 export const UserStatus = {
+  status: 'status' as const,
   ACTIVE: 'active' as const,
   INACTIVE: 'inactive' as const,
   SUSPENDED: 'suspended' as const,
@@ -61,11 +62,13 @@ export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
 export interface Profile {
   _id: string;
   email?: string;
+  password?:string,
   role?: UserRole;
   status?: UserStatus;
   firstName?: string;
   lastName?: string;
   avatar?: string;
+
   phoneNumber?: string;
   address?: {
     street?: string;

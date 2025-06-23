@@ -9,7 +9,7 @@ export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   // 默认错误状态码和消息
   let statusCode = 500;
@@ -20,7 +20,7 @@ export const errorHandler = (
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
-    errorDetails = err.details || {};
+    errorDetails = (err as any).details || {};
   } else {
     // 其他错误
     message = err.message || message;

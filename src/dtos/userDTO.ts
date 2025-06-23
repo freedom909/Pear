@@ -1,5 +1,5 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
-import  UserRole  from '../models/interface/index';
+import { UserRole } from '../models/interface/index';
 
 /**
  * 注册用户DTO
@@ -7,11 +7,15 @@ import  UserRole  from '../models/interface/index';
 export class RegisterUserDTO {
   @IsNotEmpty({ message: '用户名不能为空' })
   @IsString({ message: '用户名必须是字符串' })
-  name: string;
+  @IsNotEmpty({ message: '用户名不能为空' })
+  @IsString({ message: '用户名必须是字符串' })
+  name!: string;
 
   @IsNotEmpty({ message: '邮箱不能为空' })
   @IsEmail({}, { message: '请输入有效的邮箱地址' })
-  email: string;
+  @IsNotEmpty({ message: '邮箱不能为空' })
+  @IsEmail({}, { message: '请输入有效的邮箱地址' })
+  email!: string;
 
   @IsNotEmpty({ message: '密码不能为空' })
   @IsString({ message: '密码必须是字符串' })
@@ -19,7 +23,7 @@ export class RegisterUserDTO {
   @Matches(/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*/, {
     message: '密码必须包含至少一个大写字母、一个小写字母和一个数字'
   })
-  password: string;
+  password!: string;
 
   @IsOptional()
   @IsEnum(UserRole, { message: '无效的用户角色' })
@@ -32,11 +36,13 @@ export class RegisterUserDTO {
 export class LoginUserDTO {
   @IsNotEmpty({ message: '邮箱不能为空' })
   @IsEmail({}, { message: '请输入有效的邮箱地址' })
-  email: string;
+  email!: string;
 
   @IsNotEmpty({ message: '密码不能为空' })
   @IsString({ message: '密码必须是字符串' })
-  password: string;
+  @IsNotEmpty({ message: '密码不能为空' })
+  @IsString({ message: '密码必须是字符串' })
+  password!: string;
 }
 
 /**
@@ -62,7 +68,9 @@ export class UpdateUserDTO {
 export class UpdatePasswordDTO {
   @IsNotEmpty({ message: '当前密码不能为空' })
   @IsString({ message: '当前密码必须是字符串' })
-  currentPassword: string;
+  @IsNotEmpty({ message: '当前密码不能为空' })
+  @IsString({ message: '当前密码必须是字符串' })
+  currentPassword!: string;
 
   @IsNotEmpty({ message: '新密码不能为空' })
   @IsString({ message: '新密码必须是字符串' })
@@ -70,7 +78,13 @@ export class UpdatePasswordDTO {
   @Matches(/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*/, {
     message: '新密码必须包含至少一个大写字母、一个小写字母和一个数字'
   })
-  newPassword: string;
+  @IsNotEmpty({ message: '新密码不能为空' })
+  @IsString({ message: '新密码必须是字符串' })
+  @MinLength(6, { message: '新密码长度不能少于6个字符' })
+  @Matches(/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*/, {
+    message: '新密码必须包含至少一个大写字母、一个小写字母和一个数字'
+  })
+  newPassword!: string;
 }
 
 /**
@@ -79,7 +93,9 @@ export class UpdatePasswordDTO {
 export class ForgotPasswordDTO {
   @IsNotEmpty({ message: '邮箱不能为空' })
   @IsEmail({}, { message: '请输入有效的邮箱地址' })
-  email: string;
+  @IsNotEmpty({ message: '邮箱不能为空' })
+  @IsEmail({}, { message: '请输入有效的邮箱地址' })
+  email!: string;
 }
 
 /**
@@ -92,11 +108,11 @@ export class ResetPasswordDTO {
   @Matches(/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*/, {
     message: '密码必须包含至少一个大写字母、一个小写字母和一个数字'
   })
-  password: string;
+  password!: string;
 
   @IsNotEmpty({ message: '确认密码不能为空' })
   @IsString({ message: '确认密码必须是字符串' })
-  confirmPassword: string;
+  confirmPassword!: string;
 }
 
 /**

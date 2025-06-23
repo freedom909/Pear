@@ -11,7 +11,7 @@ export class UserController {
    * Get current user profile
    * @route GET /api/v1/users/me
    */
-  static async getCurrentUser(req: Request, res: Response, next: NextFunction) {
+  static async getCurrentUser(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       if (!req.user) {
         return ApiResponse.unauthorized(res, 'Unauthorized');
@@ -33,7 +33,7 @@ export class UserController {
    * Update current user profile
    * @route PUT /api/v1/users/me
    */
-  static async updateCurrentUser(req: Request, res: Response, next: NextFunction) {
+  static async updateCurrentUser(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       if (!req.user) {
         return ApiResponse.unauthorized(res, 'Unauthorized');
@@ -79,7 +79,7 @@ export class UserController {
    * Get user by ID (admin only)
    * @route GET /api/v1/users/:id
    */
-  static async getUserById(req: Request, res: Response, next: NextFunction) {
+  static async getUserById(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const { id } = req.params;
       
@@ -99,7 +99,7 @@ export class UserController {
    * List users (admin only)
    * @route GET /api/v1/users
    */
-  static async listUsers(req: Request, res: Response, next: NextFunction) {
+  static async listUsers(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
@@ -112,7 +112,7 @@ export class UserController {
         .limit(limit)
         .sort({ createdAt: -1 });
       
-      const pagination = ApiResponse.getPaginationMeta(page, limit, total);
+      ApiResponse.getPaginationMeta(page, limit, total);
       
       return ApiResponse.paginated(res, users, page, limit, total, 200);
     } catch (error) {

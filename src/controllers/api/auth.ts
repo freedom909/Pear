@@ -61,7 +61,7 @@ export class AuthController {
    * Register new user
    * @route POST /api/v1/auth/register
    */
-  static async register(req: Request, res: Response, next: NextFunction) {
+  static async register(req: Request, res: Response, next: NextFunction): Promise<Response | void>  {
     try {
       const { name, email, password } = req.body;
       
@@ -122,45 +122,51 @@ export class AuthController {
    * Refresh token
    * @route POST /api/v1/auth/refresh-token
    */
-  static async refreshToken(req: Request, res: Response, next: NextFunction) {
+  static async refreshToken(
+    req: Request, 
+    res: Response, 
+    next: NextFunction
+  ): Promise<Response | void> {
     try {
       const { refreshToken } = req.body;
-      
+  
       if (!refreshToken) {
         return ApiResponse.validationError(res, [
           { field: 'refreshToken', message: 'Refresh token is required' }
         ]);
       }
-      
-      // Verify refresh token
+
       try {
-        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh-secret') as any;
-        
-        // Find user
-        const user = await User.findById(decoded.id);
-        
-        if (!user) {
-          return ApiResponse.unauthorized(res, 'Invalid refresh token');
-        }
-        
-        // Generate new tokens
-        const token = AuthController.generateToken(user);
-        const newRefreshToken = AuthController.generateRefreshToken(user);
-        
-        return ApiResponse.success(res, 
-          {
-            token,
-            refreshToken: newRefreshToken
-          }, 
-          200,
-        );
-      } catch (error) {
+        jwt.verify(
+          refreshToken, 
+          process.env.JWT_REFRESH_SECRET || 'refresh-secret'
+        ) as any;
+      } catch {
         return ApiResponse.unauthorized(res, 'Invalid refresh token');
       }
+let decoded;
+try {
+  decoded = jwt.verify(
+    refreshToken, 
+    process.env.JWT_REFRESH_SECRET || 'refresh-secret'
+  ) as any;
+} catch {
+  return ApiResponse.unauthorized(res, 'Invalid refresh token');
+}
+const user = await User.findById(decoded.id);
+      if (!user) {
+        return ApiResponse.unauthorized(res, 'Invalid refresh token');
+      }
+      const token = AuthController.generateToken(user as UserDocument);
+      const newRefreshToken = AuthController.generateRefreshToken(user as UserDocument);
+  
+      return ApiResponse.success(res, { token, refreshToken: newRefreshToken }, 200);
     } catch (error) {
-      next(error);
+      next(error); // Only unexpected errors hit this
     }
+    return;
   }
+  
 
   /**
    * Generate JWT token

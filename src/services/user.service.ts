@@ -2,19 +2,22 @@ import User from '../models/user/user.model';
 import { ErrorResponse } from '../utils/errorResponse';
 import  logger  from '../utils/logger';
 import mongoose from 'mongoose';
-import Math from 'mathjs'
+import * as mathjs from 'mathjs';
 import bcrypt from 'bcryptjs';
 import {OAuthTokenInfo} from '../models/interface/index';
-import {IUser,UserDocument,Profile} from '../models/interface/index';
+import {IUser,UserDocument,Profile,IUserProfile,UserStatus,UserRole} from '../models/interface/index';
 
 // 用户服务接口
 interface UserService {
+  linkProvider(userId: string, provider: string, providerId: string, accessToken: string, refreshToken: string): Promise<UserDocument>;
   getUsers(page?: number, limit?: number): Promise<UsersResponse>;
-  getUserById(id: string): Promise<UserResponse>;
-  createUser(userData: CreateUserDTO): Promise<UserResponse>;
+  findUserByEmail(email: string): Promise<UserDocument|null>;
+  getUserById(id: string): Promise<UserDocument>;
+  createOAuthUser(userData: UserDocument): Promise<IUserProfile>;
   updateUser(id: string, userData: UserDocument, options?: Record<string, any>): Promise<UserDocument>;
   deleteUser(id: string): Promise<void>;
   findOne(query: Record<string, any>): Promise<UserDocument>;
+  findUserByProvider(provider: string, providerId: string): Promise<UserDocument|null>;
   create(userData: {
     email: string;
     name: string;
@@ -27,10 +30,23 @@ interface UserService {
   }): Promise<UserDocument>;
   findOneOrCreate(profile: any, tokenInfo: OAuthTokenInfo): Promise<UserDocument>;
 }
+/**
+ * 链接第三方账户
+ * @param userId 用户ID
+ * @param provider 第三方账户提供商
+ * @param providerId 第三方账户ID
+ * @param accessToken 访问令牌
+ * @param refreshToken 刷新令牌
+ * @returns 用户文档
+ */
+
 
 // 创建用户DTO
 export interface CreateUserDTO {
   username: string;
+  status: 'active' | 'inactive';
+  verified: boolean;
+  photo?: string;
   email: string;
   password: string;
   role?: 'user' | 'admin';
@@ -53,7 +69,22 @@ export interface UserResponse {
   createdAt: Date;
   updatedAt: Date;
 }
-
+//token response
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: UserRole;
+    status: UserStatus;
+    verified: boolean;
+    avatar?: string;
+  };
+}
 // 用户列表响应
 export interface UsersResponse {
   users: UserResponse[];
@@ -92,7 +123,7 @@ class UserServiceImpl implements UserService {
         .limit(limit);
 
       // 计算总页数
-      const pages = Math.ceil(total / limit);
+      const pages = mathjs.ceil(total / limit);
 
       // 格式化用户数据
       const formattedUsers = users.map((user) => ({
@@ -124,7 +155,7 @@ class UserServiceImpl implements UserService {
    * @param id 用户ID
    * @returns 用户响应
    */
-  async getUserById(id: string): Promise<UserResponse> {
+  async getUserById(id: string): Promise<UserDocument> {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -144,7 +175,7 @@ class UserServiceImpl implements UserService {
         role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-      };
+      } as unknown as UserDocument;
     } catch (error) {
       logger.error(`获取用户失败 (ID: ${id}):`, error);
       if (error instanceof ErrorResponse) {
@@ -154,12 +185,61 @@ class UserServiceImpl implements UserService {
     }
   }
 
+
+  async findUserByProvider(provider: string, providerId: string): Promise<UserDocument|null> {
+    try {
+      const user = await User.findOne({
+        'profile.provider': provider,
+        'profile.providerId': providerId,
+      });
+      return user;
+    } catch (error) {
+      logger.error(`根据${provider}ID查找用户失败 (ID: ${providerId}):`, error);
+      throw ErrorResponse.internalError('查找用户失败');
+    }
+  }
+
+
+  /**
+   * 更新用户
+   * @param id 用户ID
+   * @param userData 用户数据
+   * @returns 用户响应
+   */
+  async updateUserAdmin(id: string, userData: UserDocument): Promise<UserDocument> {
+    try {
+      // 验证ID格式
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw ErrorResponse.badRequest('无效的用户ID');
+      }
+  
+      // 检查用户是否存在
+      const user = await User.findById(id);
+      if (!user) {
+        throw ErrorResponse.notFound('用户不存在');
+      }
+  
+      // 更新用户
+      const updatedUser = await User.findByIdAndUpdate(id, userData, { new: true });
+      if (!updatedUser) {
+        throw ErrorResponse.internalError('更新用户失败');
+      }
+  
+      return updatedUser;
+    } catch (error) {
+      logger.error(`更新用户失败 (ID: ${id}):`, error);
+      if (error instanceof ErrorResponse) {
+        throw error;
+      }
+      throw ErrorResponse.internalError('更新用户失败');
+    }
+  }
   /**
    * 创建用户
    * @param userData 用户数据
    * @returns 用户响应
    */
-  async createUser(userData: CreateUserDTO): Promise<UserResponse> {
+  async createOAuthUser(userData: UserDocument): Promise<IUserProfile> {
     try {
       // 检查用户名是否已存在
       const existingUsername = await User.findOne({ username: userData.username });
@@ -178,12 +258,13 @@ class UserServiceImpl implements UserService {
 
       return {
         id: user._id as unknown as string,
-        username: user.username,
+        username: `${user.firstName} ${user.lastName}`,
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-      };
+      } as unknown as IUserProfile;
+      
     } catch (error) {
       logger.error('创建用户失败:', error);
       if (error instanceof ErrorResponse) {
@@ -257,10 +338,35 @@ class UserServiceImpl implements UserService {
   }
   
   /**
-   * 根据条件查找单个用户
-   * @param query 查询条件
-   * @returns 用户文档
+   * to generate token Response
+   * generateTokenResponse
+   * @returns tokenResponse
    */
+async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
+    try {
+      const accessToken = await user.generateAccessToken();
+      const refreshToken = await user.generateRefreshToken();
+      return {
+        accessToken,
+        refreshToken,
+        expiresIn: 3600,
+        user: {
+          id: user._id as unknown as string,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          status: user.status,
+          verified: user.verified,
+          avatar: user.avatar,
+        },
+      };
+    } catch (error) {
+      logger.error('生成令牌失败:', error);
+      throw ErrorResponse.internalError('生成令牌失败');
+    }
+  }
+
   /**
    * 根据ID查找用户
    * @param id 用户ID
@@ -326,7 +432,7 @@ class UserServiceImpl implements UserService {
       const newUser = await User.create({
         username: userData.name || userData.email.split('@')[0],
         email: userData.email,
-        password: await bcrypt.hash(Math.random().toString(), 10),
+        password: await bcrypt.hash(mathjs.random().toString(), 10),
         role: 'user',
         provider: userData.provider,
         accessToken: userData.accessToken,
@@ -448,18 +554,77 @@ class UserServiceImpl implements UserService {
     }
   }
   
-  async createUserFromGoogleProfile(profile: Profile): Promise<UserDocument> {
+  async createUserFromOAuthProfile(profile: Profile, provider: 'google' | 'facebook' | 'twitter' | 'apple' | 'github'): Promise<UserDocument> {
+
     return User.create({
-      googleId: profile._id,
+      [`${provider}Id`]: profile._id,
       email: profile.email || '',
       firstName: profile.firstName || '',
       lastName: profile.lastName || '',
       photo: profile.avatar || '',
-      password: Math.random().toString(36).slice(-8),
-      provider: 'google',
-      role: 'user',
-      // 他の必要な初期値を追加
+      password: mathjs.random().toString(36).slice(-8),
+      provider: provider,
+      role: 'user'
     });
+  }
+
+  async findUserByEmail(email: string): Promise<UserDocument> {
+    return User.findOne({ email }) as unknown as UserDocument;
+  }
+
+  async linkProvider(userId: string, provider: string, providerId: string, accessToken: string, refreshToken: string): Promise<UserDocument> {
+    try {
+      // 验证用户ID格式
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw ErrorResponse.badRequest('用户ID格式错误');
+      }
+  
+      // 验证第三方账户提供商
+      if (!['google', 'facebook', 'twitter', 'apple'].includes(provider)) {
+        throw ErrorResponse.badRequest('第三方账户提供商错误');
+      }
+  
+      // 验证第三方账户ID
+      if (!providerId) {
+        throw ErrorResponse.badRequest('第三方账户ID错误');
+      }
+  
+      // 验证访问令牌
+      if (!accessToken) {
+        throw ErrorResponse.badRequest('访问令牌错误');
+      }
+  
+      // 验证刷新令牌
+      if (!refreshToken) {
+        throw ErrorResponse.badRequest('刷新令牌错误');
+      }
+  
+      // 查询用户
+      const user = await User.findById(userId);
+  
+      // 验证用户是否存在
+      if (!user) {
+        throw ErrorResponse.notFound('用户不存在');
+      }
+  
+      // 验证用户是否已绑定该第三方账户
+      if (user[provider]) {
+        throw ErrorResponse.badRequest('用户已绑定该第三方账户');
+        }
+  
+      // 链接第三方账户
+      user[provider] = {
+        id: providerId,
+        accessToken,
+        refreshToken,
+      } 
+      // 保存用户
+      await user.save();
+      return user;
+    } catch (error) {
+      logger.error('链接第三方账户失败:', error);
+      throw ErrorResponse.internalError('链接账户失败');
+    }
   }
   
 }

@@ -73,7 +73,7 @@ if (!fs.existsSync(logDir)) {
   }
 
   buildLogFormat: () => winston.Logform.Format = () => {
-    const { timestamp, printf } = winston.format;
+    const { printf } = winston.format;
     return printf(({ level, message, _timestamp, ...meta }) => {
       let logMessage = `${_timestamp} [${level}]: ${message}`;
       if (meta && Object.keys(meta).length > 0) {

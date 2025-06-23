@@ -6,7 +6,7 @@ import { AppError } from '../utils/appError';
  */
 export const notFoundHandler = (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void => {
   next(new AppError(404, `Route ${req.originalUrl} not found`));

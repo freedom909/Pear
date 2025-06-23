@@ -15,7 +15,7 @@ import {
 } from '../dtos/userDTO';
 import { validateRequest } from '../middleware/validateRequest';
 import  logger  from '../utils/logger';
-import { auth } from '../middleware/auth';
+
 import emailService from '../utils/email';
 import crypto from 'crypto';
 
@@ -96,7 +96,7 @@ export const login = asyncHandler(
  * 获取当前用户信息
  */
 export const getMe = asyncHandler(
-  async (req: any, res: Response, next: NextFunction) => {
+  async (req: any, res: Response, _next: NextFunction) => {
     const user = await User.findById(req.user.id);
 
     res.status(200).json({
@@ -219,7 +219,7 @@ export const resetPassword = asyncHandler(
 
     // 获取哈希后的令牌
     const resetPasswordToken = crypto
-const hash = crypto.createHash('sha256')
+     crypto.createHash('sha256')
       .update(req.params.resettoken)
       .digest('hex');
 
@@ -259,7 +259,7 @@ const hash = crypto.createHash('sha256')
  * 获取所有用户 (管理员)
  */
 export const getUsers = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (_req: Request, res: Response, _next: NextFunction) => {
     const users = await User.find();
 
     res.status(200).json({

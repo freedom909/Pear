@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { connectDB, disconnectDB, clearDB } from '../utils/db';
 import config from '../config/config';
@@ -12,11 +12,12 @@ beforeAll(async () => {
   process.env.NODE_ENV = 'test';
   
   // 创建内存MongoDB服务器
-  mongoServer = await MongoMemoryServer.create();
+mongoServer = new MongoMemoryServer();
+await mongoServer.start();
   const mongoUri = mongoServer.getUri();
   
   // 覆盖配置中的MongoDB URI
-  config.mongoUri = mongoUri;
+  config.mongo.uri = mongoUri as any;
   
   // 连接到测试数据库
   await connectDB();

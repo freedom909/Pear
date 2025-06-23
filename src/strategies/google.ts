@@ -18,7 +18,7 @@ export class GoogleOAuthStrategy extends BaseStrategy {
           try {
             let user = await userService.findOne({ googleId: profile.id });
             if (!user) {
-              user = await userService.createUserFromGoogleProfile(profile  as any);
+              user = await userService.createUserFromOAuthProfile(profile  as any, 'google');
             }
             done(null, user);
           } catch (error) {

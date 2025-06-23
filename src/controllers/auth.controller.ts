@@ -86,7 +86,7 @@ export const login = async (
  * @access  私有
  */
 export const logout = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ) => {
