@@ -1,7 +1,7 @@
 // src/config/passport.config.ts
 import passport, { PassportStatic } from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import UserService from '../services/user.service';
+import userService from '../services/user.service';
 import { OAuthStrategyFactory } from '../strategies/auth.factory';
 import { OAuthConfiguration } from '../config/oauth';
 import logger from '../utils/logger';
@@ -18,11 +18,11 @@ export class PassportConfig {
     this.oauthFactory = new OAuthStrategyFactory(
       passport,
       OAuthConfiguration.getConfigs(),
-      UserService
+      userService
     );
 
     // Register OAuth strategies
-    this.oauthFactory.initializeStrategies(OAuthConfiguration.getConfigs());
+    this.oauthFactory.initializeStrategies();
 
     // Initialize Local strategy
     passport.use(

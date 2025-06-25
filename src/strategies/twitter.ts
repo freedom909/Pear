@@ -1,7 +1,7 @@
 import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PassportStatic } from 'passport';
 import { BaseStrategy } from './base';
-import  userService  from '../services/user.service';
+
 
 /**
  * ** Twitter OAuth Strategy
@@ -10,13 +10,13 @@ import  userService  from '../services/user.service';
 
 
 export class TwitterOAuthStrategy extends BaseStrategy {
-  init(passport: PassportStatic): void {
+  init(passport: PassportStatic, config: any, userService: any): void {
     passport.use(
       new TwitterStrategy(
         {
-          consumerKey: process.env.TWITTER_CONSUMER_KEY!,
-          consumerSecret: process.env.TWITTER_CONSUMER_SECRET!,
-          callbackURL: "/api/v1/auth/twitter/callback",
+          consumerKey: config.consumerKey,
+          consumerSecret: config.consumerSecret,
+          callbackURL: config.callbackURL,
           passReqToCallback: true,
         },
         async (_req, accessToken, refreshToken, profile, done) => {

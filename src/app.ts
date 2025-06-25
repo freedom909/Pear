@@ -18,7 +18,6 @@ import { PassportConfig } from './config/passport.config';
 import { connectDB } from './config/database';
 import passport from 'passport';
 import session from 'express-session';
-import  userService  from './services/user.service';
 
 // 初始化Express应用
 const app = express();

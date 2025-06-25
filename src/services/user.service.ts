@@ -8,7 +8,7 @@ import {OAuthTokenInfo} from '../models/interface/index';
 import {IUser,UserDocument,Profile,IUserProfile,UserStatus,UserRole,IUserModel} from '../models/interface/index';
 
 // 用户服务接口
-interface UserService {
+export interface UserService {
   linkProvider(userId: string, provider: string, providerId: string, accessToken: string, refreshToken: string): Promise<UserDocument>;
   getUsers(page?: number, limit?: number): Promise<UsersResponse>;
   findUserByEmail(email: string): Promise<UserDocument|null>;

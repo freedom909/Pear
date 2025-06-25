@@ -1,77 +1,74 @@
 import { PassportStatic } from 'passport';
-import  userService  from '../services/user.service';
 import { GoogleOAuthStrategy } from './google';
 import { FacebookOAuthStrategy } from './facebook';
 import { TwitterOAuthStrategy } from './twitter';
-
 import { AppleOAuthStrategy } from './apple';
-import  UserService from '../services/user.service';
+import userService from '../services/user.service';
 import { BaseStrategy } from './base';
 import { OAuthConfig } from '../models/interface/index';
 import logger from '../utils/logger';
 
-
-/**
+/**{}
  * OAuth strategy factory class
  */
 export class OAuthStrategyFactory {
     protected strategies: Map<string, BaseStrategy> = new Map();
     protected passport: PassportStatic;
-    protected userService: typeof UserService;
+    protected userService: typeof userService;
     protected configs: Record<string, OAuthConfig>;
   
-    constructor(passport: PassportStatic,configs: Record<string, OAuthConfig>,userService: typeof UserService) {
+    constructor(passport: PassportStatic, configs: Record<string, OAuthConfig>, userService: any) {
       this.passport = passport;
-      this.userService = userService;
       this.configs = configs;
+      this.userService = userService;
     }
   /**
    * Initialize OAuth strategies
    */
-  public initializeStrategies(configs: Record<string, OAuthConfig>): void {
+  public initializeStrategies(): void {
     try {
       logger.info('Initializing OAuth strategies');
 
       // Initialize Google strategy if config exists
-      if (configs.google) {
-       
-        if (configs.google?.clientID && configs.google?.clientSecret) {
+      if (this.configs.google) {
+        if (this.configs.google?.clientID && this.configs.google?.clientSecret) {
           const googleStrategy = new GoogleOAuthStrategy();
-          googleStrategy.init(this.passport, configs.google, this.userService);
+          googleStrategy.init(this.passport, this.configs.google, this.userService);
           this.strategies.set('google', googleStrategy);
           logger.info('Google OAuth strategy initialized');
         }
       }
-        // Initialize Facebook strategy if config exists
-        if (configs.facebook) {
-          if (configs.facebook?.clientID && configs.facebook?.clientSecret) {
+      
+      // Initialize Facebook strategy if config exists
+      if (this.configs.facebook) {
+        if (this.configs.facebook?.clientID && this.configs.facebook?.clientSecret) {
           const facebookStrategy = new FacebookOAuthStrategy();
-          facebookStrategy.init(this.passport, configs.facebook, this.userService);
+          facebookStrategy.init(this.passport, this.configs.facebook, this.userService);
           this.strategies.set('facebook', facebookStrategy);
           logger.info('Facebook OAuth strategy initialized');
         }
       }
 
-        // Initialize Twitter strategy if config exists
-        if (configs.twitter) {
-          if (configs.twitter?.clientID && configs.twitter?.clientSecret) {
+      // Initialize Twitter strategy if config exists
+      if (this.configs.twitter) {
+        if (this.configs.twitter?.clientID && this.configs.twitter?.clientSecret) {
           const twitterStrategy = new TwitterOAuthStrategy();
-          twitterStrategy.init(this.passport, configs.twitter, this.userService);
+          twitterStrategy.init(this.passport, this.configs.twitter, this.userService);
           this.strategies.set('twitter', twitterStrategy);
           logger.info('Twitter OAuth strategy initialized');
         }
       }
-        // Initialize Apple strategy if config exists
-        if (configs.apple) {
-          if (configs.apple?.clientID && configs.apple?.clientSecret) {
+      
+      // Initialize Apple strategy if config exists
+      if (this.configs.apple) {
+        if (this.configs.apple?.clientID && this.configs.apple?.clientSecret) {
           const appleStrategy = new AppleOAuthStrategy();
-          appleStrategy.init(this.passport, configs.apple, this.userService);
+          appleStrategy.init(this.passport);
           this.strategies.set('apple', appleStrategy);
           logger.info('Apple OAuth strategy initialized');
         }
-    }
-      // Configure Passport serialization
-      this.configurePassportSerialization();
+      }
+      
       logger.info('OAuth strategies initialization completed');
     } catch (error) {
       logger.error('Error initializing OAuth strategies', { error });
@@ -80,46 +77,12 @@ export class OAuthStrategyFactory {
   }
 
   /**
-   * Configure Passport serialization
+   * Get OAuth strategy by provider name
+   * @param provider The OAuth provider name (e.g., 'google', 'facebook', 'twitter', 'apple')
+   * @returns The OAuth strategy instance
+   * @throws Error if strategy is not found for the given provider
    */
-  private configurePassportSerialization(): void {
-    try {
-      // Serialize user to session
-      this.passport.serializeUser((user: any, done) => {
-       
-        if (!user?.id) {
-            return done(new Error('Invalid user object'));
-          }
-        logger.debug('Serializing user', { userId: user.id });
-        done(null, user.id);
-      });
-
-      // Deserialize user from session
-      this.passport.deserializeUser(async (id: string, done) => {
-        try {
-          const user = await userService.getUserById(id);//it said that Property 'getUserById' does not exist on type 'UserService', why?
-          if (!user?.id) {
-            return done(new Error('Invalid user object'));
-          }
-          logger.debug('Deserializing user', { userId: id });
-          done(null, user);
-        } catch (error) {
-          logger.error('Error deserializing user', { error, userId: id });
-          done(error);
-        }
-      });
-
-      logger.info('Passport serialization configured');
-    } catch (error) {
-      logger.error('Error configuring Passport serialization', { error });
-      throw error;
-    }
-  }
-
-  /**
-   * Get strategy by provider
-   */
-  public getStrategy(provider: string): any {
+  public getStrategy(provider: string): BaseStrategy {
     const strategy = this.strategies.get(provider);
     if (!strategy) {
       throw new Error(`Strategy not found for provider: ${provider}`);
@@ -128,17 +91,18 @@ export class OAuthStrategyFactory {
   }
 
   /**
-   * Get all initialized strategies
+   * Get all initialized OAuth strategies
+   * @returns Map of provider names to their corresponding strategy instances
    */
-  public getStrategies(): Map<string, any> {
+  public getStrategies(): Map<string, BaseStrategy> {
     return this.strategies;
   }
 
   public hasStrategy(provider: string): boolean {
     return this.strategies.has(provider);
   }
+
   public removeStrategy(provider: string): void {
     this.strategies.delete(provider);
   }
-  
 }

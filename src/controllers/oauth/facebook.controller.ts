@@ -1,7 +1,7 @@
 // src/controllers/oauth/Facebook.controller.ts
 
 import { Request, Response, NextFunction } from 'express';
-import passport from '@/passport';
+import passport from 'passport';
 import  authService  from '../../services/auth.service';    // your JWT‐issuing service
 import { UserDocument } from '../../models/interface/index';  // for typing
 
