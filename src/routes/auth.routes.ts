@@ -14,6 +14,10 @@ import { UserRole } from '../models/interface/index';
 import userService from '@/services/user.service';
 import { auth } from '../middleware/auth';
 import {
+  googleLogin,
+  googleCallback,
+} from '../controllers/oauth/google.controller';
+import {
   facebookLogin,
   facebookCallback,
 } from '../controllers/oauth/facebook.controller';
@@ -26,10 +30,7 @@ import {
   twitterCallback,
 } from '../controllers/oauth/twitter.controller';
 
-import {
-  googleLogin,
-  googleCallback,
-} from '../controllers/oauth/google.controller';
+
 
 const router = Router();
 

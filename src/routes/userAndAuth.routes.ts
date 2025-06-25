@@ -29,7 +29,6 @@ import {
   getUsers,  
   getUserById,
   createUser,
-  updateUser,
   deleteUser,
   changeUserRole,
 } from '../controllers/user.controller';
@@ -102,8 +101,7 @@ router.use(role(UserRole.SUPER_ADMIN));
 // User management
 router.get('/', getUsers);                           // GET /api/v1/user/
 router.post('/', createUser);                        // POST /api/v1/user/
-router.get('/:id', getUserById);                     // GET /api/v1/user/:id
-router.put('/:id', updateUser);                      // PUT /api/v1/user/:id
+router.get('/:id', getUserById);                     // GET /api/v1/user/:id                // PUT /api/v1/user/:id
 router.delete('/:id', deleteUser);                   // DELETE /api/v1/user/:id
 router.put('/:id/role', changeUserRole);             // PUT /api/v1/user/:id/role
 

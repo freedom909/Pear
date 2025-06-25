@@ -1,41 +1,38 @@
-// src/controllers/oauth/google.controller.ts
+// src/controllers/oauth/Facebook.controller.ts
 
 import { Request, Response, NextFunction } from 'express';
-import passport from 'passport';
-import { authService } from '../../services/auth.service';    // your JWT‐issuing service
+import passport from '@/passport';
+import  authService  from '../../services/auth.service';    // your JWT‐issuing service
 import { UserDocument } from '../../models/interface/index';  // for typing
 
 /**
- * Step 1: Redirect to Google for consent.
- * Route: GET /api/v1/auth/google
+ * Step 1: Redirect to Facebook for consent.
+ * Route: GET /api/v1/auth/Facebook
  */
-export const facebookLogin = passport.authenticate('facebook', {
-  scope: ['profile', 'email'],
-});
+export const facebookLogin = passport.authenticate(
+  'facebook',
+  { scope: ['email'] } 
+);
 
 /**
- * Step 2: Handle Google callback.
- * Route: GET /api/v1/auth/google/callback
+ * Step 2: Handle Facebook callback.
+ * Route: GET /api/v1/auth/Facebook/callback
  */
-export const facebookCallback = (req: Request, res: Response, next: NextFunction) => {
+export const facebookCallback = [
   passport.authenticate('facebook', {
-    session: false, failureRedirect: '/api/v1/auth/login?error=oauth_failed' },
-    async (err: Error, user: UserDocument, _info: any) => {
-      if (err) {
-        return next(err);
-      }
+    session: false,
+    failureRedirect: '/api/v1/auth/login?error=oauth_failed'
+  }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as UserDocument;
       if (!user) {
-        // OAuth failed, redirect or JSON error
         return res.redirect('/api/v1/auth/login?error=oauth_failed');
       }
-      try {
-        // Here you generate a JWT or start a session
-        const token = await authService.generateJwtForUser(user as UserDocument);
-        // Return user + token (or set as cookie, etc.)
-        return res.json({ success: true, user, token });
-      } catch (e) {
-        return next(e);
-      }
+      const token = await authService.generateJwtForUser(user);
+      return res.json({ success: true, user, token });
+    } catch (error) {
+      return next(error);
     }
-  )(req, res, next);
-};
+  }
+];

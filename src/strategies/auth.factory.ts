@@ -36,43 +36,39 @@ export class OAuthStrategyFactory {
       if (configs.google) {
        
         if (configs.google?.clientID && configs.google?.clientSecret) {
-        this.strategies.set(
-          'google',
-          new GoogleOAuthStrategy()
-        );
-        logger.info('Google OAuth strategy initialized');
+          const googleStrategy = new GoogleOAuthStrategy();
+          googleStrategy.init(this.passport, configs.google, this.userService);
+          this.strategies.set('google', googleStrategy);
+          logger.info('Google OAuth strategy initialized');
+        }
       }
-    }
-      // Initialize Facebook strategy if config exists
-      if (configs.facebook) {
-        if (configs.facebook?.clientID && configs.facebook?.clientSecret) {
-        this.strategies.set(
-          'facebook',
-          new FacebookOAuthStrategy()
-        );
-        logger.info('Facebook OAuth strategy initialized');
+        // Initialize Facebook strategy if config exists
+        if (configs.facebook) {
+          if (configs.facebook?.clientID && configs.facebook?.clientSecret) {
+          const facebookStrategy = new FacebookOAuthStrategy();
+          facebookStrategy.init(this.passport, configs.facebook, this.userService);
+          this.strategies.set('facebook', facebookStrategy);
+          logger.info('Facebook OAuth strategy initialized');
+        }
       }
-    }
 
-      // Initialize Twitter strategy if config exists
-      if (configs.twitter) {
-        if (configs.twitter?.clientID && configs.twitter?.clientSecret) {
-        this.strategies.set(
-          'twitter',
-          new TwitterOAuthStrategy()
-        );
-        logger.info('Twitter OAuth strategy initialized');
+        // Initialize Twitter strategy if config exists
+        if (configs.twitter) {
+          if (configs.twitter?.clientID && configs.twitter?.clientSecret) {
+          const twitterStrategy = new TwitterOAuthStrategy();
+          twitterStrategy.init(this.passport, configs.twitter, this.userService);
+          this.strategies.set('twitter', twitterStrategy);
+          logger.info('Twitter OAuth strategy initialized');
+        }
       }
-    }
-      // Initialize Apple strategy if config exists
-      if (configs.apple) {
-        if (configs.apple?.clientID && configs.apple?.clientSecret) {
-        this.strategies.set(
-          'apple',
-          new AppleOAuthStrategy()
-        );
-        logger.info('Apple OAuth strategy initialized');
-      }
+        // Initialize Apple strategy if config exists
+        if (configs.apple) {
+          if (configs.apple?.clientID && configs.apple?.clientSecret) {
+          const appleStrategy = new AppleOAuthStrategy();
+          appleStrategy.init(this.passport, configs.apple, this.userService);
+          this.strategies.set('apple', appleStrategy);
+          logger.info('Apple OAuth strategy initialized');
+        }
     }
       // Configure Passport serialization
       this.configurePassportSerialization();
@@ -146,4 +142,3 @@ export class OAuthStrategyFactory {
   }
   
 }
-

@@ -2,7 +2,7 @@
 import path from 'path';
 import dotenv from 'dotenv';
 import logger from './utils/logger';
-import './server.ts';
+import './server';
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Check required envs

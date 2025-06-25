@@ -1,197 +1,195 @@
+// controllers/user.controller.ts
+
 import { Request, Response, NextFunction } from 'express';
-import { UserRole } from '../models/interface/index';
-import User from '../models/user/user.model';
 import { ErrorResponse } from '../utils/errorResponse';
-import  logger  from '../utils/logger';
+import { asyncHandler } from '../middleware/error';
+import User from '../models/user/user.model';
+import { UserRole } from '../models/interface/index';
+import { validateRequest } from '../middleware/validateRequest';
+import {
+  UpdateUserDTO,
+} from '../dtos/userDTO';
+
 
 /**
- * @desc    获取所有用户
- * @route   GET /api/v1/users
- * @access  私有/管理员
+ * @desc    Get current logged-in user profile
+ * @route   GET /api/v1/users/me
+ * @access  Private
  */
-export const getUsers = async (
-  _req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    // 使用高级查询功能（在实际应用中可以实现）
-    // const advancedResults = res.advancedResults;
-    // res.status(200).json(advancedResults);
-
-    // 简单实现
-    const users = await User.find();
-    
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      data: users,
-    });
-  } catch (error) {
-    logger.error('获取所有用户失败:', error);
-    next(error);
-  }
-};
-
-/**
- * @desc    获取单个用户
- * @route   GET /api/v1/users/:id
- * @access  私有/管理员
- */
-export const getUserById = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findById(req.params.id);
+export const getMe = asyncHandler(
+  async (req: any, res: Response, next: NextFunction) => {
+    const user = await User.findById(req.user.id).select('-password');
 
     if (!user) {
-      return next(
-        new ErrorResponse(`ID为${req.params.id}的用户不存在`, 404)
-      );
+      return next(new ErrorResponse('User not found', 404));
     }
 
     res.status(200).json({
       success: true,
       data: user,
     });
-  } catch (error) {
-    logger.error(`获取ID为${req.params.id}的用户失败:`, error);
-    next(error);
   }
-};
+);
 
 /**
- * @desc    创建用户
- * @route   POST /api/v1/users
- * @access  私有/管理员
+ * @desc    Update logged-in user's profile
+ * @route   PUT /api/v1/users/me
+ * @access  Private
  */
-export const createUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.create(req.body);
+export const updateMe = asyncHandler(
+  async (req: any, res: Response, next: NextFunction) => {
+    const dto = await validateRequest(UpdateUserDTO)(req, res, next) as any;
+    if (!dto) return;
 
-    res.status(201).json({
+    const updateData: any = {};
+    if (dto.name) updateData.name = dto.name;
+    if (dto.email) {
+      const existingUser = await User.findOne({ email: dto.email, _id: { $ne: req.user.id } });
+      if (existingUser) {
+        return next(new ErrorResponse('Email is already taken', 400));
+      }
+      updateData.email = dto.email;
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, { $set: updateData }, { new: true })
+      .select('-password');
+
+    res.status(200).json({
       success: true,
       data: user,
     });
-  } catch (error) {
-    logger.error('创建用户失败:', error);
-    next(error);
   }
-};
+);
 
 /**
- * @desc    更新用户
- * @route   PUT /api/v1/users/:id
- * @access  私有/管理员
+ * @desc    Get all users (admin only)
+ * @route   GET /api/v1/users
+ * @access  Private/Admin
  */
-export const updateUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
+export const getUsers = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const page = parseInt((req.query.page as string) || '1', 10);
+    const limit = parseInt((req.query.limit as string) || '10', 10);
+    const skip = (page - 1) * limit;
+
+    const total = await User.countDocuments();
+    const users = await User.find()
+      .select('-password')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      total,
+      page,
+      limit,
+      data: users,
+    });
+  }
+);
+
+/**
+ * @desc    Get a single user by ID (admin only)
+ * @route   GET /api/v1/users/:id
+ * @access  Private/Admin
+ */
+export const getUserById = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = await User.findById(req.params.id).select('-password');
+
+    if (!user) {
+      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  }
+);
+
+/**
+ * @desc    Create user (admin only)
+ * @route   POST /api/v1/users
+ * @access  Private/Admin
+ */
+export const createUser = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const user = await User.create(req.body);
+    res.status(201).json({ success: true, data: user });
+  }
+);
+
+/**
+ * @desc    Update user by ID (admin only)
+ * @route   PUT /api/v1/users/:id
+ * @access  Private/Admin
+ */
+export const updateUserById = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
     const user = await User.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     });
 
     if (!user) {
-      return next(
-        new ErrorResponse(`ID为${req.params.id}的用户不存在`, 404)
-      );
+      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
     }
 
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    logger.error(`更新ID为${req.params.id}的用户失败:`, error);
-    next(error);
+    res.status(200).json({ success: true, data: user });
   }
-};
+);
 
 /**
- * @desc    删除用户
+ * @desc    Delete user (admin only)
  * @route   DELETE /api/v1/users/:id
- * @access  私有/管理员
+ * @access  Private/Admin
  */
-export const deleteUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findById(req.params.id);
+export const deleteUser = asyncHandler(
+  async (req: any, res: Response, next: NextFunction) => {
+    if (req.user.id === req.params.id) {
+      return next(new ErrorResponse('Cannot delete your own account', 400));
+    }
+
+    const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
-      return next(
-        new ErrorResponse(`ID为${req.params.id}的用户不存在`, 404)
-      );
+      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
     }
 
-    // 防止删除自己
-    if ((req as any).user.id === req.params.id) {
-      return next(new ErrorResponse('不能删除自己的账户', 400));
-    }
-
-    await user.deleteOne();
-
-    res.status(200).json({
-      success: true,
-      data: {},
-    });
-  } catch (error) {
-    logger.error(`删除ID为${req.params.id}的用户失败:`, error);
-    next(error);
+    res.status(200).json({ success: true, data: {} });
   }
-};
+);
 
 /**
- * @desc    更改用户角色
+ * @desc    Change user role (admin only)
  * @route   PUT /api/v1/users/:id/role
- * @access  私有/管理员
+ * @access  Private/Admin
  */
-export const changeUserRole = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
+export const changeUserRole = asyncHandler(
+  async (req: any, res: Response, next: NextFunction) => {
     const { role } = req.body;
 
-    if (!Object.values(UserRole).includes(role as UserRole)) {
-      return next(new ErrorResponse('无效的角色', 400));
+    if (!Object.values(UserRole).includes(role)) {
+      return next(new ErrorResponse('Invalid role', 400));
     }
 
-    const user = await User.findById(req.params.id);
+    if (req.user.id === req.params.id) {
+      return next(new ErrorResponse('Cannot change your own role', 400));
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { new: true }
+    );
 
     if (!user) {
-      return next(
-        new ErrorResponse(`ID为${req.params.id}的用户不存在`, 404)
-      );
+      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
     }
 
-    // 防止更改自己的角色
-    if ((req as any).user.id === req.params.id) {
-      return next(new ErrorResponse('不能更改自己的角色', 400));
-    }
-
-    user.role = role as UserRole;
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    logger.error(`更改ID为${req.params.id}的用户角色失败:`, error);
-    next(error);
+    res.status(200).json({ success: true, data: user });
   }
-};
+);

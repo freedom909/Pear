@@ -1,39 +1,194 @@
 import { Request, Response, NextFunction } from 'express';
-import  { UserRole } from '../models/interface/index';
-import  User  from '../models/user/user.model';
-import { ErrorResponse } from '../utils/errorResponse';
-import  logger  from '../utils/logger';
+import passport from 'passport';
 import crypto from 'crypto';
+import User from '../models/user/user.model';
+import { ErrorResponse } from '../utils/errorResponse';
+import logger from '../utils/logger';
+import { UserRole } from '../models/interface';
+import { UserResponseDTO } from '../dtos/userDTO';
+import { asyncHandler } from '../middleware/error';
+
+import jwt from 'jsonwebtoken';
+
 
 /**
- * @desc    注册用户
- * @route   POST /api/v1/auth/register
- * @access  公开
+ * @desc    Get current user
+ * @route   GET /api/v1/auth/me
+ * @access  Private
  */
-export const register = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getMe = asyncHandler(
+  async (req: any, res: Response, next: NextFunction) => {
+    const user = await User.findById(req.user.id);
+    if (!user) return next(new ErrorResponse('用户未找到', 404));
+    res.status(200).json({ success: true, data: new UserResponseDTO(user) });
+  }
+);
+
+/**
+ * @desc    Update user details
+ * @route   PUT /api/v1/auth/updatedetails
+ * @access  Private
+ */
+export const updateDetails = asyncHandler(
+  async (req: any, res: Response) => {
+    const updated = await User.findByIdAndUpdate(
+      req.user.id,
+      { name: req.body.name, email: req.body.email },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ success: true, data: updated });
+  }
+);
+
+/**
+ * @desc    Update password
+ * @route   PUT /api/v1/auth/updatepassword
+ * @access  Private
+ */
+export const updatePassword = asyncHandler(
+  async (req: any, res: Response, next: NextFunction) => {
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) return next(new ErrorResponse('用户不存在', 404));
+
+    const isMatch = await user.matchPassword(req.body.currentPassword);
+    if (!isMatch) return next(new ErrorResponse('密码不正确', 401));
+
+    user.password = req.body.newPassword;
+    await user.save();
+
+    sendTokenResponse(user, 200, res);
+  }
+);
+
+/**
+ * @desc    Forgot password
+ * @route   POST /api/v1/auth/forgotpassword
+ * @access  Public
+ */
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) return next(new ErrorResponse('没有使用该邮箱的用户', 404));
+
+    const resetToken = user.getResetPasswordToken();
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
+    logger.info(`重置密码链接: ${resetUrl}`);
+
+    res.status(200).json({ success: true, resetUrl }); // Replace with actual mail sender in production
+  }
+);
+
+/**
+ * @desc    Reset password
+ * @route   PUT /api/v1/auth/resetpassword/:resettoken
+ * @access  Public
+ */
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const resetPasswordToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
+
+    const user = await User.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } });
+    if (!user) return next(new ErrorResponse('无效的令牌', 400));
+
+    user.password = req.body.password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    sendTokenResponse(user, 200, res);
+  }
+);
+
+/**
+ * ========================
+ * ==== OAUTH ROUTES =====
+ * ========================
+ */
+
+/**
+ * @desc    Initiate Google OAuth login
+ * @route   GET /api/v1/auth/google
+ * @access  Public
+ */
+export const googleLogin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate('google', { scope: ['profile', 'email'], session: false })(req, res, next);
+  }
+);
+
+/**
+ * @desc    Google OAuth callback
+ * @route   GET /api/v1/auth/google/callback
+ * @access  Public
+ */
+export const googleCallback = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate('google', { session: false }, (err, user, _info) => {
+      if (err || !user) return next(new ErrorResponse('Google authentication failed', 401));
+      const token = user.getSignedJwtToken();
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+      res.redirect(`${process.env.FRONTEND_URL}/oauth?token=${token}`);
+    })(req, res, next);
+  }
+);
+
+/**
+ * Helper to send token in response
+ */
+function sendTokenResponse(user: any, statusCode: number, res: Response) {
+  const token = user.getSignedJwtToken();
+  res.status(statusCode)
+    .cookie('token', token, {
+      expires: new Date(
+        Date.now() + (Number(process.env.JWT_COOKIE_EXPIRE) || 30) * 24 * 60 * 60 * 1000
+      ),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    })
+    .json({ success: true, token });
+}
+
+/**
+ * 🔐 JWT utility helpers
+ */
+function generateToken(user: any): string {
+  return jwt.sign(
+    { id: user._id, email: user.email, role: user.role },
+    process.env.JWT_SECRET || 'secret',
+    { expiresIn: '1h' }
+  );
+}
+
+function generateRefreshToken(user: any): string {
+  return jwt.sign(
+    { id: user._id },
+    process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+    { expiresIn: '7d' }
+  );
+}
+
+/**
+ * 🚀 Register new user
+ */
+export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, email, password, role } = req.body;
-
-    // 检查是否已存在相同邮箱的用户
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return next(new ErrorResponse('该邮箱已被注册', 400));
-    }
 
-    // 创建用户
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: role === UserRole.ADMIN ? UserRole.USER : role, // 防止直接创建管理员账户
-    });
+    if (existingUser) return next(new ErrorResponse('该邮箱已被注册', 400));
+    const user = await User.create({ name, email, password, role: role === UserRole.ADMIN ? UserRole.USER : role });
 
-    // 发送响应
-    sendTokenResponse(user, 201, res);
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    res.status(201).json({ success: true, token, refreshToken, user });
   } catch (error) {
     logger.error('注册用户失败:', error);
     next(error);
@@ -41,39 +196,22 @@ export const register = async (
 };
 
 /**
- * @desc    用户登录
- * @route   POST /api/v1/auth/login
- * @access  公开
+ * 🔐 Login user
  */
-export const login = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return next(new ErrorResponse('请提供邮箱和密码', 400));
 
-    // 验证邮箱和密码
-    if (!email || !password) {
-      return next(new ErrorResponse('请提供邮箱和密码', 400));
-    }
-
-    // 查找用户并包含密码字段
     const user = await User.findOne({ email }).select('+password');
-
-    if (!user) {
+    if (!user || !(await user.matchPassword(password))) {
       return next(new ErrorResponse('无效的凭据', 401));
     }
 
-    // 检查密码是否匹配
-    const isMatch = await user.matchPassword(password);
+    const token = generateToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-    if (!isMatch) {
-      return next(new ErrorResponse('无效的凭据', 401));
-    }
-
-    // 发送响应
-    sendTokenResponse(user, 200, res);
+    res.status(200).json({ success: true, token, refreshToken, user });
   } catch (error) {
     logger.error('用户登录失败:', error);
     next(error);
@@ -81,245 +219,39 @@ export const login = async (
 };
 
 /**
- * @desc    退出登录 / 清除cookie
- * @route   GET /api/v1/auth/logout
- * @access  私有
+ * 🔄 Refresh Token
  */
-export const logout = async (
-  _req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    res.cookie('token', 'none', {
-      expires: new Date(Date.now() + 10 * 1000), // 10秒后过期
-      httpOnly: true,
-    });
+    const { refreshToken } = req.body;
+    if (!refreshToken) return next(new ErrorResponse('需要提供 refreshToken', 400));
 
-    res.status(200).json({
-      success: true,
-      data: {},
-    });
-  } catch (error) {
-    logger.error('退出登录失败:', error);
-    next(error);
-  }
-};
-
-/**
- * @desc    获取当前登录用户
- * @route   GET /api/v1/auth/me
- * @access  私有
- */
-export const getMe = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    // 用户已通过auth中间件添加到req对象
-    const user = await User.findById((req as any).user.id);
-
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    logger.error('获取当前用户失败:', error);
-    next(error);
-  }
-};
-
-/**
- * @desc    更新用户详情
- * @route   PUT /api/v1/auth/updatedetails
- * @access  私有
- */
-export const updateDetails = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-    };
-
-    const user = await User.findByIdAndUpdate(
-      (req as any).user.id,
-      fieldsToUpdate,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    logger.error('更新用户详情失败:', error);
-    next(error);
-  }
-};
-
-/**
- * @desc    更新密码
- * @route   PUT /api/v1/auth/updatepassword
- * @access  私有
- */
-export const updatePassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findById((req as any).user.id).select('+password');
-
-    if (!user) {
-      return next(new ErrorResponse('用户不存在', 404));
-    }
-
-    // 检查当前密码
-    const isMatch = await user.matchPassword(req.body.currentPassword);
-
-    if (!isMatch) {
-      return next(new ErrorResponse('密码不正确', 401));
-    }
-
-    user.password = req.body.newPassword;
-    await user.save();
-
-    sendTokenResponse(user, 200, res);
-  } catch (error) {
-    logger.error('更新密码失败:', error);
-    next(error);
-  }
-};
-
-/**
- * @desc    忘记密码
- * @route   POST /api/v1/auth/forgotpassword
- * @access  公开
- */
-export const forgotPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findOne({ email: req.body.email });
-
-    if (!user) {
-      return next(new ErrorResponse('没有使用该邮箱的用户', 404));
-    }
-
-    // 获取重置令牌
-    const resetToken = user.getResetPasswordToken();
-
-    await user.save({ validateBeforeSave: false });
-
-    // 创建重置URL
-    const resetUrl = `${req.protocol}://${req.get(
-      'host'
-    )}/api/v1/auth/resetpassword/${resetToken}`;
-
-    const message = `您收到此电子邮件是因为您（或其他人）请求重置密码。请访问以下链接重置密码：\n\n${resetUrl}`;
-
+    let decoded;
     try {
-      // 在实际应用中，这里应该发送电子邮件
-      // await sendEmail({
-      //   email: user.email,
-      //   subject: '密码重置令牌',
-      //   message,
-      // });
-
-      // 由于这是示例，我们只记录消息
-      logger.info(`重置密码邮件内容: ${message}`);
-
-      res.status(200).json({
-        success: true,
-        data: '电子邮件已发送',
-        // 在开发环境中返回令牌，方便测试
-        resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
-      });
-    } catch (err) {
-      logger.error('发送电子邮件失败:', err);
-
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-
-      await user.save({ validateBeforeSave: false });
-
-      return next(new ErrorResponse('无法发送电子邮件', 500));
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh-secret') as any;
+    } catch {
+      return next(new ErrorResponse('无效的 refresh token', 401));
     }
+
+    const user = await User.findById(decoded.id);
+    if (!user) return next(new ErrorResponse('无效的 refresh token', 401));
+
+    const newToken = generateToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+
+    res.status(200).json({ success: true, token: newToken, refreshToken: newRefreshToken });
   } catch (error) {
-    logger.error('忘记密码处理失败:', error);
+    logger.error('刷新令牌失败:', error);
     next(error);
   }
 };
 
 /**
- * @desc    重置密码
- * @route   PUT /api/v1/auth/resetpassword/:resettoken
- * @access  公开
+ * 🔒 Logout user
  */
-export const resetPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    // 获取哈希令牌
-    const resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(req.params.resettoken)
-      .digest('hex');
-
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return next(new ErrorResponse('无效的令牌', 400));
-    }
-
-    // 设置新密码
-    user.password = req.body.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-    await user.save();
-
-    sendTokenResponse(user, 200, res);
-  } catch (error) {
-    logger.error('重置密码失败:', error);
-    next(error);
-  }
+export const logout = async (_req: Request, res: Response) => {
+  res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true })
+     .status(200).json({ success: true, data: {} });
 };
 
-/**
- * 获取令牌并创建cookie
- */
-const sendTokenResponse = (user: any, statusCode: number, res: Response) => {
-  // 创建令牌
-  const token = user.getSignedJwtToken();
 
-  const options = {
-    expires: new Date(
-      Date.now() + (process.env.JWT_COOKIE_EXPIRE as unknown as number) || 30 * 24 * 60 * 60 * 1000
-    ),
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-  };
-
-  res
-    .status(statusCode)
-    .cookie('token', token, options)
-    .json({
-      success: true,
-      token,
-    });
-};

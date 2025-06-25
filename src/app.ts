@@ -13,8 +13,7 @@ import logger,{  logStream } from './utils/logger';
 import { initRedis } from './utils/redis';
 import userRoutes from './routes/userAndAuth.routes';
 import authRoutes from './routes/auth.routes';
-import { initPassportStrategies } from './passport/setupStrategies';
-
+import { PassportConfig } from './config/passport.config';
 
 import { connectDB } from './config/database';
 import passport from 'passport';
@@ -39,22 +38,8 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 配置Passport序列化和反序列化
-passport.serializeUser((user: any, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser(async (id: string, done) => {
-  try {
-    const user = await userService.findById(id);
-    done(null, user);
-  } catch (error) {
-    done(error, null);
-  }
-});
-
-// 初始化OAuth策略
-initPassportStrategies();
+// 初始化OAuth策略 - 只使用一种初始化方式
+PassportConfig.initialize();
 
 // 初始化Express应用
 app.use((req, res, next) => {
