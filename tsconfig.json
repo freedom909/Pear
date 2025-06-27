@@ -9,9 +9,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["*"]
     },
     "types": ["node", "jest"],
     "emitDecoratorMetadata": true,
@@ -44,10 +44,5 @@
     "dist",
     "**/*.spec.ts",
     "**/*.test.ts"
-  ],
-  "baseUrl": "./src",
-"paths": {
-  "@/*": ["*"]
-}
-
+  ]
 }

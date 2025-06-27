@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import config from '../config/config';
-import logger  from './logger';
+import logger  from '../middleware/logger';
 
 /**
  * 连接数据库

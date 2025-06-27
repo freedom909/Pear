@@ -1,5 +1,6 @@
 import { createClient, RedisClientType } from 'redis';
-import { ErrorResponse } from './errorResponse';
+import { AppError } from '../errors/appError';
+import { ErrorCode } from '../errors/error-code';
 import logger from './logger';
 
 // Redis配置接口
@@ -22,10 +23,17 @@ export const getRedisClient = async (): Promise<RedisClientType> => {
     redisClient = await initRedis() as RedisClientType;
   } catch (err) {
     logger.error('初始化Redis失败:', err);
-    throw new ErrorResponse('Redis连接失败', 500);
+    throw new AppError({
+      message: '初始化Redis失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: (err as unknown as Error).message
+    });
   }
   if (!redisClient) {
-    throw new ErrorResponse('Redis客户端未初始化', 500);
+    throw new AppError({
+      message: 'Redis客户端未初始化',
+      code: ErrorCode.INTERNAL_SERVER_ERROR
+    });
   }
   return redisClient;
 };
@@ -50,7 +58,7 @@ export const initRedis = async () => {
       config.tls = {};
     }
 
-    const client = createClient(config);
+    const client = createClient(config) as RedisClientType;
 
     client.on('connect', () => {
       logger.info('Redis连接已建立');
@@ -64,18 +72,16 @@ export const initRedis = async () => {
     return client;
   } catch (err) {
     logger.error('初始化Redis失败:', err);
-    throw new ErrorResponse('Redis连接失败', 500);
+    throw new AppError({
+      message: '初始化Redis失败',
+
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: (err as unknown as Error).message,
+     
+    });
   }
 };
 
-/**
- * 获取Redis客户端
- */
-
-
-/**
- * 初始化Redis连接
- */
 
 
 /**
@@ -101,7 +107,7 @@ export const setCache = async (key: string, value: any, ttl?: number) => {
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
 
     if (ttl) {
-      const redisClientInstance = await client;
+      const redisClientInstance = await client as RedisClientType;
       await redisClientInstance.setEx(key, ttl, stringValue);
     } else {
       const redisClientInstance = await client;
@@ -109,7 +115,11 @@ export const setCache = async (key: string, value: any, ttl?: number) => {
     }
   } catch (err) {
     logger.error('设置缓存失败:', err);
-    throw new ErrorResponse('缓存设置失败', 500);
+    throw new AppError({
+      message: '缓存设置失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: (err as unknown as Error).message
+    });
   }
 };
 
@@ -132,7 +142,11 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
     }
   } catch (err) {
     logger.error('获取缓存失败:', err);
-    throw new ErrorResponse('缓存获取失败', 500);
+    throw new AppError({
+      message: '缓存获取失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: (err as unknown as Error).message
+    })
   }
 };
 
@@ -142,12 +156,16 @@ export const getCache = async <T>(key: string): Promise<T | null> => {
  */
 export const deleteCache = async (key: string) => {
   try {
-    const client = getRedisClient();
-    const redisClientInstance = await client;
+    const client = getRedisClient() ;
+    const redisClientInstance = await client as RedisClientType;
     await redisClientInstance.del(key);
   } catch (err) {
     logger.error('删除缓存失败:', err);
-    throw new ErrorResponse('缓存删除失败', 500);
+    throw new AppError({
+      message: '缓存删除失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: (err as unknown as Error).message
+    });
   }
 };
 
@@ -159,13 +177,24 @@ export const deleteCache = async (key: string) => {
 export const exists = async (key: string): Promise<boolean> => {
   try {
     const client = getRedisClient();
-    const redisClientInstance = await client;
+    const redisClientInstance = await client as RedisClientType;
     const result = await redisClientInstance.exists(key);
     return result === 1;
   } catch (err) {
     logger.error('检查键是否存在失败:', err);
-    throw new ErrorResponse('检查键是否存在失败', 500);
-  }
+    throw new AppError({
+      message: '检查键是否存在失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: (err as unknown as Error).message
+    });
+  } 
+
+  };
+
+/**
+ * 获取哈希表所有字段
+ * @param key 哈希表键
+ * @returns 字段名和字段值
 };
 
 /**
@@ -176,13 +205,17 @@ export const exists = async (key: string): Promise<boolean> => {
  */
 export const hset = async (key: string, field: string, value: any) => {
   try {
-    const client = getRedisClient();
+    const client = getRedisClient()||{};
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-    const redisClientInstance = await client;
+    const redisClientInstance = await client as RedisClientType;
     await redisClientInstance.hSet(key, field, stringValue);
   } catch (err) {
     logger.error('设置哈希表字段失败:', err);
-    throw new ErrorResponse('哈希表设置失败', 500);
+        throw new AppError({
+          message: '哈希表设置失败',
+          code: ErrorCode.INTERNAL_SERVER_ERROR,
+          details: (err as unknown as Error).message
+        });
   }
 };
 
@@ -194,8 +227,8 @@ export const hset = async (key: string, field: string, value: any) => {
  */
 export const hget = async <T>(key: string, field: string): Promise<T | null> => {
   try {
-    const client = getRedisClient();
-    const redisClientInstance = await client;
+    const client = getRedisClient() ;
+    const redisClientInstance = await client as RedisClientType;
     const value = await redisClientInstance.hGet(key, field);
     if (!value) return null;
 
@@ -206,7 +239,11 @@ export const hget = async <T>(key: string, field: string): Promise<T | null> => 
     }
   } catch (err) {
     logger.error('获取哈希表字段失败:', err);
-    throw new ErrorResponse('哈希表获取失败', 500);
+    throw new AppError({
+      message: '哈希表获取失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: (err as unknown as Error).message
+    });
   }
 };
 

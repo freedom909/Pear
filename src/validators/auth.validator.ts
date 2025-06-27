@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { ErrorResponse } from '../utils/errorResponse';
+import { ErrorResponse } from '../errors/errors/error-response';
 
 /**
  * 注册验证规则
@@ -31,8 +31,8 @@ async  (req: Request, _res: Response, next: NextFunction) => {
     if (!errors.isEmpty()) {
       return next(
         new ErrorResponse(
-          errors.array().map(err => err.msg).join(', '),
-          400
+             new Error(errors.array().map(err => err.msg).join(', ')),
+      
         )
       );
     }
@@ -54,12 +54,12 @@ export const loginValidator = [
 
   // 处理验证结果
 async  (req: Request, _res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
+    const errors = validationResult(req); 
     if (!errors.isEmpty()) {
       return next(
         new ErrorResponse(
-          errors.array().map(err => err.msg).join(', '),
-          400
+         new Error(errors.array().map(err => err.msg).join(', ')),
+        
         )
       );
     }
@@ -79,8 +79,7 @@ export const refreshTokenValidator = [
     if (!errors.isEmpty()) {
       return next(
         new ErrorResponse(
-          errors.array().map(err => err.msg).join(', '),
-          400
+         new Error( errors.array().map(err => err.msg).join(', ')),
         )
       );
     }

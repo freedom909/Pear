@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
-import { ErrorResponse } from './errorResponse';
-import  Log  from '../utils/logger';
+import { AppError } from '../errors/appError';
+import  Log  from './logger';
 import path from 'path';
 import fs from 'fs';
 // Try to import handlebars with a more specific path if possible, or install the 'handlebars' package.
@@ -83,7 +83,7 @@ class EmailService {
       Log.info(`邮件已发送至: ${options.email}`);
     } catch (error) {
       Log.error('发送邮件失败:', error);
-      throw new ErrorResponse('发送邮件失败', 500);
+      throw AppError.internal('发送邮件失败');
     }
   }
 

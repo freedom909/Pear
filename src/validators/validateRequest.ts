@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ErrorResponse } from '../utils/errorResponse';
-import logger  from '../utils/logger';
+import ErrorCode from '@/errors/error-code';
+import { AppError } from '../errors/appError';
+import logger  from '../middleware/logger';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 
@@ -48,7 +49,11 @@ export const validateRequest = <T extends object>(
           .filter(Boolean)
           .join('; ');
 
-        return next(new ErrorResponse(`请求验证失败: ${errorMessages}`, 400));
+        return next(new AppError({
+            message: '请求验证失败',
+            code: ErrorCode.VALIDATION_ERROR,
+            details: errorMessages
+          }));
       }
 
       // 验证通过，将验证后的数据附加到请求对象
@@ -60,7 +65,7 @@ interface CustomRequest extends Request {
       next();
     } catch (error) {
       logger.error('请求验证中间件错误:', error);
-      next(new ErrorResponse('请求验证处理失败', 500));
+      next(new AppError({message:'请求验证处理失败', error}as unknown as any));
     }
   };
 };
@@ -83,7 +88,7 @@ export const validateQuery = <T extends object>(dtoClass: new () => T) => {
           .map((error) => Object.values(error.constraints || {}).join(', '))
           .join('; ');
 
-        return next(new ErrorResponse(`查询参数验证失败: ${errorMessages}`, 400));
+        return next(new AppError({message:'查询参数验证失败', errorMessages}as unknown as any));
       }
 
 // Extend the Request type to include the validatedQuery property
@@ -94,7 +99,7 @@ interface CustomRequestQuery extends Request {
       next();
     } catch (error) {
       logger.error('查询参数验证中间件错误:', error);
-      next(new ErrorResponse('查询参数验证处理失败', 500));
+      next(new AppError({message:'查询参数验证处理失败', error}as unknown as any));
     }
   };
 };
@@ -117,7 +122,7 @@ export const validateParams = <T extends object>(dtoClass: new () => T) => {
           .map((error) => Object.values(error.constraints || {}).join(', '))
           .join('; ');
 
-        return next(new ErrorResponse(`路径参数验证失败: ${errorMessages}`, 400));
+        return next(new AppError({message:'参数路径失败', errorMessages}as unknown as any));
       }
 
 // Extend the Request type to include the validatedParams property
@@ -128,7 +133,7 @@ interface CustomRequestParams extends Request {
       next();
     } catch (error) {
       logger.error('路径参数验证中间件错误:', error);
-      next(new ErrorResponse('路径参数验证处理失败', 500));
+      next(new AppError({message:'参数路径失败', error}as unknown as any));
     }
   };
 };

@@ -1,13 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../utils/appError';
+import { ErrorCode } from '../errors/error-code';
+import {AppError} from '../errors/appError';
 
 /**
- * 处理404未找到的路由
+ * 处理404错误的中间件
+ * 当没有路由匹配请求时，将创建一个NOT_FOUND错误
  */
-export const notFoundHandler = (
-  req: Request,
+export default function notFoundHandler(
+  _req: Request,
   _res: Response,
   next: NextFunction
-): void => {
-  next(new AppError(404, `Route ${req.originalUrl} not found`));
-};
+): void {
+  next(
+    new AppError({
+      message:ErrorCode.NOT_FOUND,
+      code:ErrorCode.NOT_FOUND,
+    })
+  );
+}

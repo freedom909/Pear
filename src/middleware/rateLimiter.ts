@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
-import { ErrorResponse } from '../utils/errorResponse';
-import  logger  from '../utils/logger';
+import  logger  from './logger';
 import RedisStore from 'rate-limit-redis';
-import redisClient from '../utils/redis';
+import redisClient from './redis';
 
 /**
  * 创建速率限制器
@@ -33,7 +32,7 @@ export const rateLimiter = (
     store,
     handler: (req: Request, _res: Response, next: NextFunction) => {
       logger.warn(`速率限制触发: IP ${req.ip} 超过限制`);
-      next(new ErrorResponse(message, 429));
+        next(new Error(JSON.stringify({ code: 'rate_limit_exceeded' })));
     },
     keyGenerator: (req: Request) => {
       // 使用IP地址和原始URL作为键

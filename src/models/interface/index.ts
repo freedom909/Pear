@@ -1,3 +1,4 @@
+//models/interface/index.ts
 import { Document, Model } from 'mongoose';
 
 export interface IUser extends Document {
@@ -35,6 +36,7 @@ export interface IUser extends Document {
   updatedAt: Date;
   
   // 生成令牌
+  findOrCreate(profile: any): Promise<UserDocument>;
   generateAuthToken(): string;
   generateRefreshToken(): string;
   comparePassword(candidatePassword: string): Promise<boolean>;
