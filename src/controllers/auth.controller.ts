@@ -38,7 +38,7 @@ export const getMe = asyncHandler(
  * @access  Private
  */
 export const updateDetails = asyncHandler(
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
     const updated = await User.findByIdAndUpdate(
       req.user.id,
       { name: req.body.name, email: req.body.email },

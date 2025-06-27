@@ -95,8 +95,11 @@ router.put('/updatepassword', updatePassword);      // PUT /api/v1/user/updatepa
  */
 // Assuming the role middleware expects a single string, we might need to handle each role separately.
 // Here we use multiple router.use calls for each role.
-router.use(role(UserRole.ADMIN));
-router.use(role(UserRole.SUPER_ADMIN));
+
+// Assuming the role middleware expects a single string, we might need to handle each role separately.
+// Here we use multiple router.use calls for each role.
+router.use(role(UserRole.ADMIN) as any);
+router.use(role(UserRole.SUPER_ADMIN) as any);
 
 // User management
 router.get('/', getUsers);                           // GET /api/v1/user/

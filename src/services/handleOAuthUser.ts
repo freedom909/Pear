@@ -1,5 +1,5 @@
 import User from '../models/user/user.model';
-import { OAuthError, ValidationError } from '../utils/errors';
+import { OAuthError, ValidationError } from '../errors/httpError';
 import { OAuthTokenInfo } from '../models/interface/index';
 
 /**
@@ -44,20 +44,21 @@ export const handleOAuthUser = async (profile: any, tokenInfo: OAuthTokenInfo) =
     
     if (user) {
       // 更新现有用户
-      user[`${provider}Id`] = providerId;
+      (user as any)[`${provider}Id`] = providerId;
+      (user as any).email = email;
       
       // 如果用户没有头像但 OAuth 提供了头像，则更新
-      if (!user.profilePhoto && profile.photos && profile.photos.length > 0) {
-        user.profilePhoto = profile.photos[0].value;
+        if (!(user as any).profilePhoto && profile.photos && profile.photos.length > 0) {
+        (user as any).profilePhoto = profile.photos[0].value;
       }
       
       // 保存令牌信息（可选，取决于你的应用需求）
       if (tokenInfo.accessToken) {
-        user[`${provider}AccessToken`] = tokenInfo.accessToken;
+        (user as any)[`${provider}AccessToken`] = tokenInfo.accessToken;
       }
       
       if (tokenInfo.refreshToken) {
-        user[`${provider}RefreshToken`] = tokenInfo.refreshToken;
+        (user as any)[`${provider}RefreshToken`] = tokenInfo.refreshToken;
       }
       
       await user.save();
@@ -99,7 +100,7 @@ export const handleOAuthUser = async (profile: any, tokenInfo: OAuthTokenInfo) =
     throw new OAuthError(
       `${profile?.provider || '未知提供商'} 认证失败`,
       'OAUTH_PROCESSING_ERROR',
-      { originalError: ((error: Error)=> error.message) }
+      
     );
   }
 };
@@ -128,7 +129,7 @@ export const linkOAuthToUser = async (userId: string, profile: any, tokenInfo: O
       throw new OAuthError(
         '此 OAuth 账号已被其他用户关联',
         'OAUTH_ALREADY_LINKED',
-        { provider }
+      
       );
     }
     
@@ -139,15 +140,15 @@ export const linkOAuthToUser = async (userId: string, profile: any, tokenInfo: O
     }
     
     // 关联 OAuth 账号
-    user[`${provider}Id`] = providerId;
+    (user as any)[`${provider}Id`] = providerId;
     
     // 保存令牌信息
     if (tokenInfo.accessToken) {
-      user[`${provider}AccessToken`] = tokenInfo.accessToken;
+      (user as any)[`${provider}AccessToken`] = tokenInfo.accessToken;
     }
     
     if (tokenInfo.refreshToken) {
-      user[`${provider}RefreshToken`] = tokenInfo.refreshToken;
+      (user as any)[`${provider}RefreshToken`] = tokenInfo.refreshToken;
     }
     
     await user.save();
@@ -162,7 +163,7 @@ export const linkOAuthToUser = async (userId: string, profile: any, tokenInfo: O
     throw new OAuthError(
       `关联 ${profile?.provider || '未知提供商'} 账号失败`,
       'OAUTH_LINKING_ERROR',
-      { originalError: ((error: Error)=> error.message) }
+    
     );
   }
 };
@@ -182,9 +183,9 @@ export const unlinkOAuthFromUser = async (userId: string, provider: OAuthProvide
     }
     
     // 检查用户是否至少有一种登录方式（密码或其他 OAuth）
-    const hasPassword = !!user.password;
+    const hasPassword = !!(user as any).password;
     const linkedProviders = ['google', 'facebook', 'twitter', 'apple'].filter(
-      p => !!user[`${p}Id`]
+      p => !!(user as any)[`${p}Id`]
     );
     
     // 如果用户只有一种登录方式且正是要解除的提供商，则不允许解除
@@ -212,7 +213,7 @@ export const unlinkOAuthFromUser = async (userId: string, provider: OAuthProvide
     throw new OAuthError(
       `解除 ${provider} 账号关联失败`,
       'OAUTH_UNLINKING_ERROR',
-      { originalError: ((error: Error)=> error.message) }
+ 
     );
   }
 };

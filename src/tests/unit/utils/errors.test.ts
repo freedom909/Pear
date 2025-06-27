@@ -10,7 +10,7 @@ import {
   ServiceUnavailableError,
   OAuthError,
   createErrorResponse
-} from '../../../utils/errors';
+} from '../../../errors/httpError';
 
 describe('Error Utilities', () => {
   describe('AppError', () => {

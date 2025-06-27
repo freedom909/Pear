@@ -2,6 +2,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/appError';
+import { ErrorCode } from '../errors/error-code';
+
 import { asyncHandler } from '../middleware/errorHandler';
 import User from '../models/user/user.model';
 import { UserRole } from '../models/interface/index';
@@ -21,7 +23,11 @@ export const getMe = asyncHandler(
     const user = await User.findById(req.user.id).select('-password');
 
     if (!user) {
-      return next(new AppError('User not found', 404));
+      return next(new AppError({
+        message:'User not found',
+        code: ErrorCode.NOT_FOUND,
+        details: { user: user }
+      })) ;
     }
 
     res.status(200).json({
@@ -46,7 +52,27 @@ export const updateMe = asyncHandler(
     if (dto.email) {
       const existingUser = await User.findOne({ email: dto.email, _id: { $ne: req.user.id } });
       if (existingUser) {
-        return next(new AppError('Email is already taken', 400));
+        return next(new AppError({
+          message: 'Email is already taken',
+          code: ErrorCode.BAD_REQUEST,
+          details: { user: existingUser }
+        }));
+      }
+      if (dto.email === req.user.email) {
+        return next(new AppError({ message: 'Email is already taken', code: ErrorCode.BAD_REQUEST }));
+      }
+      if (dto.email !== req.user.email) {
+        return next(new AppError({ message: 'Email is already taken', code: ErrorCode.BAD_REQUEST }));
+      }
+    }
+
+    if (dto.role) {
+      if (dto.role === UserRole.ADMIN) {
+        return next(new AppError({
+           message: 'Cannot change role to admin',
+            code: ErrorCode.BAD_REQUEST ,
+          details: { user: req.user }
+          }));
       }
       updateData.email = dto.email;
     }
@@ -100,7 +126,11 @@ export const getUserById = asyncHandler(
     const user = await User.findById(req.params.id).select('-password');
 
     if (!user) {
-      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError({
+        message: `User with ID ${req.params.id} not found`,
+        code: ErrorCode.NOT_FOUND,
+        details: { user: user }
+      }));
     }
 
     res.status(200).json({
@@ -135,12 +165,17 @@ export const updateUserById = asyncHandler(
     });
 
     if (!user) {
-      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError({
+        message: `User with ID ${req.params.id} not found`,
+        code: ErrorCode.NOT_FOUND,
+        details: { user: req.user }
+      }));
     }
 
     res.status(200).json({ success: true, data: user });
   }
 );
+    
 
 /**
  * @desc    Delete user (admin only)
@@ -150,13 +185,29 @@ export const updateUserById = asyncHandler(
 export const deleteUser = asyncHandler(
   async (req: any, res: Response, next: NextFunction) => {
     if (req.user.id === req.params.id) {
-      return next(new AppError('Cannot delete your own account', 400));
+      return next(new AppError({
+        message:'Cannot delete your own account',
+        code: ErrorCode.BAD_REQUEST,
+        details: { user: req.user },
+      }));
+    }
+
+    if (req.user.role === UserRole.ADMIN) {
+      return next(new AppError({
+        message: 'Cannot change your own role',
+        code: ErrorCode.BAD_REQUEST,
+        details: { user: req.user }
+      }));
     }
 
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
-      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError({
+        message: `User with ID ${req.params.id} not found`,
+        code: ErrorCode.NOT_FOUND,
+        details: { user: req.user }
+      }));
     }
 
     res.status(200).json({ success: true, data: {} });
@@ -173,11 +224,27 @@ export const changeUserRole = asyncHandler(
     const { role } = req.body;
 
     if (!Object.values(UserRole).includes(role)) {
-      return next(new AppError('Invalid role', 400));
+      return next(new AppError({
+        message: 'Invalid role', 
+        code: ErrorCode.BAD_REQUEST,
+        details: { role }
+      }));
+    }
+
+    if (role === UserRole.ADMIN) {
+      return next(new AppError({
+        message: 'Cannot change role to admin',
+        code: ErrorCode.BAD_REQUEST,
+        details: { role }
+      }));
     }
 
     if (req.user.id === req.params.id) {
-      return next(new AppError('Cannot change your own role', 400));
+      return next(new AppError({
+        message:'Cannot change your own role',
+        code: ErrorCode.BAD_REQUEST,
+        details: { role }
+      }));
     }
 
     const user = await User.findByIdAndUpdate(
@@ -187,7 +254,11 @@ export const changeUserRole = asyncHandler(
     );
 
     if (!user) {
-      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError({
+        message: `User with ID ${req.params.id} not found`,
+        code: ErrorCode.NOT_FOUND,
+        details: { user: req.user }
+      }));
     }
 
     res.status(200).json({ success: true, data: user });

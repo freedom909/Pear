@@ -1,9 +1,9 @@
 import nodemailer from 'nodemailer';
 import config from '../config/config';
-import logger from '../utils/logger';
+import logger from '../middleware/logger';
 import  User  from '../models/user/user.model';
-import {  ErrorCode, } from '../utils/errors/error-code';
-import {BadRequestError} from '../utils/errors';
+import {  ErrorCode, } from '../errors/error-code';
+import {BadRequestError} from '../errors/httpError';
 
 
 /**
@@ -30,9 +30,10 @@ export class EmailService {
     const user = await User.findOne({ emailVerificationToken: token, emailVerificationExpires: { $gt: Date.now() } });
     if (!user) throw new BadRequestError(ErrorCode.INVALID_TOKEN, 'Invalid or expired verification token');
 
-    user.verified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
+    user.isVerified = true;
+    // Assuming the property exists in the User model, but TypeScript needs type assertion
+    (user as any).emailVerificationToken = undefined;
+    (user as any).emailVerificationExpires = undefined;
     await user.save();
   }
 

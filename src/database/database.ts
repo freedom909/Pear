@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import  config  from '../config/config';
-import logger from '../utils/logger';
+import logger from '../middleware/logger';
 
 
 export class database {

@@ -14,6 +14,7 @@ export interface UserService {
   getUsers(page?: number, limit?: number): Promise<UsersResponse>;
   findUserByEmail(email: string): Promise<UserDocument|null>;
   getUserById(id: string): Promise<UserDocument>;
+  getUserByResetToken(token: string): Promise<UserDocument|null>;
   createOAuthUser(userData: UserDocument): Promise<IUserProfile>;
   updateUser(id: string, userData: UserDocument, options?: Record<string, any>): Promise<UserDocument>;
   deleteUser(id: string): Promise<void>;
@@ -826,6 +827,14 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     user.passwordResetExpires = undefined;
     await user.save();
     logger.info(`Password reset for user: ${user.name}`);
+  }
+
+async getUserByResetToken(token: string): Promise<UserDocument | null> {
+    const user = await User.findOne({ passwordResetToken: token, passwordResetExpires: { $gt: Date.now() } }) as IUserModel;
+    if (!user) {
+      throw new Error('Invalid or expired token');
+    }
+    return user as unknown as UserDocument
   }
 
   static async requestPasswordReset(email: string, token: string, expires: Date): Promise<void> {

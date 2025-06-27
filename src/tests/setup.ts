@@ -1,6 +1,6 @@
 
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { connectDB, disconnectDB, clearDB } from '../utils/db';
+import { connectDB, disconnectDB, clearDB } from '../database/db';
 import config from '../config/config';
 
 // 使用内存MongoDB服务器进行测试

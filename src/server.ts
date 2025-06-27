@@ -1,5 +1,5 @@
 import http from 'http';
-import  logger  from './utils/logger';
+import  logger  from './middleware/logger';
 import app from './app';
 
 

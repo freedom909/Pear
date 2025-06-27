@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
-import { ErrorResponse } from '../utils/errorResponse';
+import { AppError } from '../errors/appError';
 import config from '../config/config';
 import User  from '../models/user/user.model';
 import { UserDocument } from '../models/interface/index';
 import userService from '../services/user.service';
-import { UnauthorizedError } from '@/utils/error';
-import {ErrorCode} from '../utils/errors/error-code';
+import { UnauthorizedError } from '../errors/httpError';
+import {ErrorCode} from '../errors/error-code';
 import { UserRole} from '../models/interface/index';
 
 
@@ -40,25 +40,25 @@ class AuthService {
    */
   async register(data: RegisterDTO): Promise<AuthResponse> {
     const existingUsername = await User.findOne({ username: data.username });
-    if (existingUsername) throw ErrorResponse.badRequest('用户名已被使用');
+    if (existingUsername) throw AppError.badRequest('用户名已被使用');
 
     const existingEmail = await User.findOne({ email: data.email });
-    if (existingEmail) throw ErrorResponse.badRequest('邮箱已被注册');
+    if (existingEmail) throw AppError.badRequest('邮箱已被注册');
 
     const user = await User.create({ ...data });
 
-    return this.buildAuthResponse(user);
+    return this.buildAuthResponse(user as unknown as UserDocument);
   }
 
   /**
    * Login with username/email + password
    */
   async login(identifier: string, password: string): Promise<AuthResponse> {
-    const user = await User.findOne({ $or: [{ username: identifier }, { email: identifier }] }).select('+password');
-    if (!user) throw ErrorResponse.unauthorized('无效的凭据');
+    const user = await User.findOne({ $or: [{ username: identifier }, { email: identifier }] }).select('+password') as UserDocument;
+    if (!user) throw AppError.unauthorized('无效的凭据');
 
     if (!(await user.comparePassword(password))) {
-      throw ErrorResponse.unauthorized('无效的凭据');
+      throw AppError.unauthorized('无效的凭据');
     }
     return this.buildAuthResponse(user);
   }
@@ -78,7 +78,10 @@ class AuthService {
         await userService.linkProvider(userId, provider, profile.id, profile.displayName, profile.avatarUrl);
       } else {
         const user = await userService.createOAuthUser(profile);
-        if (!user) throw ErrorResponse.internalError('创建用户失败');
+        if (!user) throw new AppError({
+          message: '创建用户失败',
+          code: ErrorCode.INTERNAL_SERVER_ERROR,
+          details:{user: user, provider: provider, profile: profile}});
       }
     }
 
@@ -125,8 +128,8 @@ async generateJwtForUser(user: UserDocument): Promise<string> {
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
     const decoded = jwt.verify(refreshToken, config.jwt.secret) as TokenPayload;
     const user = await User.findById(decoded.userId);
-    if (!user) throw ErrorResponse.unauthorized('无效的刷新令牌');
-    return this.buildAuthResponse(user);
+    if (!user) throw AppError.unauthorized('无效的刷新令牌');
+    return this.buildAuthResponse(user as unknown as UserDocument);
   }
 
   /**
@@ -147,21 +150,17 @@ async generateJwtForUser(user: UserDocument): Promise<string> {
   /**
    * Verify access token
    */
-  verifyAccessToken(token: string): TokenPayload {
+  verifyAccessToken(token: string): Promise<TokenPayload | undefined> {
     try {
-      return jwt.verify(token, config.jwt.secret) as TokenPayload;
+      return Promise.resolve(jwt.verify(token, config.jwt.secret) as TokenPayload);
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new UnauthorizedError(
-          ErrorCode.EXPIRED_TOKEN,
-          'Access token expired'
+          ErrorCode.TOKEN_EXPIRED,
+          'Token expired'
         );
       }
-      
-      throw new UnauthorizedError(
-        ErrorCode.INVALID_TOKEN,
-        'Invalid access token'
-      );
+      return Promise.resolve(undefined);
     }
   }
 
@@ -198,7 +197,7 @@ async generateJwtForUser(user: UserDocument): Promise<string> {
   //   await user.addRefreshToken(token);
     
   //   return token;
-  // }
+  
 }
 export const authService = new AuthService();
 // Export singleton instance

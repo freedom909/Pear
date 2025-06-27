@@ -12,7 +12,7 @@ export class PasswordService {
     }
 
     const token = user.passwordResetToken;
-    await userService.updateUser(user.id, user);
+    await userService.updateUser((user.id as any), user);
     return token ?? null;
   }
 
@@ -24,7 +24,7 @@ export class PasswordService {
 
     (user as any).setPassword(newPassword);// where is the setPassword method defined?
     (user as any).clearResetToken();
-    await userService.updateUser(user.id, user);
+    await userService.updateUser((user.id as any), user);
     return true;
   }
 }

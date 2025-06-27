@@ -6,7 +6,8 @@ import {
   getUserValidator,
   deleteUserValidator
 } from '../validators/user.validator';
-import { userController } from '../controllers/user.controller';
+
+import * as userController from '../controllers/user.controller';
 
 const router = express.Router();
 
@@ -20,13 +21,13 @@ router.post('/',
 // Get user by ID
 router.get('/:id',
   getUserValidator,
-  userController.getUser
+  userController.getUserById
 );
 
 // Update user
 router.put('/:id',
   updateUserValidator,
-  userController.updateUser
+  userController.updateMe
 );
 
 // Delete user
