@@ -1,3 +1,4 @@
+//routes/user.routes.ts
 import express from 'express';
 import {
   createUserValidator,
@@ -5,10 +6,10 @@ import {
   getUserValidator,
   deleteUserValidator
 } from '../validators/user.validator';
-import { UserController } from '../controllers/user.controller';
+import { userController } from '../controllers/user.controller';
 
 const router = express.Router();
-const userController = new UserController();
+
 
 // Create a new user
 router.post('/', 

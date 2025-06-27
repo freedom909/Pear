@@ -5,7 +5,7 @@ dotenv.config();
 
 // 环境变量
 const env = process.env.NODE_ENV || 'development';
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 5000;
 const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/pear';
 const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
 const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1d';

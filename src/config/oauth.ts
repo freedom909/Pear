@@ -1,6 +1,6 @@
 import { EnvConfig } from './env';
 import { OAuthConfig } from '../models/interface/index';
-import logger from '../utils/logger';
+import logger from '../middleware/logger';
 
 /**
  * OAuth configuration class

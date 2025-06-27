@@ -63,6 +63,7 @@ export interface IUserFields {
 export interface UserDocument extends Document, IUserFields {
   verifyPassword(password: string): Promise<boolean>;
   generatePasswordResetToken(): string;
+  getResetPasswordToken(): string;
   clearResetToken(): void;
 }
 

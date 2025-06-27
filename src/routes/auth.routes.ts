@@ -9,10 +9,10 @@ import {
   updateDetails,
   updatePassword,
 } from '../controllers/auth.controller';
-import { role } from '../middleware/auth';
+import { auth,role} from '../middleware/auth';
 import { UserRole } from '../models/interface/index';
 import userService from '@/services/user.service';
-import { auth } from '../middleware/auth';
+
 import {
   googleLogin,
   googleCallback,
@@ -88,7 +88,7 @@ if (typeof role === 'function') {
 // Assume the role function now accepts a single string, so we need to adjust the way we pass roles.
 // Here we pick the first role as an example, you may need to adjust the logic according to the actual situation.
 if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].length > 0) {
-  role([UserRole.ADMIN, UserRole.SUPER_ADMIN][0])(req, res, next);
+  role([UserRole.ADMIN, UserRole.SUPER_ADMIN][0])(req as any, res, next);
 } else {
   console.error('No valid roles provided.');
   next(new Error('No valid roles for authorization.'));

@@ -2,7 +2,7 @@ import { PassportStatic } from 'passport';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 
 import { BaseStrategy } from './base';
-import logger from '../utils/logger';
+import logger from '../middleware/logger';
 import { Request } from 'express';
 import { Profile } from 'passport';
 import { VerifyCallback } from 'passport-oauth2';

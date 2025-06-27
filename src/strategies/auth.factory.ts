@@ -6,7 +6,7 @@ import { AppleOAuthStrategy } from './apple';
 import userService from '../services/user.service';
 import { BaseStrategy } from './base';
 import { OAuthConfig } from '../models/interface/index';
-import logger from '../utils/logger';
+import logger from '../middleware/logger';
 
 /**{}
  * OAuth strategy factory class

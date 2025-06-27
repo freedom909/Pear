@@ -29,6 +29,19 @@ const userSchema = new Schema<UserDocument, IUserModel>(
   }
 );
 
+userSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
+  const hash = crypto
+    .pbkdf2Sync(
+      password,
+      this.salt,
+      config.security.password.iterations,
+      config.security.password.keylen,
+      config.security.password.digest
+    )
+    .toString('hex');
+
+  return this.passwordHash === hash;
+};
 // Instance method to verify password
 userSchema.methods.verifyPassword = async function (password: string): Promise<boolean> {
   const hash = crypto

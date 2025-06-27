@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
-import { ErrorResponse } from '../utils/errorResponse';
-import logger  from '../utils/logger';
+import { AppError } from '../errors/appError';
+import logger  from '../middleware/logger';
+import { ErrorCode } from '../errors/error-code';
 
 /**
  * 连接MongoDB数据库
@@ -9,7 +10,11 @@ export const connectDB = async () => {
   try {
     // 检查MongoDB连接URI是否配置
     if (!process.env.MONGO_URI) {
-      throw new ErrorResponse('MONGO_URI未配置', 500);
+      throw new AppError({
+        message: 'MONGO_URI未配置',
+        code: ErrorCode.DATABASE_ERROR,
+        details: { message: 'MONGO_URI未配置' },
+      });
     }
 
     // 设置Mongoose选项
@@ -62,7 +67,11 @@ export const closeDB = async () => {
     logger.info('MongoDB连接已关闭');
   } catch (err) {
     logger.error(`关闭MongoDB连接失败: ${(err as Error).message}`);
-    throw new ErrorResponse('关闭数据库连接失败', 500);
+    throw new AppError({
+      message: '关闭数据库连接失败',
+      code: ErrorCode.DATABASE_ERROR,
+      details: { message: '关闭数据库连接失败' },
+    });
   }
 };
 
@@ -71,7 +80,11 @@ export const closeDB = async () => {
  */
 export const clearDB = async () => {
   if (process.env.NODE_ENV !== 'test') {
-    throw new ErrorResponse('清除数据库只能在测试环境中进行', 403);
+    throw new AppError({
+      message: '数据库只能在测试环境中进行',
+      code: ErrorCode.DATABASE_ERROR,
+      details: { message: '数据库只能在测试环境中进行' },
+    });
   }
 
   try {
@@ -82,6 +95,10 @@ export const clearDB = async () => {
     logger.info('测试数据库已清除');
   } catch (err) {
     logger.error(`清除测试数据库失败: ${(err as Error).message}`);
-    throw new ErrorResponse('清除数据库失败', 500);
+    throw new AppError({
+      message: '清除测试数据库失败',
+      code: ErrorCode.DATABASE_ERROR,
+      details: { message: '清除测试数据库失败' },
+    });
   }
 };

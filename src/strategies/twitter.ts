@@ -2,12 +2,9 @@ import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PassportStatic } from 'passport';
 import { BaseStrategy } from './base';
 
-
 /**
  * ** Twitter OAuth Strategy
  */// src/passport/strategies/AppleStrategy.ts
-
-
 
 export class TwitterOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: any, userService: any): void {

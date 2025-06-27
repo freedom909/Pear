@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { ErrorResponse } from '../errors/errors/error-response';
+import { AppError } from '../errors/appError';
+import { ErrorCode } from '../errors/error-code';
 
 /**
  * 注册验证规则
@@ -26,14 +27,15 @@ export const registerValidator = [
     .matches(/[a-zA-Z]/).withMessage('密码必须包含字母'),
 
   // 处理验证结果
-async  (req: Request, _res: Response, next: NextFunction) => {
+  async (req: Request, _res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return next(
-        new ErrorResponse(
-             new Error(errors.array().map(err => err.msg).join(', ')),
-      
-        )
+        new AppError({
+          message: '参数验证失败',
+          code: ErrorCode.VALIDATION_ERROR,
+          details: errors
+        })
       );
     }
     next();
@@ -53,14 +55,15 @@ export const loginValidator = [
     .notEmpty().withMessage('密码不能为空'),
 
   // 处理验证结果
-async  (req: Request, _res: Response, next: NextFunction) => {
-    const errors = validationResult(req); 
+  async (req: Request, _res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return next(
-        new ErrorResponse(
-         new Error(errors.array().map(err => err.msg).join(', ')),
-        
-        )
+        new AppError({
+          message: '参数验证失败',
+          code: ErrorCode.VALIDATION_ERROR,
+          details: errors
+        })
       );
     }
     next();
@@ -74,14 +77,17 @@ export const refreshTokenValidator = [
   body('refreshToken')
     .notEmpty().withMessage('刷新令牌不能为空'),
 
- async (req: Request, _res: Response, next: NextFunction) => {
+  async (req: Request, _res: Response, next: NextFunction) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return next(
-        new ErrorResponse(
-         new Error( errors.array().map(err => err.msg).join(', ')),
-        )
-      );
+        new AppError(
+          {
+            message: '参数验证失败',
+            code: ErrorCode.VALIDATION_ERROR,
+            details: errors
+          })
+      )
     }
     next();
   }

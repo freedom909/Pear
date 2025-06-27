@@ -6,9 +6,10 @@ import { GoogleOAuthStrategy } from "../strategies/google";
 import { FacebookOAuthStrategy } from "../strategies/facebook";
 import { TwitterOAuthStrategy } from "../strategies/twitter";
 import User from "../models/user/user.model";
-import OAuthConfig from "../config/oauth";
+import {OAuthConfiguration} from '../config/oauth';
 export function initPassportStrategies() {
-  const oauthConfig = OAuthConfig.getConfigs();
+  const oauthConfig = OAuthConfiguration.getConfigs();
+
   const userService = {
     // Since findOrCreate doesn't exist on IUserModel, we'll implement a simple findOrCreate logic
     findOrCreate: async (query: any, defaults: any) => {

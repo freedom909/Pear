@@ -1,6 +1,7 @@
 import User from '../models/user/user.model';
-import { ErrorResponse } from '../utils/errorResponse';
-import  logger  from '../utils/logger';
+import ErrorCode from '../errors/error-code';
+import { AppError } from '../errors/appError';
+import  logger  from '../middleware/logger';
 import mongoose from 'mongoose';
 import * as mathjs from 'mathjs';
 import bcrypt from 'bcryptjs';
@@ -25,7 +26,7 @@ export interface UserService {
     provider: string;
     accessToken: string;
     refreshToken: string;
-    profile?:Partial<IUser>;//IUser constains all the properties providerId
+    profile?:Partial<IUser>;
     avatar?:string;
   }): Promise<UserDocument>;
   findOneOrCreate(profile: any, tokenInfo: OAuthTokenInfo): Promise<UserDocument>;
@@ -136,8 +137,8 @@ class UserServiceImpl implements UserService {
         username: user.username,
         email: user.email,
         role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt,
       }));
 
       return {
@@ -151,7 +152,11 @@ class UserServiceImpl implements UserService {
       };
     } catch (error) {
       logger.error('获取用户列表失败:', error);
-      throw ErrorResponse.internalError('获取用户列表失败');
+      throw new AppError({
+        message: '获取用户列表失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error
+    });
     }
   }
 
@@ -164,13 +169,13 @@ class UserServiceImpl implements UserService {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw ErrorResponse.badRequest('无效的用户ID');
+        throw AppError.badRequest('无效的用户ID');
       }
 
       // 查找用户
       const user = await User.findById(id);
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
 
       return {
@@ -178,29 +183,78 @@ class UserServiceImpl implements UserService {
         username: user.username,
         email: user.email,
         role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt,
       } as unknown as UserDocument;
     } catch (error) {
       logger.error(`获取用户失败 (ID: ${id}):`, error);
-      if (error instanceof ErrorResponse) {
+      if (error instanceof AppError) {
         throw error;
       }
-      throw ErrorResponse.internalError('获取用户失败');
+      throw new AppError({
+        message: '获取用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error
+      });
     }
   }
 
+  /**
+   * 根据用户名获取用户
+   * @param username 用户名'获取用户失败');
+   * @returns 用户响应
+   * */
+  async getUserByUsername(username: string): Promise<UserDocument> {
+    try {
+      // 验证用户名格式
+      if (!username) {
+        throw new AppError({
+          message: '无效的用户名',
+          code: ErrorCode.BAD_REQUEST,
+        })
+      }
+      // 查找用户
+      const user = await User.findOne({ username });
+      if (!user) {
+        throw AppError.notFound('用户不存在');
+      }
+      return {
+        id: user._id as unknown as string,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt,
+      } as unknown as UserDocument;
+    }
+    catch (error) {
+      logger.error(`根据用户名查找用户失败 (username: ${username}):`, error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError({
+        message: '根据用户名查找用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error
+      });
+    }
+  }
 
   async findUserByProvider(provider: string, providerId: string): Promise<UserDocument|null> {
     try {
       const user = await User.findOne({
         'profile.provider': provider,
         'profile.providerId': providerId,
-      });
+      })as UserDocument;
       return user;
     } catch (error) {
       logger.error(`根据${provider}ID查找用户失败 (ID: ${providerId}):`, error);
-      throw ErrorResponse.internalError('查找用户失败');
+      throw new AppError({
+        message: `根据${provider}ID查找用户失败`,
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error
+    
+      });
     }
   }
 
@@ -215,28 +269,27 @@ class UserServiceImpl implements UserService {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw ErrorResponse.badRequest('无效的用户ID');
+        throw AppError.badRequest('无效的用户ID');
       }
   
       // 检查用户是否存在
       const user = await User.findById(id);
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
   
       // 更新用户
-      const updatedUser = await User.findByIdAndUpdate(id, userData, { new: true });
-      if (!updatedUser) {
-        throw ErrorResponse.internalError('更新用户失败');
-      }
-  
+      const updatedUser = await User.findByIdAndUpdate(id, userData, { new: true }) as UserDocument;
       return updatedUser;
     } catch (error) {
       logger.error(`更新用户失败 (ID: ${id}):`, error);
-      if (error instanceof ErrorResponse) {
-        throw error;
+      {
+        throw new AppError({
+          message: '更新用户失败',
+          code: ErrorCode.INTERNAL_SERVER_ERROR,
+          details: error as Error
+        });
       }
-      throw ErrorResponse.internalError('更新用户失败');
     }
   }
   /**
@@ -249,17 +302,17 @@ class UserServiceImpl implements UserService {
       // 检查用户名是否已存在
       const existingUsername = await User.findOne({ username: userData.username });
       if (existingUsername) {
-        throw ErrorResponse.badRequest('用户名已被使用');
+        throw AppError.badRequest('用户名已被使用');
       }
 
       // 检查邮箱是否已存在
       const existingEmail = await User.findOne({ email: userData.email });
       if (existingEmail) {
-        throw ErrorResponse.badRequest('邮箱已被注册');
+        throw AppError.badRequest('邮箱已被注册');
       }
 
       // 创建新用户
-      const user = await User.create(userData) as UserDocument;
+      const user = await User.create(userData) as unknown as UserDocument;
 
       return {
         id: user._id as unknown as string,
@@ -272,10 +325,14 @@ class UserServiceImpl implements UserService {
       
     } catch (error) {
       logger.error('创建用户失败:', error);
-      if (error instanceof ErrorResponse) {
+      if (error instanceof AppError) {
         throw error;
       }
-      throw ErrorResponse.internalError('创建用户失败');
+      throw new AppError({
+        message: '创建用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error
+      });
     }
   }
 
@@ -289,20 +346,20 @@ class UserServiceImpl implements UserService {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw ErrorResponse.badRequest('无效的用户ID');
+        throw AppError.badRequest('无效的用户ID');
       }
 
       // 检查用户是否存在
       const user = await User.findById(id);
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
 
       // 如果更新用户名，检查是否已存在
       if (userData.username && userData.username !== user.username) {
         const existingUsername = await User.findOne({ username: userData.username });
         if (existingUsername) {
-          throw ErrorResponse.badRequest('用户名已被使用');
+          throw AppError.badRequest('用户名已被使用');
         }
       }
 
@@ -310,7 +367,7 @@ class UserServiceImpl implements UserService {
       if (userData.email && userData.email !== user.email) {
         const existingEmail = await User.findOne({ email: userData.email });
         if (existingEmail) {
-          throw ErrorResponse.badRequest('邮箱已被注册');
+          throw AppError.badRequest('邮箱已被注册');
         }
       }
 
@@ -322,7 +379,7 @@ class UserServiceImpl implements UserService {
       );
 
       if (!updatedUser) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
 
       return {
@@ -330,18 +387,47 @@ class UserServiceImpl implements UserService {
         username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
-        createdAt: updatedUser.createdAt,
-        updatedAt: updatedUser.updatedAt,
+        createdAt: (updatedUser as any).createdAt,
+        updatedAt: (updatedUser as any).updatedAt
       } as unknown as UserDocument;
     } catch (error) {
       logger.error(`更新用户失败 (ID: ${id}):`, error);
-      if (error instanceof ErrorResponse) {
+      if (error instanceof AppError) {
         throw error;
       }
-      throw ErrorResponse.internalError('更新用户失败');
+      throw new AppError({
+        message: '更新用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
   
+/**
+ * getResetPasswordToke
+ * @returns token 
+ * /
+ */
+
+async getResetPasswordToken(email: string): Promise<string> {
+  try {
+    const user = await User.findOne({ email }) as UserDocument
+    if (!user) {
+      throw AppError.notFound('用户不存在');
+    }
+    const token = await user.generateResetPasswordToken();
+    return token;
+  } catch (error) {
+    logger.error('生成重置密码令牌失败:', error);
+    throw new AppError({
+      message: '生成重置密码令牌失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: error as Error
+    });
+  }
+}
+
+
   /**
    * to generate token Response
    * generateTokenResponse
@@ -368,7 +454,11 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       };
     } catch (error) {
       logger.error('生成令牌失败:', error);
-      throw ErrorResponse.internalError('生成令牌失败');
+      throw new AppError({
+        message: '生成令牌失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
 
@@ -381,20 +471,24 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw ErrorResponse.badRequest('无效的用户ID');
+        throw AppError.badRequest('无效的用户ID');
       }
 
       const user = await User.findById(id);
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
       return user as unknown as UserDocument;
     } catch (error) {
       logger.error(`根据ID查找用户失败 (ID: ${id}):`, error);
-      if (error instanceof ErrorResponse) {
+      if (error instanceof AppError) {
         throw error;
       }
-      throw ErrorResponse.internalError('根据ID查找用户失败');
+      throw new AppError({
+        message: '根据ID查找用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
 
@@ -406,15 +500,19 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     try {
       const user = await User.findOne(query);
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
       return user as unknown as UserDocument;
     } catch (error) {
       logger.error('查找用户失败:', error);
-      if (error instanceof ErrorResponse) {
+      if (error instanceof AppError) {
         throw error;
       }
-      throw ErrorResponse.internalError('查找用户失败');
+      throw new AppError({
+        message: '查找用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
 
@@ -442,11 +540,15 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
         provider: userData.provider,
         accessToken: userData.accessToken,
         refreshToken: userData.refreshToken,
-      }) as UserDocument;
+      }) as unknown as UserDocument;
       return newUser as unknown as UserDocument;
     } catch (error) {
       logger.error('创建OAuth用户失败:', error);
-      throw ErrorResponse.internalError('创建OAuth用户失败');
+      throw new AppError({
+        message: '创建OAuth用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
 
@@ -474,7 +576,11 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       return newUser as unknown as UserDocument;
     } catch (error) {
       logger.error('处理OAuth用户失败:', error);
-      throw ErrorResponse.internalError('处理OAuth用户失败');
+      throw new AppError({
+        message: '处理OAuth用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
   /**
@@ -487,20 +593,20 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw ErrorResponse.badRequest('无效的用户ID');
+        throw AppError.badRequest('无效的用户ID');
       }
 
       // 检查用户是否存在
       const user = await User.findById(id);
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
 
       // 如果更新用户名，检查是否已存在
       if (userData.username && userData.username !== user.username) {
         const existingUsername = await User.findOne({ username: userData.username });
         if (existingUsername) {
-          throw ErrorResponse.badRequest('用户名已被使用');
+          throw AppError.badRequest('用户名已被使用');
         }
       }
 
@@ -508,7 +614,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       if (userData.email && userData.email !== user.email) {
         const existingEmail = await User.findOne({ email: userData.email });
         if (existingEmail) {
-          throw ErrorResponse.badRequest('邮箱已被注册');
+          throw AppError.badRequest('邮箱已被注册');
         }
       }
 
@@ -519,15 +625,23 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
         { new: true, runValidators: true }
       );
       if (!updatedUser) {
-        throw ErrorResponse.internalError('更新用户失败');
+        throw new AppError({
+          message: '更新用户失败',
+          code: ErrorCode.INTERNAL_SERVER_ERROR,
+          details: Error
+        });
       }
       return updatedUser as unknown as UserDocument;
     } catch (error) {
       logger.error(`更新用户失败 (ID: ${id}):`, error);
-      if (error instanceof ErrorResponse) {
+      if (error instanceof AppError) {
         throw error;
       }
-      throw ErrorResponse.internalError('更新用户失败');
+      throw new AppError({
+        message: '更新用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
 
@@ -539,23 +653,27 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw ErrorResponse.badRequest('无效的用户ID');
+        throw AppError.badRequest('无效的用户ID');
       }
 
       // 检查用户是否存在
       const user = await User.findById(id);
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
 
       // 删除用户
       await User.findByIdAndDelete(id);
     } catch (error) {
       logger.error(`删除用户失败 (ID: ${id}):`, error);
-      if (error instanceof ErrorResponse) {
+      if (error instanceof AppError) {
         throw error;
       }
-      throw ErrorResponse.internalError('删除用户失败');
+      throw new AppError({
+        message: '删除用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
   }
   
@@ -570,7 +688,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       password: mathjs.random().toString(36).slice(-8),
       provider: provider,
       role: 'user'
-    });
+    }) as unknown as UserDocument
   }
 
   async findUserByEmail(email: string): Promise<UserDocument> {
@@ -581,27 +699,27 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     try {
       // 验证用户ID格式
       if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw ErrorResponse.badRequest('用户ID格式错误');
+        throw AppError.badRequest('用户ID格式错误');
       }
   
       // 验证第三方账户提供商
       if (!['google', 'facebook', 'twitter', 'apple'].includes(provider)) {
-        throw ErrorResponse.badRequest('第三方账户提供商错误');
+        throw AppError.badRequest('第三方账户提供商错误');
       }
   
       // 验证第三方账户ID
       if (!providerId) {
-        throw ErrorResponse.badRequest('第三方账户ID错误');
+        throw AppError.badRequest('第三方账户ID错误');
       }
   
       // 验证访问令牌
       if (!accessToken) {
-        throw ErrorResponse.badRequest('访问令牌错误');
+        throw AppError.badRequest('访问令牌错误');
       }
   
       // 验证刷新令牌
       if (!refreshToken) {
-        throw ErrorResponse.badRequest('刷新令牌错误');
+        throw AppError.badRequest('刷新令牌错误');
       }
   
       // 查询用户
@@ -609,26 +727,30 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
   
       // 验证用户是否存在
       if (!user) {
-        throw ErrorResponse.notFound('用户不存在');
+        throw AppError.notFound('用户不存在');
       }
   
       // 验证用户是否已绑定该第三方账户
-      if (user[provider]) {
-        throw ErrorResponse.badRequest('用户已绑定该第三方账户');
+      if (( user as any)[`${provider}.id`] === providerId) {
+        throw AppError.badRequest('用户已绑定该第三方账户');
         }
   
       // 链接第三方账户
-      user[provider] = {
+      (user as any)[provider] = {
         id: providerId,
         accessToken,
         refreshToken,
-      } 
+      } as unknown as UserDocument
       // 保存用户
       await user.save();
-      return user;
+      return user as unknown as UserDocument;
     } catch (error) {
       logger.error('链接第三方账户失败:', error);
-      throw ErrorResponse.internalError('链接账户失败');
+      throw new AppError({
+        message: '链接账户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error
+      });
     }
   }
 
@@ -648,7 +770,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       if (!user) {
         user = new User({});
         if (email) user.email = email;
-        if (name) user.name = name;
+        if (name) (user as any).name = name;
 
         await user.save();
       } else {
@@ -657,7 +779,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       }
     }
 
-    return user;
+    return user as unknown as UserDocument;
   }
 
   static async unlinkOAuthAccount(userId: string, provider: string): Promise<UserDocument> {
@@ -686,12 +808,12 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
   static async createOAuthUser(provider: string, providerId: string, userData: Partial<UserDocument>): Promise<UserDocument> {
     const existingUser = await User.findOne({ [`${provider}.id`]: providerId });
     if (existingUser) {
-      return existingUser;
+      return existingUser as unknown as UserDocument;
     }
     const user = new User({ ...userData, [provider]: { id: providerId } });
     await user.save();
     logger.info(`OAuth user created: ${user.email}`);
-    return user;
+    return user as unknown as UserDocument;
   }
 
   static async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -736,7 +858,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     if (!user) {
       throw new Error('User not found');
     }
-    return user;
+    return user as unknown as UserDocument
   }
 
   static async createUser(userData: Partial<UserDocument>): Promise<UserDocument> {
@@ -755,7 +877,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       throw err;
     }
     logger.info(`User created: ${user._id}`);
-    return user;
+    return user as unknown as UserDocument;
   }
 
   static async findUsers(
@@ -764,10 +886,10 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     limit = 10,
   ): Promise<{ users: UserDocument[]; total: number; page: number; totalPages: number }> {
     const skip = (page - 1) * limit;
-    const users = await User.find(filter).skip(skip).limit(limit);
+    const users = await User.find(filter).skip(skip).limit(limit) as unknown as UserDocument[];
     const total = await User.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
-    return { users, total, page, totalPages };
+    return { users , total, page, totalPages };
   }
 
   static async findUserByEmail(email: string): Promise<UserDocument | null> {

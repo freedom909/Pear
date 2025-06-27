@@ -5,7 +5,7 @@ import  userService  from './user.service';
 export class PasswordService {
 
   async requestPasswordReset(email: string): Promise<string | null> {
-    const user = await userService.getUserByEmail(email);
+    const user = await userService.findUserByEmail(email);
     if (!user) {
       // Don't reveal whether email exists
       return null;

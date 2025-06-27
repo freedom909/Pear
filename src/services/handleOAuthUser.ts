@@ -196,9 +196,9 @@ export const unlinkOAuthFromUser = async (userId: string, provider: OAuthProvide
     }
     
     // 解除关联
-    user[`${provider}Id`] = undefined;
-    user[`${provider}AccessToken`] = undefined;
-    user[`${provider}RefreshToken`] = undefined;
+    (user as any)[`${provider}Id`] = undefined;
+    (user as any)[`${provider}AccessToken`] = undefined;
+    (user as any)[`${provider}RefreshToken`] = undefined;
     
     await user.save();
     return user;

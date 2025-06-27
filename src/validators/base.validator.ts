@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { body, param, validationResult, ValidationChain } from 'express-validator';
 import { AppError } from '../errors/appError';
+import { ErrorCode } from '../errors/error-code';
 
 export abstract class BaseValidator {
   /**
@@ -26,7 +27,7 @@ export abstract class BaseValidator {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       const formattedErrors = errors.array().map(error => ({
-        param: error.param,
+        param: (error as any).param,
         msg: error.msg,
         ...(error as any).value && { value: (error as any).value },
         ...(error as any).location && { location: (error as any).location }
@@ -35,9 +36,8 @@ export abstract class BaseValidator {
       return next(
         new AppError({
           message: 'Validation failed',
-          code: 'VALIDATION_ERROR',
-          statusCode: 400,
-          details: { errors: formattedErrors }
+          code: ErrorCode.VALIDATION_ERROR,
+          details: formattedErrors
         })
       );
     }

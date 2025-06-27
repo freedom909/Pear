@@ -2,14 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import crypto from 'crypto';
 import User from '../models/user/user.model';
-import { ErrorResponse } from '../utils/errorResponse';
-import logger from '../utils/logger';
-import { UserRole } from '../models/interface';
+import { AppError } from '../errors/appError';
+import ErrorCode from '@/errors/error-code';
+import logger from '../middleware/logger';
+import { UserDocument, UserRole } from '../models/interface';
 import { UserResponseDTO } from '../dtos/userDTO';
-import { asyncHandler } from '../middleware/error';
+import { asyncHandler } from '../middleware/errorHandler';
 
 import jwt from 'jsonwebtoken';
-
+interface AuthRequest extends Request {
+  user: UserDocument;
+}
 
 /**
  * @desc    Get current user
@@ -17,12 +20,17 @@ import jwt from 'jsonwebtoken';
  * @access  Private
  */
 export const getMe = asyncHandler(
-  async (req: any, res: Response, next: NextFunction) => {
+ async (req: AuthRequest, res: Response, next: NextFunction) => {
     const user = await User.findById(req.user.id);
-    if (!user) return next(new ErrorResponse('用户未找到', 404));
-    res.status(200).json({ success: true, data: new UserResponseDTO(user) });
+    if (!user) return next(new AppError({
+      message: '用户不存在',
+      code: ErrorCode.NOT_FOUND ,
+      details: { user: user }
+    }));
+    sendTokenResponse(user, 200, res);
   }
 );
+
 
 /**
  * @desc    Update user details
@@ -30,14 +38,15 @@ export const getMe = asyncHandler(
  * @access  Private
  */
 export const updateDetails = asyncHandler(
-  async (req: any, res: Response) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     const updated = await User.findByIdAndUpdate(
       req.user.id,
       { name: req.body.name, email: req.body.email },
       { new: true, runValidators: true }
     );
 
-    res.status(200).json({ success: true, data: updated });
+    sendTokenResponse(updated, 200, res);
+   
   }
 );
 
@@ -47,17 +56,30 @@ export const updateDetails = asyncHandler(
  * @access  Private
  */
 export const updatePassword = asyncHandler(
-  async (req: any, res: Response, next: NextFunction) => {
-    const user = await User.findById(req.user.id).select('+password');
-    if (!user) return next(new ErrorResponse('用户不存在', 404));
-
-    const isMatch = await user.matchPassword(req.body.currentPassword);
-    if (!isMatch) return next(new ErrorResponse('密码不正确', 401));
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const user = await User.findById(req.user.id).select('+password') as UserDocument
+    if (!user) return next(new AppError({ message: '用户不存在', code: ErrorCode.NOT_FOUND }));
+    const isMatch = await user.comparePassword(req.body.currentPassword);
+    if (!isMatch) return next(new AppError({ message: '密码不正确', code: ErrorCode.UNAUTHORIZED }));
 
     user.password = req.body.newPassword;
     await user.save();
+   sendTokenResponse(user, 200, res);
 
-    sendTokenResponse(user, 200, res);
+   }
+);
+
+/**
+ * @desc    Log user out / clear cookie
+ * @access  Private
+ */
+export const logout = asyncHandler(
+  async (_req: Request, res: Response) => {
+    res.cookie('token', 'none', {
+      expires: new Date(Date.now() + 10 * 1000),
+      httpOnly: true
+    });
+    res.status(200).json({ success: true, data: {} });
   }
 );
 
@@ -69,9 +91,14 @@ export const updatePassword = asyncHandler(
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const user = await User.findOne({ email: req.body.email });
-    if (!user) return next(new ErrorResponse('没有使用该邮箱的用户', 404));
+    if (!user) return next(new AppError(
+      {
+        message: '没有使用该邮箱的用户',
+        code: ErrorCode.NOT_FOUND,
+        details: { user: user }
+      }));
 
-    const resetToken = user.getResetPasswordToken();
+    const resetToken = user.getResetPasswordToken() as string;
     await user.save({ validateBeforeSave: false });
 
     const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
@@ -90,15 +117,20 @@ export const resetPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
 
-    const user = await User.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } });
-    if (!user) return next(new ErrorResponse('无效的令牌', 400));
+    const user = await User.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } })as UserDocument;
+    if (!user) return next(new AppError({
+      message: '无效的令牌',
+      code: ErrorCode.BAD_REQUEST,
+      details: { user: user }
+    }));
 
-    user.password = req.body.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
+    user.password = req.body.password;// the business logic is ok?
+    user.resetPasswordToken = undefined;// 
+    user.resetPasswordExpire = undefined;// 
     await user.save();
 
-    sendTokenResponse(user, 200, res);
+    // sendTokenResponse(user, 200, res);
+    return res.status(200).json({ success: true, data: new UserResponseDTO(user) });// how to hide password?
   }
 );
 
@@ -127,7 +159,11 @@ export const googleLogin = asyncHandler(
 export const googleCallback = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate('google', { session: false }, (err, user, _info) => {
-      if (err || !user) return next(new ErrorResponse('Google authentication failed', 401));
+      if (err || !user) return next(new AppError({
+        message: 'Google OAuth authentication failed',
+        code: ErrorCode.UNAUTHORIZED,
+        details: { user: user }
+      }));
       const token = user.getSignedJwtToken();
       res.cookie('token', token, {
         httpOnly: true,
@@ -158,7 +194,7 @@ function sendTokenResponse(user: any, statusCode: number, res: Response) {
 /**
  * 🔐 JWT utility helpers
  */
-function generateToken(user: any): string {
+function generateToken(user: UserDocument): string {
   return jwt.sign(
     { id: user._id, email: user.email, role: user.role },
     process.env.JWT_SECRET || 'secret',
@@ -166,7 +202,7 @@ function generateToken(user: any): string {
   );
 }
 
-function generateRefreshToken(user: any): string {
+function generateRefreshToken(user: UserDocument): string {
   return jwt.sign(
     { id: user._id },
     process.env.JWT_REFRESH_SECRET || 'refresh-secret',
@@ -182,8 +218,13 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const { name, email, password, role } = req.body;
     const existingUser = await User.findOne({ email });
 
-    if (existingUser) return next(new ErrorResponse('该邮箱已被注册', 400));
-    const user = await User.create({ name, email, password, role: role === UserRole.ADMIN ? UserRole.USER : role });
+    if (existingUser) return next(new AppError(
+      {
+        message: '该邮箱已被注册',
+        code: ErrorCode.BAD_REQUEST,
+        details: { user: existingUser }
+      }));
+    const user = await User.create({ name, email, password, role: role === UserRole.ADMIN ? UserRole.USER : role })as unknown as UserDocument;
 
     const token = generateToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -201,11 +242,21 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return next(new ErrorResponse('请提供邮箱和密码', 400));
+    if (!email || !password) return next(new AppError({
+      message: '请提供邮箱和密码', 
+      code: ErrorCode.BAD_REQUEST,
+      details: { user: { email, password } }
+  }));
 
-    const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await user.matchPassword(password))) {
-      return next(new ErrorResponse('无效的凭据', 401));
+
+    const user = await User.findOne({ email }).select('+password')as UserDocument;
+    if (!user || !(await user.comparePassword(password, user.password))) {
+      return next(new AppError({
+        message: '无效的凭据',
+        code: ErrorCode.BAD_REQUEST,
+        details: { user: { email, password } }
+      }));
+    
     }
 
     const token = generateToken(user);
@@ -224,34 +275,32 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return next(new ErrorResponse('需要提供 refreshToken', 400));
+    if (!refreshToken) return next(new AppError(
+      { message:'需要提供 refreshToken',
+        code: ErrorCode.BAD_REQUEST,
+        details: { refreshToken } }
+    ));
 
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh-secret') as any;
     } catch {
-      return next(new ErrorResponse('无效的 refresh token', 401));
+      return next(new AppError({
+        message: '无效的 refreshtoken', 
+        code: ErrorCode.BAD_REQUEST,
+        details: { refreshToken } }));  
     }
 
     const user = await User.findById(decoded.id);
-    if (!user) return next(new ErrorResponse('无效的 refresh token', 401));
+    if (!user) return next(new AppError({
+      message: '无效的 refresh token', 
+      code: ErrorCode.BAD_REQUEST,
+      details: { refreshToken } }
+          ));
 
-    const newToken = generateToken(user);
-    const newRefreshToken = generateRefreshToken(user);
-
-    res.status(200).json({ success: true, token: newToken, refreshToken: newRefreshToken });
+    sendTokenResponse(user, 200, res);
   } catch (error) {
     logger.error('刷新令牌失败:', error);
     next(error);
   }
-};
-
-/**
- * 🔒 Logout user
- */
-export const logout = async (_req: Request, res: Response) => {
-  res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true })
-     .status(200).json({ success: true, data: {} });
-};
-
-
+}

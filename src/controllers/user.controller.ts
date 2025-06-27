@@ -1,11 +1,11 @@
 // controllers/user.controller.ts
 
 import { Request, Response, NextFunction } from 'express';
-import { ErrorResponse } from '../utils/errorResponse';
-import { asyncHandler } from '../middleware/error';
+import { AppError } from '../errors/appError';
+import { asyncHandler } from '../middleware/errorHandler';
 import User from '../models/user/user.model';
 import { UserRole } from '../models/interface/index';
-import { validateRequest } from '../middleware/validateRequest';
+import { validateRequest } from '../validators/validateRequest';
 import {
   UpdateUserDTO,
 } from '../dtos/userDTO';
@@ -21,7 +21,7 @@ export const getMe = asyncHandler(
     const user = await User.findById(req.user.id).select('-password');
 
     if (!user) {
-      return next(new ErrorResponse('User not found', 404));
+      return next(new AppError('User not found', 404));
     }
 
     res.status(200).json({
@@ -46,7 +46,7 @@ export const updateMe = asyncHandler(
     if (dto.email) {
       const existingUser = await User.findOne({ email: dto.email, _id: { $ne: req.user.id } });
       if (existingUser) {
-        return next(new ErrorResponse('Email is already taken', 400));
+        return next(new AppError('Email is already taken', 400));
       }
       updateData.email = dto.email;
     }
@@ -100,7 +100,7 @@ export const getUserById = asyncHandler(
     const user = await User.findById(req.params.id).select('-password');
 
     if (!user) {
-      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
     }
 
     res.status(200).json({
@@ -135,7 +135,7 @@ export const updateUserById = asyncHandler(
     });
 
     if (!user) {
-      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
     }
 
     res.status(200).json({ success: true, data: user });
@@ -150,13 +150,13 @@ export const updateUserById = asyncHandler(
 export const deleteUser = asyncHandler(
   async (req: any, res: Response, next: NextFunction) => {
     if (req.user.id === req.params.id) {
-      return next(new ErrorResponse('Cannot delete your own account', 400));
+      return next(new AppError('Cannot delete your own account', 400));
     }
 
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
-      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
     }
 
     res.status(200).json({ success: true, data: {} });
@@ -173,11 +173,11 @@ export const changeUserRole = asyncHandler(
     const { role } = req.body;
 
     if (!Object.values(UserRole).includes(role)) {
-      return next(new ErrorResponse('Invalid role', 400));
+      return next(new AppError('Invalid role', 400));
     }
 
     if (req.user.id === req.params.id) {
-      return next(new ErrorResponse('Cannot change your own role', 400));
+      return next(new AppError('Cannot change your own role', 400));
     }
 
     const user = await User.findByIdAndUpdate(
@@ -187,7 +187,7 @@ export const changeUserRole = asyncHandler(
     );
 
     if (!user) {
-      return next(new ErrorResponse(`User with ID ${req.params.id} not found`, 404));
+      return next(new AppError(`User with ID ${req.params.id} not found`, 404));
     }
 
     res.status(200).json({ success: true, data: user });
