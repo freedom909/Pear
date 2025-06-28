@@ -1,0 +1,86 @@
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: currentColor;
+  border-right-color: transparent;
+  animation: spin 0.75s linear infinite;
+}
+
+/* Sizes */
+.spinner-small {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+}
+
+.spinner-medium {
+  width: 2rem;
+  height: 2rem;
+  border-width: 3px;
+}
+
+.spinner-large {
+  width: 3rem;
+  height: 3rem;
+  border-width: 4px;
+}
+
+/* Colors */
+.spinner-primary {
+  color: #4f46e5; /* Indigo-600 */
+}
+
+.spinner-secondary {
+  color: #6b7280; /* Gray-500 */
+}
+
+.spinner-white {
+  color: #ffffff;
+}
+
+/* Animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hide text for screen readers */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Optional: Add a subtle shadow effect */
+.spinner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Optional: Add hover effect for interactive spinners */
+.spinner:hover {
+  filter: brightness(1.1);
+}
+
+/* Optional: Add focus styles for accessibility */
+.spinner:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+}

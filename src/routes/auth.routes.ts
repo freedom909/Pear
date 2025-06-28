@@ -9,7 +9,7 @@ import {
   updateDetails,
   updatePassword,
 } from '../controllers/auth.controller';
-import { auth,role} from '../middleware/auth';
+import { protect,role} from '../middleware/auth';
 import { UserRole } from '../models/interface/index';
 import userService from '@/services/user.service';
 
@@ -46,7 +46,7 @@ router.post('/forgotpassword', forgotPassword);   // POST /api/v1/auth/forgotpas
 router.put('/resetpassword/:token', resetPassword); // PUT /api/v1/auth/resetpassword/:token
 
 // Authenticated user
-router.use(auth); // Require auth for the routes below
+router.use(protect); // Require auth for the routes below
 router.get('/me', getMe);                         // GET /api/v1/auth/me
 router.put('/updatedetails', updateDetails);      // PUT /api/v1/auth/updatedetails
 router.put('/updatepassword', updatePassword);    // PUT /api/v1/auth/updatepassword

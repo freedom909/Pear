@@ -4,7 +4,7 @@ import app from './app';
 
 
 // 获取端口并转换为数字类型
-const port = Number(process.env.PORT || 8000);
+const port = Number(process.env.PORT || 5000);
 
 // 创建HTTP服务器
 const server = http.createServer(app);

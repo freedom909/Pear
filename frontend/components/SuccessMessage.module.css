@@ -1,0 +1,84 @@
+.successContainer {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: #e6f7e6;
+  border: 1px solid #c3e6cb;
+  margin-bottom: 16px;
+  color: #155724;
+}
+
+.iconContainer {
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  color: #28a745;
+}
+
+.messageContainer {
+  flex-grow: 1;
+}
+
+.message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dismissButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 12px;
+  color: #155724;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dismissIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Variants */
+.default {
+  width: 100%;
+}
+
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 400px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+.inline {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.inline .icon {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

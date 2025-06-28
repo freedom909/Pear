@@ -32,14 +32,14 @@ import {
   deleteUser,
   changeUserRole,
 } from '../controllers/user.controller';
-import { auth, role } from '../middleware/auth';
+import { protect, role } from '../middleware/auth';
+
 import { UserRole } from '../models/interface';
 
 const router = Router();
-
 /**
  * ========================
- * Public auth routes
+ * Public routes
  * ========================
  */
 router.post('/register', register);
@@ -50,62 +50,55 @@ router.put('/resetpassword/:resettoken', resetPassword);
 
 /**
  * ========================
- * Private auth routes
+ * OAuth routes
  * ========================
  */
-router.get('/me', getMe);                            // GET /api/v1/user/me
-router.put('/updatedetails', updateDetails);        // PUT /api/v1/user/updatedetails
-router.put('/updatepassword', updatePassword);      // PUT /api/v1/user/updatepassword
-
-
+// your OAuth routes here...
 /**
  * ========================
- * OAuth Provider
+ * OAuth routes
  * ========================
  */
-// Google OAuth
-router.get('/google', googleLogin);                    // GET /api/v1/user/google
-router.get('/google/callback', googleCallback);        // GET /api/v1/user/google/callback
-// Facebook OAuth
-router.get('/facebook', facebookLogin);                // GET /api/v1/user/facebook
-router.get('/facebook/callback', facebookCallback);    // GET /api/v1/user/facebook/callback
-// Apple OAuth
-router.get('/apple', appleLogin);                      // GET /api/v1/user/apple
-router.get('/apple/callback', appleCallback);          // GET /api/v1/user/apple/callback
-// Twitter OAuth
-router.get('/twitter', twitterLogin);                  // GET /api/v1/user/twitter
-router.get('/twitter/callback', twitterCallback);      // GET /api/v1/user/twitter/callback
+// Google
+router.get('/google', googleLogin);
+router.get('/google/callback', googleCallback);
+
+// Facebook
+router.get('/facebook', facebookLogin);
+router.get('/facebook/callback', facebookCallback);
+
+// Apple
+router.get('/apple', appleLogin);
+router.get('/apple/callback', appleCallback);
+
+// Twitter
+router.get('/twitter', twitterLogin);
+router.get('/twitter/callback', twitterCallback);
 
 /**
  * ========================
  * Authenticated routes
  * ========================
  */
-router.use(auth); // require auth for routes below
+router.use(protect); // require authentication for everything below
 
-// User profile routes
-router.get('/me', getMe);                            // GET /api/v1/user/me
-router.put('/updatedetails', updateDetails);        // PUT /api/v1/user/updatedetails
-router.put('/updatepassword', updatePassword);      // PUT /api/v1/user/updatepassword
+router.get('/me', getMe); // Now req.user will ALWAYS be set
+
+router.put('/updatedetails', updateDetails);
+router.put('/updatepassword', updatePassword);
 
 /**
  * ========================
  * Admin routes
  * ========================
  */
-// Assuming the role middleware expects a single string, we might need to handle each role separately.
-// Here we use multiple router.use calls for each role.
-
-// Assuming the role middleware expects a single string, we might need to handle each role separately.
-// Here we use multiple router.use calls for each role.
 router.use(role(UserRole.ADMIN) as any);
-router.use(role(UserRole.SUPER_ADMIN) as any);
+router.use(role(UserRole.SUPER_ADMIN)as any);
 
-// User management
-router.get('/', getUsers);                           // GET /api/v1/user/
-router.post('/', createUser);                        // POST /api/v1/user/
-router.get('/:id', getUserById);                     // GET /api/v1/user/:id                // PUT /api/v1/user/:id
-router.delete('/:id', deleteUser);                   // DELETE /api/v1/user/:id
-router.put('/:id/role', changeUserRole);             // PUT /api/v1/user/:id/role
+router.get('/', getUsers);
+router.post('/', createUser);
+router.get('/:id', getUserById);
+router.delete('/:id', deleteUser);
+router.put('/:id/role', changeUserRole);
 
 export default router;

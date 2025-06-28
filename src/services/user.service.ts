@@ -388,8 +388,8 @@ class UserServiceImpl implements UserService {
         username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
-        createdAt: (updatedUser as any).createdAt,
-        updatedAt: (updatedUser as any).updatedAt
+        createdAt: (updatedUser as unknown as UserDocument ).createdAt,
+        updatedAt: (updatedUser as unknown as UserDocument ).updatedAt
       } as unknown as UserDocument;
     } catch (error) {
       logger.error(`更新用户失败 (ID: ${id}):`, error);

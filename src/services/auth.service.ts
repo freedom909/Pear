@@ -77,11 +77,11 @@ class AuthService {
         const userId = user._id as string;
         await userService.linkProvider(userId, provider, profile.id, profile.displayName, profile.avatarUrl);
       } else {
-        const user = await userService.createOAuthUser(profile);
-        if (!user) throw new AppError({
+        const newUser = await userService.createOAuthUser(profile);
+        if (!newUser) throw new AppError({
           message: '创建用户失败',
           code: ErrorCode.INTERNAL_SERVER_ERROR,
-          details:{user: user, provider: provider, profile: profile}});
+          details:{user: newUser, provider: provider, profile: profile}});
       }
     }
 

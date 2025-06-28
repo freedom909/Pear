@@ -283,7 +283,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh-secret') as any;
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh-secret') as Request;
     } catch {
       return next(new AppError({
         message: '无效的 refreshtoken', 

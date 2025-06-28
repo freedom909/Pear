@@ -61,7 +61,7 @@ export class OAuthStrategyFactory {
       
       // Initialize Apple strategy if config exists
       if (this.configs.apple) {
-        if (this.configs.apple?.clientID && this.configs.apple?.clientSecret) {
+        if (this.configs.apple?.clientID && this.configs.apple?.clientSecret&& this.configs.apple?.callbackURL) {
           const appleStrategy = new AppleOAuthStrategy();
           appleStrategy.init(this.passport);
           this.strategies.set('apple', appleStrategy);

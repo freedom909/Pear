@@ -19,7 +19,7 @@ export const twitterLogin = passport.authenticate('twitter', {
  */
 export const twitterCallback = (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate('twitter', {
-    session: false, failureRedirect: '/api/v1/auth/login?error=oauth_failed' },
+    session: false, failureRedirect: process.env.FAILURE_REDIRECT_URL ,},
     async (err: Error, user: UserDocument, _info: any) => {
       if (err) {
         return next(err);

@@ -3,7 +3,7 @@ import { BaseStrategy } from "./base";
 import { PassportStatic } from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
-import { OAuthConfig } from "../models/interface";
+import { IUserModel, OAuthConfig, UserDocument } from "../models/interface";
 import logger from "../middleware/logger";
 
 export class GoogleOAuthStrategy extends BaseStrategy {
@@ -24,11 +24,11 @@ export class GoogleOAuthStrategy extends BaseStrategy {
             logger.info('Processing Google OAuth callback', { profileId: profile.id });
             
             // Find existing user or create a new one
-            let user = await userService.findOne({ googleId: profile.id });
+            let user = await userService.findUserByOAuthProfile({ googleId: profile.id });
             
             if (!user) {
               logger.info('Creating new user from Google profile', { profileId: profile.id });
-              user = await userService.createUserFromOAuthProfile(profile as any, 'google');
+              user = await userService.createUserFromOAuthProfile(profile as unknown as UserDocument, 'google');
             } else {
               logger.info('Found existing user with Google profile', { userId: user.id, profileId: profile.id });
             }
