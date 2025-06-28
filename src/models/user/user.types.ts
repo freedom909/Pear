@@ -49,8 +49,12 @@ export interface IUser {
 // models/user/user.types.ts
 export interface IUserFields {
   username: string;
+  firstName: string;
+  lastName: string;
+  verified: boolean;
   email: string;
   passwordHash: string;
+  refreshToken?: string;
   salt: string;
   role: UserRole;
   status: UserStatus;

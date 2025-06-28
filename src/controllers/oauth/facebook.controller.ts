@@ -9,10 +9,9 @@ import { UserDocument } from '../../models/interface/index';  // for typing
  * Step 1: Redirect to Facebook for consent.
  * Route: GET /api/v1/auth/Facebook
  */
-export const facebookLogin = passport.authenticate(
-  'facebook',
-  { scope: ['email'] } 
-);
+export const facebookLogin = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate('facebook', { scope: ['email'], session: false })(req, res, next);
+};
 
 /**
  * Step 2: Handle Facebook callback.

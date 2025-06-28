@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -8,114 +11,118 @@ import mongoSanitize from 'express-mongo-sanitize';
 import { rateLimit } from 'express-rate-limit';
 import hpp from 'hpp';
 import path from 'path';
-import errorHandler   from './middleware/errorHandler';
+import session from 'express-session';
+import passport from 'passport';
+
+import errorHandler from './middleware/errorHandler';
 import notFound from './middleware/notFoundHandler';
-import logger,{  logStream } from './middleware/logger';
+import logger, { logStream } from './middleware/logger';
 import { initRedis } from './middleware/redis';
-import userRoutes from './routes/userAndAuth.routes';
-import authRoutes from './routes/auth.routes';
+import { connectDB } from './config/database';
 import { PassportConfig } from './config/passport.config';
 
-import { connectDB } from './config/database';
-import passport from 'passport';
-import session from 'express-session';
+import userRoutes from './routes/userAndAuth.routes';
+import authRoutes from './routes/auth.routes';
 
-// 初始化Express应用
-const app = express();
-
-// 配置session中间件
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24小时
-  }
-}));
-
-// 初始化Passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-// 初始化OAuth策略 - 只使用一种初始化方式
-PassportConfig.initialize();
-
-// 初始化Express应用
-app.use((req, res, next) => {
-  res.locals.user = req.user;
-  next();
-  logger.info('Express app initialized');
-});
-
-// 连接数据库
+// Initialize DB
 connectDB();
 
-// 初始化Redis
+// Initialize Redis
 initRedis();
 
-// 信任代理
+// Initialize OAuth and Local strategies
+PassportConfig.initialize();
+
+// Initialize Express app
+const app = express();
+
+// Trust proxy (for e.g., Heroku or Nginx)
 app.set('trust proxy', true);
 
-// 安全中间件
+// Security middlewares
 app.use(helmet());
 app.use(cors());
 app.use(mongoSanitize());
 app.use(hpp());
 
-// 请求解析中间件
+// Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// 压缩响应
+// Compression
 app.use(compression());
 
-// 日志中间件
+// Session middleware (must be before passport.session)
 app.use(
-  morgan('combined', {
-    stream: logStream,
-    skip: (req) => req.url === '/health'
+  session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
   })
 );
 
-// 静态文件服务
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Populate res.locals.user for views
+app.use((req, res, next) => {
+  res.locals.user = req.user;
+  next();
+});
+
+// Logging with morgan
+app.use(
+  morgan('combined', {
+    stream: logStream,
+    skip: (req) => req.url === '/health',
+  })
+);
+
+// Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 全局速率限制
+// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15分钟
-  max: 100, // 每个IP限制100个请求
-  message: '请求过于频繁，请稍后再试'
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 100,
+  message: '请求过于频繁，请稍后再试',
 });
 app.use(limiter);
 
-// 健康检查端点
+// Health check endpoint
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Google OAuth已在上方初始化，此处无需重复
-
-// API路由
+// Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-// app.use('/api', googleRoutes);
 
-// 错误处理中间件
+// Not found handler
 app.use(notFound);
+
+// Error handler
 app.use(errorHandler);
 
-// 未捕获的异常处理
+// Uncaught exception handler
 process.on('uncaughtException', (err) => {
-  logger.error(`未捕获的异常: ${err.message}`);
+  logger.error(`❌ 未捕获的异常: ${err.message}`, { stack: err.stack });
   process.exit(1);
 });
 
-// 未处理的Promise拒绝
+// Unhandled promise rejection handler
 process.on('unhandledRejection', (err: Error) => {
-  logger.error(`未处理的拒绝: ${err.message}`);
+  logger.error(`❌ 未处理的拒绝: ${err.message}`, { stack: err.stack });
   process.exit(1);
 });
+
+// App initialized log
+logger.info('✅ Express app initialized');
 
 export default app;
