@@ -61,31 +61,6 @@ export const UserStatus = {
 
 export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
 
-export interface Profile {
-  _id: string;
-  email?: string;
-  password?:string,
-  role?: UserRole;
-  status?: UserStatus;
-  firstName?: string;
-  lastName?: string;
-  avatar?: string;
-
-  phoneNumber?: string;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    zipCode?: string;
-  };
-  bio?: string;
-  birthDate?: Date;
-  lastLogin?: Date;
- 
-  gender?: 'male' | 'female' | 'other';
-}
-
 
 export interface JwtTokens {
   accessToken: string;

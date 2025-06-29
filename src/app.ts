@@ -21,8 +21,7 @@ import { initRedis } from './middleware/redis';
 import { connectDB } from './config/database';
 import { PassportConfig } from './config/passport.config';
 
-import userRoutes from './routes/userAndAuth.routes';
-import authRoutes from './routes/auth.routes';
+import apiRoutes from './routes/index';
 
 // Initialize DB
 connectDB();
@@ -101,8 +100,7 @@ app.get('/health', (_req, res) => {
 });
 
 // Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', userRoutes);
+app.use('/',apiRoutes)
 
 // Not found handler
 app.use(notFound);

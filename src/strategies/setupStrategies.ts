@@ -1,7 +1,17 @@
 import passport from 'passport';
 import { Strategy as AppleStrategy } from 'passport-apple';
+// import { Profile as AppleProfile } from 'passport-apple';
 import userService from '../services/user.service';
 import bcrypt from 'bcryptjs';
+
+export interface OAuthUserData {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+}
+
 
 passport.use(
   new AppleStrategy(//
@@ -13,31 +23,31 @@ passport.use(
       callbackURL: `${process.env.API_URL}/api/v1/auth/apple/callback`,
       passReqToCallback: true,
     } as any,
-    async (_req: Express.Request, _accessToken: string, _refreshToken: string, profile: any, done: any) => {
-      try {
-        const email = profile?.email || '';
-        let user = await userService.findOne({ email });
+async (_req, _accessToken, _refreshToken, profile: any, done: any) => {
+  try {
+    const email = profile?.email || '';
 
-        if (!user) {
-          // Apple may not always return a full profile, so name may need to be constructed
-          user = await userService.createUserFromOAuthProfile({
-            email,
-            firstName: profile.name?.givenName || email.split('@')[0],
-            lastName: profile.name?.familyName || email.split('@')[0],
-            password: await bcrypt.hash(
-              Math.random().toString(36).slice(-8),
-              10
-            ),
+    let user = await userService.findOne({ email });
 
-            _id: profile.id,
-
-          }, 'apple') as any;
-        }
-        return done(null, user);
-      } catch (error) {
-        return done(error as Error, null as any);
-      }
+    if (!user) {
+      user = await userService.createUserFromOAuthProfile(
+        {
+          id: profile.id,
+          emails: email,
+          firstName: profile.name?.givenName || email.split('@')[0],
+          lastName: profile.name?.familyName || '',
+          avatar: '',
+          password: await bcrypt.hash(Math.random().toString(36).slice(-8), 10),
+        },
+        'apple'
+      );
     }
+    return done(null, user);
+  } catch (error) {
+    return done(error as Error, null as any);
+  }
+}
+
   )
 );
 

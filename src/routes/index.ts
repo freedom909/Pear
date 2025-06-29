@@ -1,6 +1,7 @@
 import express from 'express';
 
-import userAndAuthRoutes from './userAndAuth.routes';
+import authRoutes from './auth.routes';
+import userRoutes from './user.routes';
 
 const router = express.Router();
 
@@ -9,7 +10,8 @@ const API_PREFIX = '/api/v1';
 
 // 注册路由
 
-router.use(`${API_PREFIX}/users`, userAndAuthRoutes);// 
+router.use(`${API_PREFIX}/user`, userRoutes); // 注册用户路由
+router.use(`${API_PREFIX}/auth`, authRoutes); // 注册认证路由
 
 
 // 根路由 - API健康检查

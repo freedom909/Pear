@@ -1,5 +1,5 @@
 // OAuth-specific controllers
-export * as googleController from './oauth/google.controller';
+export * as googleController from './auth.controller';
 export * as appleController from './oauth/apple.controller';
 export * as facebookController from './oauth/facebook.controller';
 export * as twitterController from './oauth/twitter.controller';

@@ -5,8 +5,9 @@ import  logger  from '../middleware/logger';
 import mongoose from 'mongoose';
 import * as mathjs from 'mathjs';
 import bcrypt from 'bcryptjs';
+import { Profile as PassportProfile } from 'passport';
 import {OAuthTokenInfo} from '../models/interface/index';
-import {IUser,UserDocument,Profile,IUserProfile,UserStatus,UserRole,IUserModel} from '../models/interface/index';
+import {IUser,UserDocument,IUserProfile,UserStatus,UserRole,IUserModel} from '../models/interface/index';
 
 // 用户服务接口
 export interface UserService {
@@ -678,17 +679,17 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     }
   }
   
-  async createUserFromOAuthProfile(profile: Profile, provider: 'google' | 'facebook' | 'twitter' | 'apple' | 'github'): Promise<UserDocument> {
+  async createUserFromOAuthProfile(profile: PassportProfile, provider: 'google' | 'facebook' | 'twitter' | 'apple' ): Promise<UserDocument> {
 
     return User.create({
-      [`${provider}Id`]: profile._id,
-      email: profile.email || '',
-      firstName: profile.firstName || '',
-      lastName: profile.lastName || '',
-      photo: profile.avatar || '',
-      password: mathjs.random().toString(36).slice(-8),
-      provider: provider,
-      role: 'user'
+      [`${provider}Id`]: profile.id,
+    email: profile.emails?.[0]?.value || '',
+    firstName: profile.displayName?.split(' ')[0] || '',
+    lastName: profile.displayName?.split(' ').slice(1).join(' ') || '',
+    photo: profile.photos?.[0]?.value || '',
+    password: mathjs.random().toString(36).slice(-8),
+    provider,
+    role: 'user'
     }) as unknown as UserDocument
   }
 
@@ -905,7 +906,11 @@ async getUserByResetToken(token: string): Promise<UserDocument | null> {
     return await User.findOne({ email });
   }
 
-  static async findUserByProviderId(provider: string, providerId: string): Promise<UserDocument | null> {
+   async findUserByProviderId(provider: string, providerId: string): Promise<UserDocument | null> {
+    return await User.findOne({ [`${provider}.id`]: providerId });
+  }
+  async findUserByOAuthProfile(profile: {id: string}, provider: 'google'): Promise<UserDocument | null> {
+    const providerId = profile.id;
     return await User.findOne({ [`${provider}.id`]: providerId });
   }
 }

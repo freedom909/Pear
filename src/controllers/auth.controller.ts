@@ -130,7 +130,7 @@ export const resetPassword = asyncHandler(
     await user.save();
 
     // sendTokenResponse(user, 200, res);
-    return res.status(200).json({ success: true, data: new UserResponseDTO(user) });// how to hide password?
+    return res.status(200).json({ success: true, data: new UserResponseDTO(user) });
   }
 );
 
@@ -156,24 +156,29 @@ export const googleLogin = asyncHandler(
  * @route   GET /api/v1/auth/google/callback
  * @access  Public
  */
-export const googleCallback = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate('google', { session: false }, (err, user, _info) => {
-      if (err || !user) return next(new AppError({
-        message: 'Google OAuth authentication failed',
-        code: ErrorCode.UNAUTHORIZED,
-        details: { user: user }
-      }));
+export const googleCallback = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate(
+    'google',
+    { session: false },
+    async (err, user: UserDocument, _info) => {
+      console.log("===> OAuth err:", err);
+      console.log("===> OAuth user:", user);
+      console.log("===> OAuth info:", _info);
+
+      if (err || !user) {
+        return res.status(401).json({ success: false, message: 'Google OAuth failed' });
+      }
       const token = user.getSignedJwtToken();
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 30 * 24 * 60 * 60 * 1000,
+      // You can also issue a refresh token here if you like
+      return res.status(200).json({
+        success: true,
+        token,
+        user,
       });
-      res.redirect(`${process.env.FRONTEND_URL}/oauth?token=${token}`);
-    })(req, res, next);
-  }
-);
+    }
+  )(req, res, next);
+};
+
 
 /**
  * Helper to send token in response

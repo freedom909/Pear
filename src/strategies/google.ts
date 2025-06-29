@@ -2,7 +2,7 @@
 import { BaseStrategy } from "./base";
 import { PassportStatic } from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-
+import userService from "@/services/user.service";
 import {  OAuthConfig, UserDocument } from "../models/interface";
 import logger from "../middleware/logger";
 
@@ -15,7 +15,7 @@ export class GoogleOAuthStrategy extends BaseStrategy {
         {
           clientID: config.clientID,
           clientSecret: config.clientSecret,
-          callbackURL: config.callbackURL,
+          callbackURL: config.callbackURL,//how can I ensure the callbackURL is correct?
           scope: config.scope || ['profile', 'email'],
           passReqToCallback: config.passReqToCallback || true,
         },
@@ -24,7 +24,7 @@ export class GoogleOAuthStrategy extends BaseStrategy {
             logger.info('Processing Google OAuth callback', { profileId: profile.id });
             
             // Find existing user or create a new one
-            let user = await userService.findUserByOAuthProfile({ googleId: profile.id });
+            let user = await userService.findUserByOAuthProfile({id: profile.id}, 'google');  
             
             if (!user) {
               logger.info('Creating new user from Google profile', { profileId: profile.id });
