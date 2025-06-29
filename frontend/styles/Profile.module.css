@@ -220,6 +220,36 @@
   margin: 0;
 }
 
+.emailContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.maskedEmail {
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
+
+.copyButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4f46e5;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.copyButton:hover {
+  background-color: #eef2ff;
+  color: #4338ca;
+}
+
+.copyButton svg {
+  vertical-align: middle;
+}
+
 .infoItem a {
   color: #4f46e5;
   text-decoration: none;

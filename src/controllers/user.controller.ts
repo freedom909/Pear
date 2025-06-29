@@ -12,6 +12,40 @@ import {
   UpdateUserDTO,
 } from '../dtos/userDTO';
 
+// 用户数据脱敏函数
+const sanitizeUserData = (user: any) => {
+  if (!user) return user;
+  
+  // 创建用户数据的副本
+  const sanitized = user.toObject ? user.toObject() : { ...user };
+  
+  // 脱敏邮箱
+  if (sanitized.email) {
+    const [localPart, domain] = sanitized.email.split('@');
+    sanitized.email = `${localPart.charAt(0)}${'*'.repeat(localPart.length - 2)}${localPart.charAt(localPart.length - 1)}@${domain}`;
+  }
+  
+  // 脱敏手机号码
+  if (sanitized.phone) {
+    sanitized.phone = sanitized.phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2');
+  }
+  
+  // 脱敏身份证号
+  if (sanitized.idNumber) {
+    sanitized.idNumber = sanitized.idNumber.replace(/^(\d{6})\d{8}(\d{4})$/, '$1********$2');
+  }
+  
+  // 保留必要的认证信息
+  const preservedFields = ['_id', 'id', 'username', 'role', 'permissions', 'createdAt', 'updatedAt'];
+  preservedFields.forEach(field => {
+    if (user[field]) {
+      sanitized[field] = user[field];
+    }
+  });
+  
+  return sanitized;
+};
+
 
 /**
  * @desc    Get current logged-in user profile
@@ -32,7 +66,7 @@ export const getMe = asyncHandler(
 
     res.status(200).json({
       success: true,
-      data: user,
+      data: sanitizeUserData(user),
     });
   }
 );

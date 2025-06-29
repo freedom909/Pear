@@ -37,7 +37,7 @@ PassportConfig.initialize();
 const app = express();
 
 // Trust proxy (for e.g., Heroku or Nginx)
-app.set('trust proxy', true);
+app.set('trust proxy', false);
 
 // Security middlewares
 app.use(helmet());

@@ -20,11 +20,11 @@ interface AuthRequest extends Request {
  * @access  Private
  */
 export const getMe = asyncHandler(
- async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
     const user = await User.findById(req.user.id);
     if (!user) return next(new AppError({
       message: '用户不存在',
-      code: ErrorCode.NOT_FOUND ,
+      code: ErrorCode.NOT_FOUND,
       details: { user: user }
     }));
     sendTokenResponse(user, 200, res);
@@ -46,7 +46,7 @@ export const updateDetails = asyncHandler(
     );
 
     sendTokenResponse(updated, 200, res);
-   
+
   }
 );
 
@@ -64,9 +64,9 @@ export const updatePassword = asyncHandler(
 
     user.password = req.body.newPassword;
     await user.save();
-   sendTokenResponse(user, 200, res);
+    sendTokenResponse(user, 200, res);
 
-   }
+  }
 );
 
 /**
@@ -117,7 +117,7 @@ export const resetPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
 
-    const user = await User.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } })as UserDocument;
+    const user = await User.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } }) as UserDocument;
     if (!user) return next(new AppError({
       message: '无效的令牌',
       code: ErrorCode.BAD_REQUEST,
@@ -224,7 +224,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
         code: ErrorCode.BAD_REQUEST,
         details: { user: existingUser }
       }));
-    const user = await User.create({ name, email, password, role: role === UserRole.ADMIN ? UserRole.USER : role })as unknown as UserDocument;
+    const user = await User.create({ name, email, password, role: role === UserRole.ADMIN ? UserRole.USER : role }) as unknown as UserDocument;
 
     const token = generateToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -243,20 +243,19 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const { email, password } = req.body;
     if (!email || !password) return next(new AppError({
-      message: '请提供邮箱和密码', 
+      message: '请提供邮箱和密码',
       code: ErrorCode.BAD_REQUEST,
       details: { user: { email, password } }
-  }));
+    }));
 
 
-    const user = await User.findOne({ email }).select('+password')as UserDocument;
+    const user = await User.findOne({ email }).select('+password') as UserDocument;
     if (!user || !(await user.comparePassword(password, user.password))) {
       return next(new AppError({
         message: '无效的凭据',
         code: ErrorCode.BAD_REQUEST,
         details: { user: { email, password } }
       }));
-    
     }
 
     const token = generateToken(user);
@@ -275,32 +274,45 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return next(new AppError(
-      { message:'需要提供 refreshToken',
-        code: ErrorCode.BAD_REQUEST,
-        details: { refreshToken } }
-    ));
 
-    let decoded;
-    try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'refresh-secret') as Request;
-    } catch {
+    if (!refreshToken) {
       return next(new AppError({
-        message: '无效的 refreshtoken', 
+        message: '需要提供 refreshToken',
         code: ErrorCode.BAD_REQUEST,
-        details: { refreshToken } }));  
+        details: { refreshToken }
+      }));
     }
 
-    const user = await User.findById(decoded.id);
-    if (!user) return next(new AppError({
-      message: '无效的 refresh token', 
-      code: ErrorCode.BAD_REQUEST,
-      details: { refreshToken } }
-          ));
+    let decoded: { id: string };
+    try {
+      decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET || 'refresh-secret'
+      ) as { id: string };
+    } catch {
+      return next(new AppError({
+        message: '无效的 refresh token',
+        code: ErrorCode.BAD_REQUEST,
+        details: { refreshToken }
+      }));
+    }
+
+    const userId = decoded.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(new AppError({
+        message: '无效的 refresh token',
+        code: ErrorCode.BAD_REQUEST,
+        details: { refreshToken }
+      }));
+    }
 
     sendTokenResponse(user, 200, res);
   } catch (error) {
     logger.error('刷新令牌失败:', error);
     next(error);
   }
-}
+};
+
+

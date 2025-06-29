@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables */
+:root {
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+}
+
 /* Custom base styles */
 html,
 body {

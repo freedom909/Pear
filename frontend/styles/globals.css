@@ -134,8 +134,33 @@ button {
   animation: spin 1s linear infinite;
 }
 
+/* CSS Variables */
+:root {
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --bg-card: #ffffff;
+  --bg-accent: #f3f4f6;
+  --bg-accent-light: #f9fafb;
+  --bg-accent-hover: #f3f4f6;
+  --bg-hover: #f3f4f6;
+  --border-color: #e5e7eb;
+  --color-primary: #4f46e5;
+}
+
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
+    --bg-card: #1f2937;
+    --bg-accent: #374151;
+    --bg-accent-light: #2d3748;
+    --bg-accent-hover: #374151;
+    --bg-hover: #374151;
+    --border-color: #4b5563;
+    --color-primary: #6366f1;
+  }
+
   body {
     color: #f9fafb;
     background-color: #111827;

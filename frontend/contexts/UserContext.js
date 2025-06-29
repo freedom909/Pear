@@ -1,6 +1,40 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/router';
 
+// 用户数据脱敏函数
+const sanitizeUserData = (userData) => {
+  if (!userData) return null;
+  
+  // 创建用户数据的副本
+  const sanitized = { ...userData };
+  
+  // 脱敏邮箱
+  if (sanitized.email) {
+    const [localPart, domain] = sanitized.email.split('@');
+    sanitized.email = `${localPart.charAt(0)}${'*'.repeat(localPart.length - 2)}${localPart.charAt(localPart.length - 1)}@${domain}`;
+  }
+  
+  // 脱敏手机号码
+  if (sanitized.phone) {
+    sanitized.phone = sanitized.phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2');
+  }
+  
+  // 脱敏身份证号
+  if (sanitized.idNumber) {
+    sanitized.idNumber = sanitized.idNumber.replace(/^(\d{6})\d{8}(\d{4})$/, '$1********$2');
+  }
+  
+  // 保留必要的认证信息
+  const preservedFields = ['token', 'id', 'username', 'role', 'permissions'];
+  preservedFields.forEach(field => {
+    if (userData[field]) {
+      sanitized[field] = userData[field];
+    }
+  });
+  
+  return sanitized;
+};
+
 export const UserContext = createContext();
 
 export function UserProvider({ children }) {
@@ -12,7 +46,9 @@ export function UserProvider({ children }) {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        // 加载完整用户数据到状态中
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('user');
@@ -23,8 +59,12 @@ export function UserProvider({ children }) {
 
   // 登录函数
   const login = (userData) => {
+    // 存储完整用户数据到状态中
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    
+    // 存储到localStorage前进行脱敏
+    const sanitizedForStorage = sanitizeUserData(userData);
+    localStorage.setItem('user', JSON.stringify(sanitizedForStorage));
   };
 
   // 注销函数
@@ -35,9 +75,13 @@ export function UserProvider({ children }) {
 
   // 更新用户信息
   const updateUser = (updates) => {
+    // 更新完整用户数据到状态中
     const updatedUser = { ...user, ...updates };
     setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    // 存储到localStorage前进行脱敏
+    const sanitizedForStorage = sanitizeUserData(updatedUser);
+    localStorage.setItem('user', JSON.stringify(sanitizedForStorage));
   };
 
   // 检查用户是否已认证
