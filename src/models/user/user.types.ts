@@ -1,5 +1,6 @@
 // models/user/user.types.ts
 import { Document, Model } from 'mongoose';
+import { Timestamps } from '../base.interface';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -16,7 +17,10 @@ export enum UserStatus {
 // IUser — plain data
 export interface IUser {
   id: string;
-  username: string;
+  username: {
+    firstname: string;
+    lastname: string;
+  },
   email: string;
   passwordHash: string;
   salt: string;
@@ -48,27 +52,36 @@ export interface IUser {
 // UserDocument — extends Mongo Document and adds methods
 // models/user/user.types.ts
 export interface IUserFields {
-  username: string;
-  firstName: string;
-  lastName: string;
+  username: {
+    firstname: string;
+    lastname: string;
+  },
+  password?: string;
   verified: boolean;
   email: string;
   passwordHash: string;
   refreshToken?: string;
+  resetPasswordExpires?: Date;
   salt: string;
   role: UserRole;
   status: UserStatus;
   lastLogin?: Date;
   isVerified?: boolean;
   avatar?: string;
+  provider: string;
+  passwordResetToken?: string;
 }
 
 // Document interface extends Mongoose's Document and our fields
-export interface UserDocument extends Document, IUserFields {
+export interface UserDocument extends Document, IUserFields,Timestamps {
   verifyPassword(password: string): Promise<boolean>;
-  generatePasswordResetToken(): string;
-  getResetPasswordToken(): string;
   clearResetToken(): void;
+  getSignedJwtToken(): string;
+  generateAccessToken(): string;
+  generateRefreshToken(): string;
+  generateResetPasswordToken(): string;
+  setPassword(password: string): void;
+  getResetPasswordToken(): string;
 }
 
 

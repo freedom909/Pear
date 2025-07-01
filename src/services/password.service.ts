@@ -22,8 +22,8 @@ export class PasswordService {
       throw new Error('Invalid or expired token');
     }
 
-    (user as any).setPassword(newPassword);// where is the setPassword method defined?
-    (user as any).clearResetToken();
+    user.setPassword(newPassword);
+    user.clearResetToken();
     await userService.updateUser((user.id as any), user);
     return true;
   }

@@ -1,4 +1,4 @@
-// src/passport/strategies/AppleStrategy.ts
+// src/strategies/apple.ts
 import { BaseStrategy } from "./base";
 import { PassportStatic } from "passport";
 import { Strategy as AppleStrategy } from "passport-apple";

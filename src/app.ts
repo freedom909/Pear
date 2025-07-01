@@ -19,18 +19,25 @@ import notFound from './middleware/notFoundHandler';
 import logger, { logStream } from './middleware/logger';
 import { initRedis } from './middleware/redis';
 import { connectDB } from './config/database';
-import { PassportConfig } from './config/passport.config';
-
+import { setupSessionSerialization } from './strategies/session'; // ✅ your helper function
+import { OAuthStrategyFactory } from './strategies/auth.factory';
+import userService from './services/user.service';
 import apiRoutes from './routes/index';
 
+import {OAuthConfiguration} from './config/oauth';
+const oauthConfigs = OAuthConfiguration.getConfigs();
 // Initialize DB
 connectDB();
 
 // Initialize Redis
 initRedis();
 
-// Initialize OAuth and Local strategies
-PassportConfig.initialize();
+// ✅ Initialize Passport session serialization
+setupSessionSerialization();
+
+// ✅ Initialize OAuth strategies
+const factory = new OAuthStrategyFactory(passport, oauthConfigs, userService); 
+factory.initializeStrategies();
 
 // Initialize Express app
 const app = express();
@@ -52,7 +59,7 @@ app.use(cookieParser());
 // Compression
 app.use(compression());
 
-// Session middleware (must be before passport.session)
+// Session middleware
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
@@ -75,7 +82,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Logging with morgan
+// Logging
 app.use(
   morgan('combined', {
     stream: logStream,
@@ -88,19 +95,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: '请求过于频繁，请稍后再试',
 });
 app.use(limiter);
 
-// Health check endpoint
+// Health check
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
 // Routes
-app.use('/',apiRoutes)
+app.use('/', apiRoutes);
 
 // Not found handler
 app.use(notFound);

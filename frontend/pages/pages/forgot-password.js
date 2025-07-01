@@ -76,7 +76,7 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div></div>
+        <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             找回密码
           </h2>
@@ -84,19 +84,19 @@ export default function ForgotPassword() {
             输入您的电子邮箱，我们将向您发送重置密码的链接
           </p>
         </div>
-        
+
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
             <span className="block sm:inline">{error}</span>
           </div>
         )}
-        
+
         {success && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
             <span className="block sm:inline">{success}</span>
           </div>
         )}
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -157,7 +157,7 @@ export default function ForgotPassword() {
             返回登录页面
           </Link>
         </div>
-      </div>)
+      </div>
     </div>
   );
 }

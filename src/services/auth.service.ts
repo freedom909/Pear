@@ -18,7 +18,10 @@ export interface RegisterDTO {
 export interface AuthResponse {
   user: {
     id: string;
-    username: string;
+    username: {
+      firstname: string;
+      lastname: string;
+    };
     email: string;
     role: string;
   };
@@ -85,7 +88,7 @@ class AuthService {
       }
     }
 
-    return this.buildAuthResponse(user!);
+    return this.buildAuthResponse(user as unknown as UserDocument);
   }
 
   /**

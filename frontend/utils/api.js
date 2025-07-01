@@ -1,100 +1,186 @@
 import axios from 'axios';
+import { API_CONFIG, AUTH_CONFIG } from '../../config';
 
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // 10 seconds
-});
+/**
+ * API Service Class
+ * 
+ * Provides unified interface for API requests.
+ */
+class ApiService {
+  constructor() {
+    this.baseUrl = API_CONFIG.BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    this.timeout = API_CONFIG.TIMEOUT || 10000;
 
-// Request interceptor for adding auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+    // Create Axios instance
+    this.api = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: this.timeout,
+      withCredentials: true,
+    });
 
-// Response interceptor for handling common errors
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Handle session expiration
-    if (error.response && error.response.status === 401) {
-      // Check if this is not a login request
-      if (!error.config.url.includes('/api/auth/login')) {
-        // Clear token and redirect to login
-        localStorage.removeItem('token');
-        
-        // Only redirect if we're in the browser environment
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login?session=expired';
+    // Request interceptor to attach token
+    this.api.interceptors.request.use(
+      (config) => {
+        const token = this.getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Response interceptor to handle 401 errors
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          this.clearToken();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login?session=expired';
+          }
+        }
+        return Promise.reject(error);
       }
-    }
-    
-    return Promise.reject(error);
+    );
   }
-);
 
-// API service methods
-const apiService = {
-  // Auth endpoints
-  auth: {
-    login: (email, password) => {
-      return api.post('/api/auth/login', { email, password });
-    },
-    register: (userData) => {
-      return api.post('/api/auth/register', userData);
-    },
-    forgotPassword: (email) => {
-      return api.post('/api/auth/forgot-password', { email });
-    },
-    resetPassword: (token, password) => {
-      return api.post('/api/auth/reset-password', { token, password });
-    },
-    getCurrentUser: () => {
-      return api.get('/api/auth/me');
-    },
-    logout: () => {
-      localStorage.removeItem('token');
-      // You could also hit a logout endpoint if needed
-      // return api.post('/api/auth/logout');
-    },
-  },
-  
-  // User endpoints
-  users: {
-    getProfile: () => {
-      return api.get('/api/users/profile');
-    },
-    updateProfile: (userData) => {
-      return api.put('/api/users/profile', userData);
-    },
-    changePassword: (currentPassword, newPassword) => {
-      return api.put('/api/users/change-password', {
-        currentPassword,
-        newPassword,
-      });
-    },
-  },
-  
+  // Token helpers
+  getToken() {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(AUTH_CONFIG.TOKEN_KEY || 'token');
+    }
+    return null;
+  }
+
+  setToken(token) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY || 'token', token);
+    }
+  }
+
+  clearToken() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY || 'token');
+    }
+  }
+
   // Generic request methods
-  get: (url, config) => api.get(url, config),
-  post: (url, data, config) => api.post(url, data, config),
-  put: (url, data, config) => api.put(url, data, config),
-  delete: (url, config) => api.delete(url, config),
-};
+  get(url, config) {
+    return this.api.get(url, config);
+  }
 
+  post(url, data, config) {
+    return this.api.post(url, data, config);
+  }
+
+  put(url, data, config) {
+    return this.api.put(url, data, config);
+  }
+
+  patch(url, data, config) {
+    return this.api.patch(url, data, config);
+  }
+
+  delete(url, config) {
+    return this.api.delete(url, config);
+  }
+
+  // Auth methods
+  async login(email, password, remember = false) {
+    try {
+      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, { email, password, remember });
+      if (response.data.token) {
+        this.setToken(response.data.token);
+      }
+      return { success: true, user: response.data.user, message: response.data.message };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '登录失败，请检查您的凭据' };
+    }
+  }
+
+  async register(name, email, password) {
+    try {
+      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, { name, email, password });
+      if (response.data.token) {
+        this.setToken(response.data.token);
+      }
+      return { success: true, user: response.data.user, message: response.data.message };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '注册失败，请稍后重试' };
+    }
+  }
+
+  async forgotPassword(email) {
+    try {
+      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '请求失败，请稍后重试' };
+    }
+  }
+
+  async resetPassword(token, password) {
+    try {
+      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.RESET_PASSWORD, { token, password });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '密码重置失败，请稍后重试' };
+    }
+  }
+
+  async logout() {
+    try {
+      await this.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT);
+      this.clearToken();
+      return { success: true, message: '登出成功' };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '登出失败，请稍后重试' };
+    }
+  }
+
+  async verifyToken() {
+    try {
+      const response = await this.get(API_CONFIG.ENDPOINTS.AUTH.VERIFY_TOKEN);
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      this.clearToken();
+      return { success: false, message: error.response?.data?.message || '令牌验证失败' };
+    }
+  }
+
+  // User profile
+  async getUserProfile() {
+    try {
+      const response = await this.get(API_CONFIG.ENDPOINTS.USER.PROFILE);
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '获取用户资料失败' };
+    }
+  }
+
+  async updateUserProfile(profileData) {
+    try {
+      const response = await this.put(API_CONFIG.ENDPOINTS.USER.UPDATE_PROFILE, profileData);
+      return { success: true, user: response.data.user, message: response.data.message || '资料更新成功' };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '资料更新失败' };
+    }
+  }
+
+  async changePassword(currentPassword, newPassword) {
+    try {
+      const response = await this.put(API_CONFIG.ENDPOINTS.USER.CHANGE_PASSWORD, { currentPassword, newPassword });
+      return { success: true, message: response.data.message || '密码修改成功' };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || '密码修改失败' };
+    }
+  }
+}
+
+// Export singleton
+const apiService = new ApiService();
 export default apiService;
-export { api }; // Export the axios instance for direct use if needed

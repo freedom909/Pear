@@ -134,8 +134,10 @@ export interface UserDocument extends Document {
   id?: string;
   email: string;
   password?: string;
-  firstName: string;
-  lastName: string;
+  username:{
+    firstname: string;
+    lastname: string;
+  },
   role: UserRole;
   status: UserStatus;
   verified: boolean;
@@ -151,7 +153,7 @@ export interface UserDocument extends Document {
   appleId?: string;
   photo?: string;
   tokenInfo?: string[],
-  refreshTokens: string[];
+  refreshTokens?: string[];
   refreshTokensExpires?: Date;
   profile?: IUserProfile;
   security?: IUserSecurity;
@@ -206,6 +208,7 @@ export interface IUserModel extends Model<UserDocument> {
     generateEmailVerificationToken: () => Promise<string>;
     generatePasswordResetToken: () => Promise<string>; 
     generateRefreshToken: () => Promise<string>;
+    getSignedJwtToken: () => Promise<string>;
   };
   password: string;
   passwordResetToken?: string; 

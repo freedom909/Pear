@@ -1,26 +1,35 @@
 import User from '../models/user/user.model';
 import ErrorCode from '../errors/error-code';
 import { AppError } from '../errors/appError';
-import  logger  from '../middleware/logger';
+import logger from '../middleware/logger';
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import * as mathjs from 'mathjs';
 import bcrypt from 'bcryptjs';
 import { Profile as PassportProfile } from 'passport';
-import {OAuthTokenInfo} from '../models/interface/index';
-import {IUser,UserDocument,IUserProfile,UserStatus,UserRole,IUserModel} from '../models/interface/index';
+import { OAuthTokenInfo } from '../models/interface/index';
+import { IUser, IUserProfile, UserStatus, UserRole, IUserModel } from '../models/interface/index';
+import { UserDocument } from '../models/user/user.types';
 
 // 用户服务接口
 export interface UserService {
   linkProvider(userId: string, provider: string, providerId: string, accessToken: string, refreshToken: string): Promise<UserDocument>;
   getUsers(page?: number, limit?: number): Promise<UsersResponse>;
-  findUserByEmail(email: string): Promise<UserDocument|null>;
+  findUserByEmail(email: string): Promise<UserDocument | null>;
   getUserById(id: string): Promise<UserDocument>;
-  getUserByResetToken(token: string): Promise<UserDocument|null>;
+  getUserByResetToken(token: string): Promise<UserDocument | null>;
+  generateResetPasswordToken(user: UserDocument): Promise<string>;
+  linkOAuthProviderToUser(existingUserByEmail: UserDocument,
+    provider: string,
+    providerId: string,
+    profile: PassportProfile,
+  ): Promise<UserDocument>;
+  
   createOAuthUser(userData: UserDocument): Promise<IUserProfile>;
   updateUser(id: string, userData: UserDocument, options?: Record<string, any>): Promise<UserDocument>;
   deleteUser(id: string): Promise<void>;
   findOne(query: Record<string, any>): Promise<UserDocument>;
-  findUserByProvider(provider: string, providerId: string): Promise<UserDocument|null>;
+  findUserByProvider(provider: string, providerId: string): Promise<UserDocument | null>;
   create(userData: {
     email: string;
     name: string;
@@ -28,8 +37,8 @@ export interface UserService {
     provider: string;
     accessToken: string;
     refreshToken: string;
-    profile?:Partial<IUser>;
-    avatar?:string;
+    profile?: Partial<IUser>;
+    avatar?: string;
   }): Promise<UserDocument>;
   findOneOrCreate(profile: any, tokenInfo: OAuthTokenInfo): Promise<UserDocument>;
 }
@@ -65,7 +74,7 @@ export interface UpdateUserDTO {
   username?: string;
   email?: string;
   password?: string;
-  role?: 'user' | 'admin'; 
+  role?: 'user' | 'admin';
 }
 
 // 用户响应
@@ -158,7 +167,7 @@ class UserServiceImpl implements UserService {
         message: '获取用户列表失败',
         code: ErrorCode.INTERNAL_SERVER_ERROR,
         details: error
-    });
+      });
     }
   }
 
@@ -242,12 +251,12 @@ class UserServiceImpl implements UserService {
     }
   }
 
-  async findUserByProvider(provider: string, providerId: string): Promise<UserDocument|null> {
+  async findUserByProvider(provider: string, providerId: string): Promise<UserDocument | null> {
     try {
       const user = await User.findOne({
         'profile.provider': provider,
         'profile.providerId': providerId,
-      })as UserDocument;
+      }) as UserDocument;
       return user;
     } catch (error) {
       logger.error(`根据${provider}ID查找用户失败 (ID: ${providerId}):`, error);
@@ -255,7 +264,7 @@ class UserServiceImpl implements UserService {
         message: `根据${provider}ID查找用户失败`,
         code: ErrorCode.INTERNAL_SERVER_ERROR,
         details: error
-    
+
       });
     }
   }
@@ -273,13 +282,13 @@ class UserServiceImpl implements UserService {
       if (!mongoose.Types.ObjectId.isValid(id)) {
         throw AppError.badRequest('无效的用户ID');
       }
-  
+
       // 检查用户是否存在
       const user = await User.findById(id);
       if (!user) {
         throw AppError.notFound('用户不存在');
       }
-  
+
       // 更新用户
       const updatedUser = await User.findByIdAndUpdate(id, userData, { new: true }) as UserDocument;
       return updatedUser;
@@ -318,13 +327,13 @@ class UserServiceImpl implements UserService {
 
       return {
         id: user._id as unknown as string,
-        username: `${user.firstName} ${user.lastName}`,
+        username: `${user.username.firstname} ${user.username.lastname}`,
         email: user.email,
         role: user.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        createdAt: (user as any).createdAt,
+        updatedAt: (user as any).updatedAt,
       } as unknown as IUserProfile;
-      
+
     } catch (error) {
       logger.error('创建用户失败:', error);
       if (error instanceof AppError) {
@@ -389,8 +398,8 @@ class UserServiceImpl implements UserService {
         username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
-        createdAt: (updatedUser as unknown as UserDocument ).createdAt,
-        updatedAt: (updatedUser as unknown as UserDocument ).updatedAt
+        createdAt: (updatedUser as unknown as UserDocument).createdAt,
+        updatedAt: (updatedUser as unknown as UserDocument).updatedAt
       } as unknown as UserDocument;
     } catch (error) {
       logger.error(`更新用户失败 (ID: ${id}):`, error);
@@ -404,30 +413,30 @@ class UserServiceImpl implements UserService {
       });
     }
   }
-  
-/**
- * getResetPasswordToke
- * @returns token 
- * /
- */
 
-async getResetPasswordToken(email: string): Promise<string> {
-  try {
-    const user = await User.findOne({ email }) as UserDocument
-    if (!user) {
-      throw AppError.notFound('用户不存在');
+  /**
+   * getResetPasswordToke
+   * @returns token 
+   * /
+   */
+
+  async getResetPasswordToken(email: string): Promise<string> {
+    try {
+      const user = await User.findOne({ email }) as UserDocument
+      if (!user) {
+        throw AppError.notFound('用户不存在');
+      }
+      const token = await user.generateResetPasswordToken();
+      return token;
+    } catch (error) {
+      logger.error('生成重置密码令牌失败:', error);
+      throw new AppError({
+        message: '生成重置密码令牌失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error
+      });
     }
-    const token = await user.generateResetPasswordToken();
-    return token;
-  } catch (error) {
-    logger.error('生成重置密码令牌失败:', error);
-    throw new AppError({
-      message: '生成重置密码令牌失败',
-      code: ErrorCode.INTERNAL_SERVER_ERROR,
-      details: error as Error
-    });
   }
-}
 
 
   /**
@@ -435,10 +444,10 @@ async getResetPasswordToken(email: string): Promise<string> {
    * generateTokenResponse
    * @returns tokenResponse
    */
-async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
+  async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     try {
-      const accessToken = await user.generateAccessToken();
-      const refreshToken = await user.generateRefreshToken();
+      const accessToken = user.generateAccessToken();
+      const refreshToken = user.generateRefreshToken();
       return {
         accessToken,
         refreshToken,
@@ -446,9 +455,9 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
         user: {
           id: user._id as unknown as string,
           email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
+          firstName: user.username.firstname,
+          lastName: user.username.lastname,
+          role: (user as any).role,
           status: user.status,
           verified: user.verified,
           avatar: user.avatar,
@@ -463,6 +472,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       });
     }
   }
+
 
   /**
    * 根据ID查找用户
@@ -529,13 +539,18 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     provider: string;
     accessToken: string;
     refreshToken: string;
-    avatar?:string;
-    profile?:Partial<IUser>
+    avatar?: string;
+    profile?: Partial<IUser>
   }): Promise<UserDocument> {
     try {
       // 创建新用户
       const newUser = await User.create({
-        username: userData.name || userData.email.split('@')[0],
+        username:
+        {
+          firstname: userData.name.split(' ')[0] || 'google',
+          lastname: userData.name.split(' ')[1] || 'son of google',
+        },
+
         email: userData.email,
         password: await bcrypt.hash(mathjs.random().toString(), 10),
         role: 'user',
@@ -568,12 +583,12 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
         return existingUser as unknown as UserDocument;
       }
       // 创建新用户
-      const newUser=await this.create({
+      const newUser = await this.create({
         email: profile.emails[0].value,
         name: profile.name,
         provider: profile.provider,
         accessToken: tokenInfo.accessToken,
-        refreshToken: tokenInfo.refreshToken||'',
+        refreshToken: tokenInfo.refreshToken || '',
       });
       return newUser as unknown as UserDocument;
     } catch (error) {
@@ -590,8 +605,8 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
    * @param id 用户ID
    * @param userData 用户数据
    * */
- 
-   async update(id: string, userData: UserDocument): Promise<UserDocument> {
+
+  async update(id: string, userData: UserDocument): Promise<UserDocument> {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -678,20 +693,30 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       });
     }
   }
-  
-  async createUserFromOAuthProfile(profile: PassportProfile, provider: 'google' | 'facebook' | 'twitter' | 'apple' ): Promise<UserDocument> {
 
+  async createUserFromOAuthProfile(
+    profile: PassportProfile,
+    provider: 'google' | 'facebook' | 'twitter' | 'apple'
+  ): Promise<UserDocument> {
+    if (!provider || !profile) {
+      throw AppError.badRequest('无效的OAuth用户资料');
+    }
+    if (!profile.emails?.[0]?.value) {
+      throw AppError.badRequest('无效的OAuth用户资料');
+    }
     return User.create({
       [`${provider}Id`]: profile.id,
-    email: profile.emails?.[0]?.value || '',
-    firstName: profile.displayName?.split(' ')[0] || '',
-    lastName: profile.displayName?.split(' ').slice(1).join(' ') || '',
-    photo: profile.photos?.[0]?.value || '',
-    password: mathjs.random().toString(36).slice(-8),
-    provider,
-    role: 'user'
-    }) as unknown as UserDocument
+      email: profile.emails?.[0]?.value || '',
+      username: {
+        firstname: profile.displayName?.split(' ')[0] || '${provider}',
+        lastname: profile.displayName?.split(' ').slice(1).join(' ') || 'User',
+      },
+      photo: profile.photos?.[0]?.value || '',
+      provider,
+      role: 'user',
+    }) as unknown as UserDocument;
   }
+
 
   async findUserByEmail(email: string): Promise<UserDocument> {
     return User.findOne({ email }) as unknown as UserDocument;
@@ -703,40 +728,40 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         throw AppError.badRequest('用户ID格式错误');
       }
-  
+
       // 验证第三方账户提供商
       if (!['google', 'facebook', 'twitter', 'apple'].includes(provider)) {
         throw AppError.badRequest('第三方账户提供商错误');
       }
-  
+
       // 验证第三方账户ID
       if (!providerId) {
         throw AppError.badRequest('第三方账户ID错误');
       }
-  
+
       // 验证访问令牌
       if (!accessToken) {
         throw AppError.badRequest('访问令牌错误');
       }
-  
+
       // 验证刷新令牌
       if (!refreshToken) {
         throw AppError.badRequest('刷新令牌错误');
       }
-  
+
       // 查询用户
       const user = await User.findById(userId);
-  
+
       // 验证用户是否存在
       if (!user) {
         throw AppError.notFound('用户不存在');
       }
-  
+
       // 验证用户是否已绑定该第三方账户
-      if (( user as any)[`${provider}.id`] === providerId) {
+      if ((user as any)[`${provider}.id`] === providerId) {
         throw AppError.badRequest('用户已绑定该第三方账户');
-        }
-  
+      }
+
       // 链接第三方账户
       (user as any)[provider] = {
         id: providerId,
@@ -795,7 +820,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     // Type assertion to resolve the type assignment issue
     return user as unknown as UserDocument;
   }
-  
+
   static async linkOAuthAccount(userId: string, provider: string, providerId: string): Promise<UserDocument> {
     const user = await User.findById(userId) as IUserModel & { [key: string]: any };
     if (!user) {
@@ -806,7 +831,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     logger.info(`Linked ${provider} account for user: ${user.email}`);
     return user as unknown as UserDocument;
   }
-  
+
   static async createOAuthUser(provider: string, providerId: string, userData: Partial<UserDocument>): Promise<UserDocument> {
     const existingUser = await User.findOne({ [`${provider}.id`]: providerId });
     if (existingUser) {
@@ -816,6 +841,25 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     await user.save();
     logger.info(`OAuth user created: ${user.email}`);
     return user as unknown as UserDocument;
+  }
+
+  async linkOAuthProviderToUser(existingUserByEmail: UserDocument,
+    provider: string,
+    providerId: string,
+    profile: PassportProfile,
+  ): Promise<UserDocument> {
+
+    if (existingUserByEmail) {
+      (existingUserByEmail as any)[provider] = { id: providerId };
+      await existingUserByEmail.save();
+      logger.info(`Linked ${provider} account for user: ${existingUserByEmail.email}`);
+      return existingUserByEmail as unknown as UserDocument;
+    } else {
+      const user = new User({ ...profile, [provider]: { id: providerId } });
+      await user.save();
+      logger.info(`OAuth user created: ${user.email}`);
+      return user as unknown as UserDocument;
+    }
   }
 
   static async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -830,7 +874,7 @@ async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
     logger.info(`Password reset for user: ${user.name}`);
   }
 
-async getUserByResetToken(token: string): Promise<UserDocument | null> {
+  async getUserByResetToken(token: string): Promise<UserDocument | null> {
     const user = await User.findOne({ passwordResetToken: token, passwordResetExpires: { $gt: Date.now() } }) as IUserModel;
     if (!user) {
       throw new Error('Invalid or expired token');
@@ -850,7 +894,12 @@ async getUserByResetToken(token: string): Promise<UserDocument | null> {
         logger.error(`Error requesting password reset: ${email}`, { error: err });
       }
       throw err;
-    }   
+    }
+  }
+
+  async generateResetPasswordToken(): Promise<string> {
+    const token = Math.random().toString(36).substring(2);
+    return token;
   }
 
   static async updateUser(userId: string, updateData: Partial<UserDocument>): Promise<UserDocument | null> {
@@ -877,7 +926,7 @@ async getUserByResetToken(token: string): Promise<UserDocument | null> {
       throw new Error('User already exists');
     }
     const hashedPassword = await bcrypt.hash(userData.password!, 10);
-        const user = new User({ ...userData, password: hashedPassword });
+    const user = new User({ ...userData, password: hashedPassword });
     try {
       await user.save();
     } catch (err) {
@@ -899,19 +948,32 @@ async getUserByResetToken(token: string): Promise<UserDocument | null> {
     const users = await User.find(filter).skip(skip).limit(limit) as unknown as UserDocument[];
     const total = await User.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
-    return { users , total, page, totalPages };
+    return { users, total, page, totalPages };
   }
 
   static async findUserByEmail(email: string): Promise<UserDocument | null> {
     return await User.findOne({ email });
   }
 
-   async findUserByProviderId(provider: string, providerId: string): Promise<UserDocument | null> {
+  async findUserByProviderId(provider: string, providerId: string): Promise<UserDocument | null> {
     return await User.findOne({ [`${provider}.id`]: providerId });
   }
-  async findUserByOAuthProfile(profile: {id: string}, provider: 'google'): Promise<UserDocument | null> {
+  async findUserByOAuthProfile(profile: { id: string }, provider: 'google'): Promise<UserDocument | null> {
     const providerId = profile.id;
     return await User.findOne({ [`${provider}.id`]: providerId });
+  }
+
+  getSignedJwtToken(user: UserDocument): string {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET not set");
+    }
+
+    return jwt.sign(
+      { id: user._id },
+      secret,
+      { expiresIn: "1d" }
+    );
   }
 }
 const userService = new UserServiceImpl();

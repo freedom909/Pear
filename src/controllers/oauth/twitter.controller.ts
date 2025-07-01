@@ -2,8 +2,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import { authService } from '../../services/auth.service';    // your JWT‐issuing service
-import { UserDocument } from '../../models/interface/index';  // for typing
+import { authService } from '../../services/auth.service';   
+import { UserDocument } from '../../models/user/user.types';  
 
 /**
  * Step 1: Redirect to Google for consent.
@@ -30,7 +30,7 @@ export const twitterCallback = (req: Request, res: Response, next: NextFunction)
       }
       try {
         // Here you generate a JWT or start a session
-        const token = await authService.generateJwtForUser(user as UserDocument);
+        const token = await authService.generateJwtForUser(user as any);
         // Return user + token (or set as cookie, etc.)
         return res.json({ success: true, user, token });
       } catch (e) {
