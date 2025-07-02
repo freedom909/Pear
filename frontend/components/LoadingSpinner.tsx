@@ -10,12 +10,6 @@ interface LoadingSpinnerProps {
   className?: string;
 }
 
-interface SizeStyle {
-  width: string;
-  height: string;
-  borderWidth: string;
-}
-
 /**
  * LoadingSpinner Component
  *
@@ -26,27 +20,6 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color = 'primary',
   className = '',
 }) => {
-  // Define fallback inline styles for size if needed
-  const sizeStyles: Record<string, SizeStyle> = {
-    small: {
-      width: '1rem',
-      height: '1rem',
-      borderWidth: '2px',
-    },
-    medium: {
-      width: '2rem',
-      height: '2rem',
-      borderWidth: '3px',
-    },
-    large: {
-      width: '3rem',
-      height: '3rem',
-      borderWidth: '4px',
-    },
-  };
-
-  const sizeStyle = sizeStyles[size] || sizeStyles.medium;
-
   // Combine classes
   const spinnerClasses = [
     styles.spinner,

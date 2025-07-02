@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-
+import React from 'react';
 interface OAuthResponse {
   success: boolean;
   token?: string;
   message?: string;
 }
 
-export default function TwitterCallback(): JSX.Element {
+export default function TwitterCallback(): React.ReactElement {
+  //Cannot find namespace 'JSX'
   const router = useRouter();
 
   useEffect(() => {

@@ -7,12 +7,12 @@ interface OAuthResponse {
   message?: string;
 }
 
-export default function facebookCallback() {
+export default function FacebookCallback(): React.ReactElement {
   const router = useRouter();
 
   useEffect(() => {
     // Automatically call the backend callback
-    const fetchToken = async () => {
+    const fetchToken = async (): Promise<void> => {
       try {
         const res = await fetch('/api/proxy/facebook-callback');
         const data: OAuthResponse = await res.json();

@@ -3,7 +3,7 @@ import { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import styles from '../styles/Dashboard.module.css';
-
+import Image from 'next/image';
 /**
  * 用户数据接口
  */
@@ -40,7 +40,7 @@ interface ActivityItem {
  *
  * @returns {JSX.Element} 渲染的仪表盘页面组件
  */
-const Dashboard: NextPage = () => {
+const Dashboard: NextPage = (): React.ReactElement => {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,7 +61,7 @@ const Dashboard: NextPage = () => {
     }
 
     // Fetch user data
-    const fetchUserData = async () => {
+    const fetchUserData = async (): Promise<void> => {
       try {
         // In a real app, you would fetch user data from your API
         // For now, we'll use mock data
@@ -165,7 +165,7 @@ const Dashboard: NextPage = () => {
               Welcome back, {user?.name.split(' ')[0]}!
             </h1>
             <p className={styles.welcomeSubtitle}>
-              Here's what's happening with your pear orchard today
+              Here is what is happening with your pear orchard today
             </p>
           </div>
 
@@ -177,7 +177,7 @@ const Dashboard: NextPage = () => {
 
             <div className={styles.userAvatar}>
               {user?.avatar ? (
-                <img
+                <Image
                   src={user.avatar}
                   alt={user.name}
                   className={styles.avatarImage}

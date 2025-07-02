@@ -1,4 +1,5 @@
 import { useState, useContext } from 'react';
+import Image from 'next/image';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -31,22 +32,23 @@ const Layout: React.FC<LayoutProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const toggleMenu = async (): Promise<void> => {
+    await setIsMenuOpen(!isMenuOpen);
     if (isUserMenuOpen) {
       setIsUserMenuOpen(false);
     }
   };
 
-  const toggleUserMenu = () => {
-    setIsUserMenuOpen(!isUserMenuOpen);
+  const toggleUserMenu = async (): Promise<void> => {
+    await setIsUserMenuOpen(!isUserMenuOpen);
     if (isMenuOpen) {
       setIsMenuOpen(false);
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async (): Promise<void> => {
+    await logout();
+    await setIsUserMenuOpen(false);
     router.push('/');
   };
 
@@ -127,7 +129,7 @@ const Layout: React.FC<LayoutProps> = ({
                     aria-label="User menu"
                   >
                     {user.avatar ? (
-                      <img
+                      <Image
                         src={user.avatar}
                         alt={user.name}
                         className={styles.userAvatar}

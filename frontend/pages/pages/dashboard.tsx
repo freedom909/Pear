@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React from 'react';
 import Link from 'next/link';
-import { useUser } from '../contexts/UserContext';
-import LoadingSpinner from '../components/LoadingSpinner';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { useUser } from '../../contexts/UserContext';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 // Define interfaces for our component
 interface Stats {
@@ -27,7 +27,7 @@ interface LogoutResult {
  *
  * @returns {JSX.Element} Dashboard page component
  */
-function Dashboard(): JSX.Element {
+function Dashboard(): React.ReactElement {
   // State
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [stats, setStats] = useState<Stats>({
@@ -38,7 +38,6 @@ function Dashboard(): JSX.Element {
 
   // Hooks
   const { user, logout } = useUser();
-  const router = useRouter();
 
   // Fetch user stats
   useEffect(() => {
@@ -330,7 +329,7 @@ function Dashboard(): JSX.Element {
 }
 
 // Wrap component with ProtectedRoute to ensure authentication
-export default function ProtectedDashboard(): JSX.Element {
+export default function ProtectedDashboard(): React.ReactElement {
   return (
     <ProtectedRoute>
       <Dashboard />

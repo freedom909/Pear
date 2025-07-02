@@ -1,8 +1,8 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useUser } from '../contexts/UserContext';
-import LoadingSpinner from '../components/LoadingSpinner';
+import { useUser } from '../../contexts/UserContext';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 // Define interfaces for our component
 interface ResetPasswordResult {
@@ -17,7 +17,7 @@ interface ResetPasswordResult {
  *
  * @returns {JSX.Element} Reset password page component
  */
-export default function ResetPassword(): JSX.Element {
+export default function ResetPassword(): React.ReactElement {
   // Form state
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');

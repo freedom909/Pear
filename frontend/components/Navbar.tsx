@@ -19,18 +19,18 @@ const Navbar: React.FC = () => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async (): Promise<void> => {
+    await logout();
     setIsMobileMenuOpen(false);
     router.push('/login');
   };
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const toggleMobileMenu = async (): Promise<void> => {
+    await setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
+  const closeMobileMenu = async (): Promise<void> => {
+    await setIsMobileMenuOpen(false);
   };
 
   return (

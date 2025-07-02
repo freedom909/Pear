@@ -1,5 +1,4 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 import styles from '../styles/Auth.module.css';
@@ -10,7 +9,6 @@ interface FormErrors {
 }
 
 const ForgotPassword: React.FC = () => {
-  const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -129,7 +127,7 @@ const ForgotPassword: React.FC = () => {
               </div>
               <p className={styles.successText}>
                 Please check your email for a link to reset your password. If it
-                doesn't appear within a few minutes, check your spam folder.
+                does not appear within a few minutes, check your spam folder.
               </p>
               <Link href="/login" className={styles.submitButton}>
                 Return to login

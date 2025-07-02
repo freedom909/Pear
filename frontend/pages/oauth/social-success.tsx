@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 
-export default function SocialSuccess() {
+export default function SocialSuccess(): React.ReactElement {
   const router = useRouter();
   const { token } = router.query;
 

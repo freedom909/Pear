@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
  *
  * @returns {JSX.Element} Unauthorized page component
  */
-export default function Unauthorized(): JSX.Element {
+export default function Unauthorized(): React.ReactElement {
   const router = useRouter();
 
   return (

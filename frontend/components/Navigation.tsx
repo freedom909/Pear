@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useUser, User } from '../contexts/UserContext';
+import { useUser } from '../contexts/UserContext';
 import styles from './Navigation.module.css';
 
 const Navigation: React.FC = () => {

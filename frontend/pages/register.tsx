@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -41,7 +41,7 @@ interface RegisterResult {
  *
  * @returns {JSX.Element} Register page component
  */
-const Register: NextPage = () => {
+const Register: NextPage = (): React.ReactElement => {
   // Form state
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
@@ -65,7 +65,7 @@ const Register: NextPage = () => {
     }
   }, [user, loading, router, redirect]);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -109,7 +109,7 @@ const Register: NextPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
     if (!validateForm()) {

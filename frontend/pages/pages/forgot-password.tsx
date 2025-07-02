@@ -1,8 +1,9 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useUser } from '../contexts/UserContext';
-import LoadingSpinner from '../components/LoadingSpinner';
+import { useUser } from '../../contexts/UserContext';
+import LoadingSpinner from '../../components/LoadingSpinner';
+// import { forgotPassword } from '../../services/auth';
 
 // Define interfaces for our component
 interface ForgotPasswordResult {
@@ -17,7 +18,7 @@ interface ForgotPasswordResult {
  *
  * @returns {JSX.Element} Forgot password page component
  */
-export default function ForgotPassword(): JSX.Element {
+export default function ForgotPassword(): React.ReactElement {
   // Form state
   const [email, setEmail] = useState<string>('');
   const [error, setError] = useState<string>('');

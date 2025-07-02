@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import Head from 'next/head';
 import { AppProps } from 'next/app';
 import { NextPage } from 'next';
-import { ReactElement, ReactNode } from 'react';
-import { UserProvider } from '../contexts/UserContext';
-import '../styles/globals.css';
+import React, { ReactElement, ReactNode } from 'react';
+import { UserProvider } from '../../contexts/UserContext';
+import '../../styles/globals.css';
 
 // Define types for pages with layouts
-export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
+export type NextPageWithLayout<P = object, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode;
 };
 
@@ -24,7 +24,10 @@ type AppPropsWithLayout = AppProps & {
  * @param {AppPropsWithLayout} props - Component props
  * @returns {JSX.Element} - Rendered application
  */
-function MyApp({ Component, pageProps }: AppPropsWithLayout): JSX.Element {
+function MyApp({
+  Component,
+  pageProps,
+}: AppPropsWithLayout): React.ReactElement {
   // Remove the server-side injected CSS (for Material-UI if used)
   useEffect(() => {
     const jssStyles = document.querySelector('#jss-server-side');

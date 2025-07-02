@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -28,7 +28,7 @@ interface FormErrors {
  *
  * @returns {JSX.Element} 渲染的登录页面组件
  */
-const Login: NextPage = () => {
+const Login: NextPage = (): React.ReactElement => {
   const router = useRouter();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -44,7 +44,7 @@ const Login: NextPage = () => {
    *
    * @param {ChangeEvent<HTMLInputElement>} e - 输入变化事件
    */
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
@@ -87,7 +87,7 @@ const Login: NextPage = () => {
    *
    * @param {FormEvent<HTMLFormElement>} e - 表单提交事件
    */
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setLoginError('');
 
@@ -287,7 +287,7 @@ const Login: NextPage = () => {
           </form>
 
           <div className={styles.authFooter}>
-            Don't have an account?{' '}
+            Do not have an account?
             <Link href="/register" className={styles.authLink}>
               Sign up
             </Link>

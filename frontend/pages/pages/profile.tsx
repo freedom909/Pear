@@ -1,9 +1,7 @@
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
-import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useUser } from '../contexts/UserContext';
-import LoadingSpinner from '../components/LoadingSpinner';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { useUser } from '../../contexts/UserContext';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 // Define interfaces for our component
 interface ProfileFormState {
@@ -29,12 +27,12 @@ interface ChangePasswordResult {
 
 /**
  * Profile Page Component
- * 
+ *
  * Allows users to view and edit their profile information
- * 
+ *
  * @returns {JSX.Element} Profile page component
  */
-function Profile(): JSX.Element {
+export function Profile(): React.ReactElement {
   // Form states
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     name: '',
@@ -45,7 +43,7 @@ function Profile(): JSX.Element {
     newPassword: '',
     confirmPassword: '',
   });
-  
+
   // UI states
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [profileError, setProfileError] = useState<string>('');
@@ -54,10 +52,9 @@ function Profile(): JSX.Element {
   const [passwordSuccess, setPasswordSuccess] = useState<string>('');
   const [isProfileLoading, setIsProfileLoading] = useState<boolean>(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState<boolean>(false);
-  
+
   // Hooks
   const { user, updateProfile, changePassword } = useUser();
-  const router = useRouter();
 
   // Initialize form with user data
   useEffect(() => {
@@ -71,7 +68,7 @@ function Profile(): JSX.Element {
 
   /**
    * Handle profile form changes
-   * 
+   *
    * @param {ChangeEvent<HTMLInputElement>} e - Input change event
    */
   const handleProfileChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -84,7 +81,7 @@ function Profile(): JSX.Element {
 
   /**
    * Handle password form changes
-   * 
+   *
    * @param {ChangeEvent<HTMLInputElement>} e - Input change event
    */
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>): void => {
@@ -97,28 +94,30 @@ function Profile(): JSX.Element {
 
   /**
    * Handle profile form submission
-   * 
+   *
    * @param {FormEvent<HTMLFormElement>} e - Form submit event
    */
-  const handleProfileSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleProfileSubmit = async (
+    e: FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
     setProfileError('');
     setProfileSuccess('');
-    
+
     // Validate form
     if (!profileForm.name || !profileForm.email) {
       setProfileError('请填写所有必填字段');
       return;
     }
-    
+
     setIsProfileLoading(true);
-    
+
     try {
       const result: UpdateProfileResult = await updateProfile({
         name: profileForm.name,
         email: profileForm.email,
       });
-      
+
       if (result.success) {
         setProfileSuccess(result.message || '个人资料更新成功');
       } else {
@@ -134,16 +133,22 @@ function Profile(): JSX.Element {
 
   /**
    * Handle password form submission
-   * 
+   *
    * @param {FormEvent<HTMLFormElement>} e - Form submit event
    */
-  const handlePasswordSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+  const handlePasswordSubmit = async (
+    e: FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
-    
+
     // Validate form
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
       setPasswordError('请填写所有必填字段');
       return;
     }
@@ -157,15 +162,15 @@ function Profile(): JSX.Element {
       setPasswordError('新密码长度必须至少为8个字符');
       return;
     }
-    
+
     setIsPasswordLoading(true);
-    
+
     try {
       const result: ChangePasswordResult = await changePassword(
         passwordForm.currentPassword,
         passwordForm.newPassword
       );
-      
+
       if (result.success) {
         setPasswordSuccess(result.message || '密码更改成功');
         // Reset password form
@@ -244,24 +249,35 @@ function Profile(): JSX.Element {
           {/* Profile tab */}
           {activeTab === 'profile' && (
             <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">基本信息</h2>
-              
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                基本信息
+              </h2>
+
               {profileError && (
-                <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{profileError}</span>
                 </div>
               )}
-              
+
               {profileSuccess && (
-                <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{profileSuccess}</span>
                 </div>
               )}
-              
+
               <form onSubmit={handleProfileSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       姓名
                     </label>
                     <input
@@ -273,9 +289,12 @@ function Profile(): JSX.Element {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       电子邮箱
                     </label>
                     <input
@@ -287,7 +306,7 @@ function Profile(): JSX.Element {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div className="pt-4">
                     <button
                       type="submit"
@@ -296,7 +315,11 @@ function Profile(): JSX.Element {
                         isProfileLoading ? 'opacity-70 cursor-not-allowed' : ''
                       }`}
                     >
-                      {isProfileLoading ? <LoadingSpinner size="small" /> : '保存更改'}
+                      {isProfileLoading ? (
+                        <LoadingSpinner size="small" />
+                      ) : (
+                        '保存更改'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -307,24 +330,35 @@ function Profile(): JSX.Element {
           {/* Password tab */}
           {activeTab === 'password' && (
             <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">修改密码</h2>
-              
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                修改密码
+              </h2>
+
               {passwordError && (
-                <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{passwordError}</span>
                 </div>
               )}
-              
+
               {passwordSuccess && (
-                <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{passwordSuccess}</span>
                 </div>
               )}
-              
+
               <form onSubmit={handlePasswordSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="currentPassword"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       当前密码
                     </label>
                     <input
@@ -336,9 +370,12 @@ function Profile(): JSX.Element {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div>
-                    <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="newPassword"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       新密码
                     </label>
                     <input
@@ -350,9 +387,12 @@ function Profile(): JSX.Element {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       确认新密码
                     </label>
                     <input
@@ -364,7 +404,7 @@ function Profile(): JSX.Element {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div className="pt-4">
                     <button
                       type="submit"
@@ -373,7 +413,11 @@ function Profile(): JSX.Element {
                         isPasswordLoading ? 'opacity-70 cursor-not-allowed' : ''
                       }`}
                     >
-                      {isPasswordLoading ? <LoadingSpinner size="small" /> : '更改密码'}
+                      {isPasswordLoading ? (
+                        <LoadingSpinner size="small" />
+                      ) : (
+                        '更改密码'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -385,3 +429,18 @@ function Profile(): JSX.Element {
 
       {/* Footer */}
       <footer className="fixed bottom-0 w-full bg-white shadow">
+        <div className="px-4 py-5 sm:px-6">
+          <nav className="flex justify-between" aria-label="Pagination">
+            <div className="flex justify-start">
+              <Link href="/">
+                <a className="text-sm font-medium text-gray-500 hover:text-gray-700">
+                  返回首页
+                </a>
+              </Link>
+            </div>
+          </nav>
+        </div>
+      </footer>
+    </div>
+  );
+}

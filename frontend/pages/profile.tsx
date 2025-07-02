@@ -3,6 +3,7 @@ import { UserContext } from '../contexts/UserContext';
 import { withProtection } from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 import styles from '../styles/Profile.module.css';
+import Image from 'next/image';
 
 interface User {
   name?: string;
@@ -30,7 +31,9 @@ interface UserContextType {
 }
 
 const Profile: React.FC = () => {
-  const { user, updateUser } = useContext(UserContext) as UserContextType;
+  const { user, updateUser } = useContext(
+    UserContext
+  ) as unknown as UserContextType;
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -147,7 +150,7 @@ const Profile: React.FC = () => {
           <div className={styles.avatarSection}>
             <div className={styles.avatarContainer}>
               {formData.avatar ? (
-                <img
+                <Image
                   src={formData.avatar}
                   alt={`${formData.name}'s avatar`}
                   className={styles.avatar}
