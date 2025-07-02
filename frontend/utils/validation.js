@@ -103,7 +103,7 @@ export const validateConfirmPassword = (password, confirmPassword) => {
 export const validateFormData = (data, fields) => {
   const errors = {};
 
-  fields.forEach(field => {
+  fields.forEach((field) => {
     switch (field) {
       case 'email':
         const emailError = validateEmail(data.email);

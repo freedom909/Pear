@@ -6,9 +6,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 /**
  * Forgot Password Page Component
- * 
+ *
  * Allows users to request a password reset link
- * 
+ *
  * @returns {JSX.Element} Forgot password page component
  */
 export default function ForgotPassword() {
@@ -17,7 +17,7 @@ export default function ForgotPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Hooks
   const { user, forgotPassword, loading } = useUser();
   const router = useRouter();
@@ -31,25 +31,25 @@ export default function ForgotPassword() {
 
   /**
    * Handle form submission
-   * 
+   *
    * @param {Event} e - Form submit event
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     // Validate form
     if (!email) {
       setError('请输入您的电子邮箱');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const result = await forgotPassword(email);
-      
+
       if (result.success) {
         setSuccess(result.message || '重置密码链接已发送到您的邮箱，请查收');
         setEmail(''); // Clear the form
@@ -86,13 +86,19 @@ export default function ForgotPassword() {
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <span className="block sm:inline">{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <span className="block sm:inline">{success}</span>
           </div>
         )}
@@ -138,12 +144,8 @@ export default function ForgotPassword() {
                     fill="currentColor"
                     aria-hidden="true"
                   >
-                    <path
-                      d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"
-                    />
-                    <path
-                      d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"
-                    />
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                   </svg>
                 </span>
               )}
@@ -153,7 +155,10 @@ export default function ForgotPassword() {
         </form>
 
         <div className="text-center">
-          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link
+            href="/login"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             返回登录页面
           </Link>
         </div>

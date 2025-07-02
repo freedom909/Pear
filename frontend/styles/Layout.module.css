@@ -382,17 +382,17 @@
   .footerTop {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .footerLinks {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .footerBottom {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
   }
-  
+
   .copyright {
     text-align: left;
   }
@@ -402,19 +402,19 @@
   .desktopNav {
     display: block;
   }
-  
+
   .authButtons {
     display: flex;
   }
-  
+
   .userName {
     display: block;
   }
-  
+
   .mobileMenuButton {
     display: none;
   }
-  
+
   .mobileNav {
     display: none;
   }
@@ -424,7 +424,7 @@
   .footerTop {
     grid-template-columns: 2fr 3fr;
   }
-  
+
   .footerLinks {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -439,73 +439,73 @@
     background-color: #1f2937;
     border-color: #374151;
   }
-  
+
   .main {
     background-color: #111827;
   }
-  
+
   .logo {
     color: white;
   }
-  
+
   .navLink {
     color: #9ca3af;
   }
-  
+
   .navLink:hover {
     color: white;
   }
-  
+
   .loginButton {
     color: #9ca3af;
   }
-  
+
   .loginButton:hover {
     color: white;
     background-color: #374151;
   }
-  
+
   .userButton:hover,
   .mobileMenuButton:hover,
   .userMenuItem:hover,
   .mobileNavLink:hover {
     background-color: #374151;
   }
-  
+
   .userName {
     color: white;
   }
-  
+
   .userMenuItem,
   .mobileNavLink {
     color: #e5e7eb;
   }
-  
+
   .menuDivider,
   .mobileNavDivider {
     background-color: #374151;
   }
-  
+
   .footerLinkTitle {
     color: white;
   }
-  
+
   .footerLinkList a {
     color: #9ca3af;
   }
-  
+
   .footerLinkList a:hover {
     color: white;
   }
-  
+
   .copyright {
     color: #9ca3af;
   }
-  
+
   .socialLink {
     color: #9ca3af;
   }
-  
+
   .socialLink:hover {
     color: white;
   }

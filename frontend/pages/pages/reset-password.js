@@ -6,9 +6,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 /**
  * Reset Password Page Component
- * 
+ *
  * Allows users to set a new password using a reset token
- * 
+ *
  * @returns {JSX.Element} Reset password page component
  */
 export default function ResetPassword() {
@@ -18,7 +18,7 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Hooks
   const { user, resetPassword, loading } = useUser();
   const router = useRouter();
@@ -40,14 +40,14 @@ export default function ResetPassword() {
 
   /**
    * Handle form submission
-   * 
+   *
    * @param {Event} e - Form submit event
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    
+
     // Validate form
     if (!password || !confirmPassword) {
       setError('请填写所有必填字段');
@@ -63,12 +63,12 @@ export default function ResetPassword() {
       setError('密码长度必须至少为8个字符');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const result = await resetPassword(token, password);
-      
+
       if (result.success) {
         setSuccess(result.message || '密码重置成功！');
         // Redirect to login page after 3 seconds
@@ -106,22 +106,26 @@ export default function ResetPassword() {
             请输入您的新密码
           </p>
         </div>
-        
+
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <span className="block sm:inline">{error}</span>
           </div>
         )}
-        
+
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <span className="block sm:inline">{success}</span>
-            <p className="mt-2 text-sm">
-              即将跳转到登录页面...
-            </p>
+            <p className="mt-2 text-sm">即将跳转到登录页面...</p>
           </div>
         )}
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -193,7 +197,10 @@ export default function ResetPassword() {
         </form>
 
         <div className="text-center">
-          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link
+            href="/login"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             返回登录页面
           </Link>
         </div>

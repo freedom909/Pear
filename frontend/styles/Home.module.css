@@ -395,7 +395,7 @@
   .featureGrid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .testimonialGrid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -407,39 +407,39 @@
     text-align: center;
     padding: 3rem 1rem;
   }
-  
+
   .heroTitle {
     font-size: 2.5rem;
   }
-  
+
   .heroButtons {
     justify-content: center;
   }
-  
+
   .heroStats {
     justify-content: center;
   }
-  
+
   .stepsContainer {
     flex-direction: column;
   }
-  
+
   .stepArrow {
     transform: rotate(90deg);
   }
-  
+
   .featureGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .testimonialGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .faqGrid {
     grid-template-columns: 1fr;
   }
-  
+
   .ctaButtons {
     flex-direction: column;
   }
@@ -450,26 +450,26 @@
   .hero {
     background: linear-gradient(to bottom, #111827, #1f2937);
   }
-  
+
   .heroTitle {
     background: linear-gradient(to right, #e5e7eb, #4f46e5);
     -webkit-background-clip: text;
   }
-  
+
   .heroStatNumber {
     color: white;
   }
-  
+
   .sectionTitle {
     color: white;
   }
-  
+
   .featureCard,
   .testimonialCard,
   .faqItem {
     background-color: #1f2937;
   }
-  
+
   .featureTitle,
   .stepTitle,
   .testimonialText,
@@ -477,12 +477,12 @@
   .faqQuestion {
     color: white;
   }
-  
+
   .features,
   .testimonials {
     background-color: #111827;
   }
-  
+
   .howItWorks,
   .faq {
     background-color: #0f172a;

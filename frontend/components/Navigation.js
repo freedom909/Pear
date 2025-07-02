@@ -25,17 +25,24 @@ export default function Navigation() {
               {user ? (
                 <>
                   <Link href="/dashboard">
-                    <span className={`${styles.link} ${router.pathname === '/dashboard' ? styles.active : ''}`}>
+                    <span
+                      className={`${styles.link} ${router.pathname === '/dashboard' ? styles.active : ''}`}
+                    >
                       Dashboard
                     </span>
                   </Link>
-                  <button onClick={handleLogout} className={styles.logoutButton}>
+                  <button
+                    onClick={handleLogout}
+                    className={styles.logoutButton}
+                  >
                     Logout
                   </button>
                 </>
               ) : (
                 <Link href="/">
-                  <span className={`${styles.link} ${router.pathname === '/' ? styles.active : ''}`}>
+                  <span
+                    className={`${styles.link} ${router.pathname === '/' ? styles.active : ''}`}
+                  >
                     Login
                   </span>
                 </Link>

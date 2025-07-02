@@ -4,16 +4,16 @@ import styles from './FormElements.module.css';
 /**
  * Input component with label and error message
  */
-export const Input = ({ 
-  id, 
-  label, 
-  type = 'text', 
-  value, 
-  onChange, 
-  error, 
-  placeholder = '', 
+export const Input = ({
+  id,
+  label,
+  type = 'text',
+  value,
+  onChange,
+  error,
+  placeholder = '',
   required = false,
-  autoComplete = 'on'
+  autoComplete = 'on',
 }) => {
   return (
     <div className={styles.formGroup}>
@@ -38,14 +38,14 @@ export const Input = ({
 /**
  * Button component with different variants
  */
-export const Button = ({ 
-  children, 
-  onClick, 
-  type = 'button', 
-  variant = 'primary', 
+export const Button = ({
+  children,
+  onClick,
+  type = 'button',
+  variant = 'primary',
   disabled = false,
   fullWidth = false,
-  className = ''
+  className = '',
 }) => {
   return (
     <button
@@ -77,7 +77,9 @@ export const FormSection = ({ title, description, children }) => {
   return (
     <div className={styles.formSection}>
       {title && <h2 className={styles.sectionTitle}>{title}</h2>}
-      {description && <p className={styles.sectionDescription}>{description}</p>}
+      {description && (
+        <p className={styles.sectionDescription}>{description}</p>
+      )}
       {children}
     </div>
   );
@@ -109,7 +111,15 @@ export const Checkbox = ({ id, label, checked, onChange, error }) => {
 /**
  * Select dropdown component
  */
-export const Select = ({ id, label, value, onChange, options, error, required = false }) => {
+export const Select = ({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  error,
+  required = false,
+}) => {
   return (
     <div className={styles.formGroup}>
       <label htmlFor={id} className={styles.label}>
@@ -136,15 +146,15 @@ export const Select = ({ id, label, value, onChange, options, error, required = 
 /**
  * Textarea component
  */
-export const Textarea = ({ 
-  id, 
-  label, 
-  value, 
-  onChange, 
-  error, 
-  placeholder = '', 
+export const Textarea = ({
+  id,
+  label,
+  value,
+  onChange,
+  error,
+  placeholder = '',
   required = false,
-  rows = 4
+  rows = 4,
 }) => {
   return (
     <div className={styles.formGroup}>

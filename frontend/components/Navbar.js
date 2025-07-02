@@ -43,7 +43,7 @@ const Navbar = () => {
         {/* Desktop navigation */}
         <div className={styles.desktopNav}>
           <div className={styles.navLinks}>
-            <Link 
+            <Link
               href="/"
               className={router.pathname === '/' ? styles.active : ''}
             >
@@ -51,30 +51,36 @@ const Navbar = () => {
             </Link>
             {user ? (
               <>
-                <Link 
+                <Link
                   href="/dashboard"
-                  className={router.pathname === '/dashboard' ? styles.active : ''}
+                  className={
+                    router.pathname === '/dashboard' ? styles.active : ''
+                  }
                 >
                   Dashboard
                 </Link>
-                <Link 
+                <Link
                   href="/profile"
-                  className={router.pathname === '/profile' ? styles.active : ''}
+                  className={
+                    router.pathname === '/profile' ? styles.active : ''
+                  }
                 >
                   Profile
                 </Link>
               </>
             ) : (
               <>
-                <Link 
+                <Link
                   href="/about"
                   className={router.pathname === '/about' ? styles.active : ''}
                 >
                   About
                 </Link>
-                <Link 
+                <Link
                   href="/contact"
-                  className={router.pathname === '/contact' ? styles.active : ''}
+                  className={
+                    router.pathname === '/contact' ? styles.active : ''
+                  }
                 >
                   Contact
                 </Link>
@@ -85,28 +91,17 @@ const Navbar = () => {
           <div className={styles.authButtons}>
             {user ? (
               <div className={styles.userMenu}>
-                <span className={styles.userName}>
-                  Welcome, {user.name}
-                </span>
-                <button 
-                  onClick={handleLogout}
-                  className={styles.logoutButton}
-                >
+                <span className={styles.userName}>Welcome, {user.name}</span>
+                <button onClick={handleLogout} className={styles.logoutButton}>
                   Logout
                 </button>
               </div>
             ) : (
               <div className={styles.authLinks}>
-                <Link 
-                  href="/login"
-                  className={styles.loginButton}
-                >
+                <Link href="/login" className={styles.loginButton}>
                   Login
                 </Link>
-                <Link 
-                  href="/register"
-                  className={styles.registerButton}
-                >
+                <Link href="/register" className={styles.registerButton}>
                   Register
                 </Link>
               </div>
@@ -115,9 +110,11 @@ const Navbar = () => {
         </div>
 
         {/* Mobile navigation */}
-        <div className={`${styles.mobileNav} ${isMobileMenuOpen ? styles.open : ''}`}>
+        <div
+          className={`${styles.mobileNav} ${isMobileMenuOpen ? styles.open : ''}`}
+        >
           <div className={styles.mobileNavLinks}>
-            <Link 
+            <Link
               href="/"
               className={router.pathname === '/' ? styles.active : ''}
               onClick={closeMobileMenu}
@@ -126,16 +123,20 @@ const Navbar = () => {
             </Link>
             {user ? (
               <>
-                <Link 
+                <Link
                   href="/dashboard"
-                  className={router.pathname === '/dashboard' ? styles.active : ''}
+                  className={
+                    router.pathname === '/dashboard' ? styles.active : ''
+                  }
                   onClick={closeMobileMenu}
                 >
                   Dashboard
                 </Link>
-                <Link 
+                <Link
                   href="/profile"
-                  className={router.pathname === '/profile' ? styles.active : ''}
+                  className={
+                    router.pathname === '/profile' ? styles.active : ''
+                  }
                   onClick={closeMobileMenu}
                 >
                   Profile
@@ -143,16 +144,18 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link 
+                <Link
                   href="/about"
                   className={router.pathname === '/about' ? styles.active : ''}
                   onClick={closeMobileMenu}
                 >
                   About
                 </Link>
-                <Link 
+                <Link
                   href="/contact"
-                  className={router.pathname === '/contact' ? styles.active : ''}
+                  className={
+                    router.pathname === '/contact' ? styles.active : ''
+                  }
                   onClick={closeMobileMenu}
                 >
                   Contact
@@ -160,7 +163,7 @@ const Navbar = () => {
               </>
             )}
             {user ? (
-              <button 
+              <button
                 onClick={handleLogout}
                 className={styles.mobileLogoutButton}
               >
@@ -168,14 +171,14 @@ const Navbar = () => {
               </button>
             ) : (
               <>
-                <Link 
+                <Link
                   href="/login"
                   className={styles.mobileAuthButton}
                   onClick={closeMobileMenu}
                 >
                   Login
                 </Link>
-                <Link 
+                <Link
                   href="/register"
                   className={styles.mobileAuthButton}
                   onClick={closeMobileMenu}

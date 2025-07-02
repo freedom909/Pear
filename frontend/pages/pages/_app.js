@@ -5,9 +5,9 @@ import '../styles/globals.css';
 
 /**
  * Custom App Component
- * 
+ *
  * Wraps the entire application with providers and global styles
- * 
+ *
  * @param {Object} props - Component props
  * @param {React.ComponentType} props.Component - The active page component
  * @param {Object} props.pageProps - Props for the page component
@@ -29,14 +29,18 @@ function MyApp({ Component, pageProps }) {
     <>
       <Head>
         <title>梨子 - 您的个人助手</title>
-        <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width" />
-        <meta name="description" content="梨子 - 您的个人助手，帮助您管理日常任务和提高生产力" />
+        <meta
+          name="viewport"
+          content="minimum-scale=1, initial-scale=1, width=device-width"
+        />
+        <meta
+          name="description"
+          content="梨子 - 您的个人助手，帮助您管理日常任务和提高生产力"
+        />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      
-      <UserProvider>
-        {getLayout(<Component {...pageProps} />)}
-      </UserProvider>
+
+      <UserProvider>{getLayout(<Component {...pageProps} />)}</UserProvider>
     </>
   );
 }

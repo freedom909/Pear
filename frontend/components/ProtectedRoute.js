@@ -1,70 +1,78 @@
-import { useContext, useEffect, useState } from 'react';
+// import { useContext, useEffect, useState } from 'react';
+// import { useRouter } from 'next/router';
+// import { UserContext } from '../contexts/UserContext';
+// import LoadingSpinner from './LoadingSpinner';
+
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { UserContext } from '../contexts/UserContext';
-import LoadingSpinner from './LoadingSpinner';
+import { useUser } from '../contexts/UserContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 /**
- * ProtectedRoute component that checks if user is authenticated
- * and redirects to login page if not
+ * ProtectedRoute Component
+ *
+ * A wrapper component that protects routes requiring authentication.
+ * Redirects to login if user is not authenticated.
+ * Optionally restricts access by allowedRoles.
+ *
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components to render if authenticated
+ * @param {Array<string>} [props.allowedRoles] - Optional array of roles allowed to access this route
+ * @returns {JSX.Element|null} - Rendered component or null during loading/redirect
  */
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const { user, loading } = useUser();
   const router = useRouter();
-  const { user, loading } = useContext(UserContext);
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // If user context is no longer loading, we can check authentication
     if (!loading) {
       if (!user) {
-        // Redirect to login page with return URL
+        // No user logged in—redirect to login
         router.push({
           pathname: '/login',
-          query: { returnUrl: router.asPath },
+          query: { redirect: router.asPath },
         });
+      } else if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        // User logged in but lacks the required role
+        router.push('/unauthorized');
       } else {
-        // User is authenticated, stop checking
+        // Authenticated and has access
         setIsChecking(false);
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, allowedRoles]);
 
-  // Show loading state while checking authentication
+  // Show spinner while checking authentication or redirecting
   if (loading || isChecking) {
     return (
-      <div className="protected-route-loading">
+      <div className="flex justify-center items-center min-h-screen">
         <LoadingSpinner size="large" />
-        <style jsx>{`
-          .protected-route-loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100%;
-          }
-        `}</style>
       </div>
     );
   }
 
-  // If we get here, the user is authenticated
-  return children;
+  // Render children if authenticated
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
 
 /**
  * Higher-order component to wrap protected pages
+ *
+ * @param {React.ComponentType<any>} Component - The page component to protect
+ * @param {Array<string>} [allowedRoles] - Optional allowed roles
+ * @returns {React.ComponentType<any>}
  */
-export const withProtection = (Component) => {
-  const ProtectedComponent = (props) => {
-    return (
-      <ProtectedRoute>
-        <Component {...props} />
-      </ProtectedRoute>
-    );
-  };
+export const withProtection = (Component, allowedRoles = []) => {
+  const ProtectedComponent = (props) => (
+    <ProtectedRoute allowedRoles={allowedRoles}>
+      <Component {...props} />
+    </ProtectedRoute>
+  );
 
-  // Copy getInitialProps so it works with Next.js data fetching
+  // Copy getInitialProps if defined
   if (Component.getInitialProps) {
     ProtectedComponent.getInitialProps = Component.getInitialProps;
   }

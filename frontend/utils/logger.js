@@ -24,13 +24,13 @@ const LOG_LEVEL_WEIGHT = {
 
 /**
  * 日志工具类
- * 
+ *
  * 提供统一的日志记录接口
  */
 class Logger {
   /**
    * 构造函数
-   * 
+   *
    * @param {string} namespace - 日志命名空间
    * @param {string} level - 日志级别
    */
@@ -43,7 +43,7 @@ class Logger {
 
   /**
    * 设置日志级别
-   * 
+   *
    * @param {string} level - 日志级别
    */
   setLevel(level) {
@@ -54,7 +54,7 @@ class Logger {
 
   /**
    * 检查是否应该记录指定级别的日志
-   * 
+   *
    * @param {string} level - 日志级别
    * @returns {boolean} 是否应该记录
    */
@@ -64,7 +64,7 @@ class Logger {
 
   /**
    * 格式化日志消息
-   * 
+   *
    * @param {string} level - 日志级别
    * @param {string} message - 日志消息
    * @returns {string} 格式化后的日志消息
@@ -76,14 +76,14 @@ class Logger {
 
   /**
    * 记录调试级别日志
-   * 
+   *
    * @param {string} message - 日志消息
    * @param {any} data - 附加数据
    */
   debug(message, data) {
     if (this.shouldLog(LogLevel.DEBUG)) {
       const formattedMessage = this.formatMessage(LogLevel.DEBUG, message);
-      
+
       if (this.isDev || this.isDebug) {
         console.debug(formattedMessage);
         if (data !== undefined) {
@@ -95,14 +95,14 @@ class Logger {
 
   /**
    * 记录信息级别日志
-   * 
+   *
    * @param {string} message - 日志消息
    * @param {any} data - 附加数据
    */
   info(message, data) {
     if (this.shouldLog(LogLevel.INFO)) {
       const formattedMessage = this.formatMessage(LogLevel.INFO, message);
-      
+
       console.info(formattedMessage);
       if (data !== undefined) {
         console.info(data);
@@ -112,14 +112,14 @@ class Logger {
 
   /**
    * 记录警告级别日志
-   * 
+   *
    * @param {string} message - 日志消息
    * @param {any} data - 附加数据
    */
   warn(message, data) {
     if (this.shouldLog(LogLevel.WARN)) {
       const formattedMessage = this.formatMessage(LogLevel.WARN, message);
-      
+
       console.warn(formattedMessage);
       if (data !== undefined) {
         console.warn(data);
@@ -129,14 +129,14 @@ class Logger {
 
   /**
    * 记录错误级别日志
-   * 
+   *
    * @param {string} message - 日志消息
    * @param {Error|any} error - 错误对象或附加数据
    */
   error(message, error) {
     if (this.shouldLog(LogLevel.ERROR)) {
       const formattedMessage = this.formatMessage(LogLevel.ERROR, message);
-      
+
       console.error(formattedMessage);
       if (error !== undefined) {
         console.error(error);
@@ -146,7 +146,7 @@ class Logger {
 
   /**
    * 记录性能计时开始
-   * 
+   *
    * @param {string} label - 计时标签
    */
   time(label) {
@@ -157,7 +157,7 @@ class Logger {
 
   /**
    * 记录性能计时结束
-   * 
+   *
    * @param {string} label - 计时标签
    */
   timeEnd(label) {
@@ -168,7 +168,7 @@ class Logger {
 
   /**
    * 创建子日志记录器
-   * 
+   *
    * @param {string} subNamespace - 子命名空间
    * @returns {Logger} 子日志记录器
    */
@@ -179,13 +179,13 @@ class Logger {
 
 /**
  * 错误处理工具类
- * 
+ *
  * 提供统一的错误处理接口
  */
 export class ErrorHandler {
   /**
    * 构造函数
-   * 
+   *
    * @param {Logger} logger - 日志记录器
    */
   constructor(logger) {
@@ -194,22 +194,22 @@ export class ErrorHandler {
 
   /**
    * 处理API错误
-   * 
+   *
    * @param {Error} error - 错误对象
    * @param {string} fallbackMessage - 默认错误消息
    * @returns {Object} 处理结果
    */
   handleApiError(error, fallbackMessage = '操作失败，请稍后重试') {
     let message = fallbackMessage;
-    
+
     if (error.data && error.data.message) {
       message = error.data.message;
     } else if (error.message) {
       message = error.message;
     }
-    
+
     this.logger.error('API错误', error);
-    
+
     return {
       success: false,
       message,
@@ -219,7 +219,7 @@ export class ErrorHandler {
 
   /**
    * 处理通用错误
-   * 
+   *
    * @param {Error} error - 错误对象
    * @param {string} context - 错误上下文
    * @param {string} fallbackMessage - 默认错误消息
@@ -227,14 +227,14 @@ export class ErrorHandler {
    */
   handleError(error, context = '', fallbackMessage = '发生错误，请稍后重试') {
     let message = fallbackMessage;
-    
+
     if (error.message) {
       message = error.message;
     }
-    
+
     const logMessage = context ? `${context}: ${message}` : message;
     this.logger.error(logMessage, error);
-    
+
     return {
       success: false,
       message,
@@ -244,16 +244,16 @@ export class ErrorHandler {
 
   /**
    * 处理表单验证错误
-   * 
+   *
    * @param {Object} errors - 验证错误对象
    * @returns {Object} 处理结果
    */
   handleValidationError(errors) {
     const firstError = Object.values(errors)[0];
     const message = firstError || '表单验证失败';
-    
+
     this.logger.warn('表单验证错误', errors);
-    
+
     return {
       success: false,
       message,

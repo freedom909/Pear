@@ -62,9 +62,7 @@ export default function Unauthorized() {
               viewBox="0 0 20 20"
               fill="currentColor"
             >
-              <path
-                d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
-              />
+              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
             </svg>
             返回首页
           </Link>
@@ -79,9 +77,7 @@ export default function Unauthorized() {
         </div>
 
         <div className="mt-8 text-sm text-gray-500">
-          <p>
-            如果您认为这是一个错误，请联系系统管理员或客服支持。
-          </p>
+          <p>如果您认为这是一个错误，请联系系统管理员或客服支持。</p>
         </div>
       </div>
     </div>

@@ -7,9 +7,9 @@ import ProtectedRoute from '../components/ProtectedRoute';
 
 /**
  * Profile Page Component
- * 
+ *
  * Allows users to view and edit their profile information
- * 
+ *
  * @returns {JSX.Element} Profile page component
  */
 function Profile() {
@@ -23,7 +23,7 @@ function Profile() {
     newPassword: '',
     confirmPassword: '',
   });
-  
+
   // UI states
   const [activeTab, setActiveTab] = useState('profile');
   const [profileError, setProfileError] = useState('');
@@ -32,7 +32,7 @@ function Profile() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
-  
+
   // Hooks
   const { user, updateProfile, changePassword } = useUser();
   const router = useRouter();
@@ -49,7 +49,7 @@ function Profile() {
 
   /**
    * Handle profile form changes
-   * 
+   *
    * @param {Event} e - Input change event
    */
   const handleProfileChange = (e) => {
@@ -62,7 +62,7 @@ function Profile() {
 
   /**
    * Handle password form changes
-   * 
+   *
    * @param {Event} e - Input change event
    */
   const handlePasswordChange = (e) => {
@@ -75,28 +75,28 @@ function Profile() {
 
   /**
    * Handle profile form submission
-   * 
+   *
    * @param {Event} e - Form submit event
    */
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setProfileError('');
     setProfileSuccess('');
-    
+
     // Validate form
     if (!profileForm.name || !profileForm.email) {
       setProfileError('请填写所有必填字段');
       return;
     }
-    
+
     setIsProfileLoading(true);
-    
+
     try {
       const result = await updateProfile({
         name: profileForm.name,
         email: profileForm.email,
       });
-      
+
       if (result.success) {
         setProfileSuccess(result.message || '个人资料更新成功');
       } else {
@@ -112,16 +112,20 @@ function Profile() {
 
   /**
    * Handle password form submission
-   * 
+   *
    * @param {Event} e - Form submit event
    */
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
-    
+
     // Validate form
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
       setPasswordError('请填写所有必填字段');
       return;
     }
@@ -135,15 +139,15 @@ function Profile() {
       setPasswordError('新密码长度必须至少为8个字符');
       return;
     }
-    
+
     setIsPasswordLoading(true);
-    
+
     try {
       const result = await changePassword(
         passwordForm.currentPassword,
         passwordForm.newPassword
       );
-      
+
       if (result.success) {
         setPasswordSuccess(result.message || '密码更改成功');
         // Reset password form
@@ -222,24 +226,35 @@ function Profile() {
           {/* Profile tab */}
           {activeTab === 'profile' && (
             <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">基本信息</h2>
-              
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                基本信息
+              </h2>
+
               {profileError && (
-                <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{profileError}</span>
                 </div>
               )}
-              
+
               {profileSuccess && (
-                <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{profileSuccess}</span>
                 </div>
               )}
-              
+
               <form onSubmit={handleProfileSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       姓名
                     </label>
                     <input
@@ -251,9 +266,12 @@ function Profile() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       电子邮箱
                     </label>
                     <input
@@ -265,7 +283,7 @@ function Profile() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div className="pt-4">
                     <button
                       type="submit"
@@ -274,7 +292,11 @@ function Profile() {
                         isProfileLoading ? 'opacity-70 cursor-not-allowed' : ''
                       }`}
                     >
-                      {isProfileLoading ? <LoadingSpinner size="small" /> : '保存更改'}
+                      {isProfileLoading ? (
+                        <LoadingSpinner size="small" />
+                      ) : (
+                        '保存更改'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -285,24 +307,35 @@ function Profile() {
           {/* Password tab */}
           {activeTab === 'password' && (
             <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">修改密码</h2>
-              
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                修改密码
+              </h2>
+
               {passwordError && (
-                <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{passwordError}</span>
                 </div>
               )}
-              
+
               {passwordSuccess && (
-                <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                <div
+                  className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
+                  role="alert"
+                >
                   <span className="block sm:inline">{passwordSuccess}</span>
                 </div>
               )}
-              
+
               <form onSubmit={handlePasswordSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="currentPassword"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       当前密码
                     </label>
                     <input
@@ -314,9 +347,12 @@ function Profile() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div>
-                    <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="newPassword"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       新密码
                     </label>
                     <input
@@ -328,9 +364,12 @@ function Profile() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-sm font-medium text-gray-700"
+                    >
                       确认新密码
                     </label>
                     <input
@@ -342,7 +381,7 @@ function Profile() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>
-                  
+
                   <div className="pt-4">
                     <button
                       type="submit"
@@ -351,7 +390,11 @@ function Profile() {
                         isPasswordLoading ? 'opacity-70 cursor-not-allowed' : ''
                       }`}
                     >
-                      {isPasswordLoading ? <LoadingSpinner size="small" /> : '更改密码'}
+                      {isPasswordLoading ? (
+                        <LoadingSpinner size="small" />
+                      ) : (
+                        '更改密码'
+                      )}
                     </button>
                   </div>
                 </div>

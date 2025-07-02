@@ -7,9 +7,9 @@ import ProtectedRoute from '../components/ProtectedRoute';
 
 /**
  * Dashboard Page Component
- * 
+ *
  * Main user interface after login, showing user information and app features
- * 
+ *
  * @returns {JSX.Element} Dashboard page component
  */
 function Dashboard() {
@@ -18,9 +18,9 @@ function Dashboard() {
   const [stats, setStats] = useState({
     tasks: { total: 0, completed: 0 },
     notes: 0,
-    reminders: 0
+    reminders: 0,
   });
-  
+
   // Hooks
   const { user, logout } = useUser();
   const router = useRouter();
@@ -36,7 +36,7 @@ function Dashboard() {
           setStats({
             tasks: { total: 12, completed: 5 },
             notes: 8,
-            reminders: 3
+            reminders: 3,
           });
           setIsLoading(false);
         }, 500);
@@ -62,9 +62,10 @@ function Dashboard() {
   };
 
   // Calculate task completion percentage
-  const taskCompletionPercentage = stats.tasks.total > 0
-    ? Math.round((stats.tasks.completed / stats.tasks.total) * 100)
-    : 0;
+  const taskCompletionPercentage =
+    stats.tasks.total > 0
+      ? Math.round((stats.tasks.completed / stats.tasks.total) * 100)
+      : 0;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -100,7 +101,7 @@ function Dashboard() {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
-                weekday: 'long'
+                weekday: 'long',
               })}
             </p>
           </div>
@@ -156,9 +157,7 @@ function Dashboard() {
                   {stats.notes}
                 </span>
               </div>
-              <p className="text-sm text-gray-600">
-                您有 {stats.notes} 条笔记
-              </p>
+              <p className="text-sm text-gray-600">您有 {stats.notes} 条笔记</p>
               <Link
                 href="/notes"
                 className="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500"
@@ -234,7 +233,9 @@ function Dashboard() {
                     d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
-                <span className="text-sm font-medium text-gray-900">新建任务</span>
+                <span className="text-sm font-medium text-gray-900">
+                  新建任务
+                </span>
               </button>
               <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
                 <svg
@@ -251,7 +252,9 @@ function Dashboard() {
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
-                <span className="text-sm font-medium text-gray-900">添加笔记</span>
+                <span className="text-sm font-medium text-gray-900">
+                  添加笔记
+                </span>
               </button>
               <button className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
                 <svg
@@ -268,7 +271,9 @@ function Dashboard() {
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="text-sm font-medium text-gray-900">设置提醒</span>
+                <span className="text-sm font-medium text-gray-900">
+                  设置提醒
+                </span>
               </button>
               <Link
                 href="/profile"
@@ -288,7 +293,9 @@ function Dashboard() {
                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                   />
                 </svg>
-                <span className="text-sm font-medium text-gray-900">个人资料</span>
+                <span className="text-sm font-medium text-gray-900">
+                  个人资料
+                </span>
               </Link>
             </div>
           </div>

@@ -1,14 +1,17 @@
 import axios from 'axios';
-import { API_CONFIG, AUTH_CONFIG } from '../../config';
+import { API_CONFIG, AUTH_CONFIG } from '../config/index';
 
 /**
  * API Service Class
- * 
+ *
  * Provides unified interface for API requests.
  */
 class ApiService {
   constructor() {
-    this.baseUrl = API_CONFIG.BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    this.baseUrl =
+      API_CONFIG.BASE_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'http://localhost:3000';
     this.timeout = API_CONFIG.TIMEOUT || 10000;
 
     // Create Axios instance
@@ -92,43 +95,77 @@ class ApiService {
   // Auth methods
   async login(email, password, remember = false) {
     try {
-      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, { email, password, remember });
+      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
+        email,
+        password,
+        remember,
+      });
       if (response.data.token) {
         this.setToken(response.data.token);
       }
-      return { success: true, user: response.data.user, message: response.data.message };
+      return {
+        success: true,
+        user: response.data.user,
+        message: response.data.message,
+      };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '登录失败，请检查您的凭据' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '登录失败，请检查您的凭据',
+      };
     }
   }
 
   async register(name, email, password) {
     try {
-      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, { name, email, password });
+      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.REGISTER, {
+        name,
+        email,
+        password,
+      });
       if (response.data.token) {
         this.setToken(response.data.token);
       }
-      return { success: true, user: response.data.user, message: response.data.message };
+      return {
+        success: true,
+        user: response.data.user,
+        message: response.data.message,
+      };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '注册失败，请稍后重试' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '注册失败，请稍后重试',
+      };
     }
   }
 
   async forgotPassword(email) {
     try {
-      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+      const response = await this.post(
+        API_CONFIG.ENDPOINTS.AUTH.FORGOT_PASSWORD,
+        { email }
+      );
       return { success: true, message: response.data.message };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '请求失败，请稍后重试' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '请求失败，请稍后重试',
+      };
     }
   }
 
   async resetPassword(token, password) {
     try {
-      const response = await this.post(API_CONFIG.ENDPOINTS.AUTH.RESET_PASSWORD, { token, password });
+      const response = await this.post(
+        API_CONFIG.ENDPOINTS.AUTH.RESET_PASSWORD,
+        { token, password }
+      );
       return { success: true, message: response.data.message };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '密码重置失败，请稍后重试' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '密码重置失败，请稍后重试',
+      };
     }
   }
 
@@ -138,7 +175,10 @@ class ApiService {
       this.clearToken();
       return { success: true, message: '登出成功' };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '登出失败，请稍后重试' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '登出失败，请稍后重试',
+      };
     }
   }
 
@@ -148,7 +188,10 @@ class ApiService {
       return { success: true, user: response.data.user };
     } catch (error) {
       this.clearToken();
-      return { success: false, message: error.response?.data?.message || '令牌验证失败' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '令牌验证失败',
+      };
     }
   }
 
@@ -158,25 +201,47 @@ class ApiService {
       const response = await this.get(API_CONFIG.ENDPOINTS.USER.PROFILE);
       return { success: true, user: response.data.user };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '获取用户资料失败' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '获取用户资料失败',
+      };
     }
   }
 
   async updateUserProfile(profileData) {
     try {
-      const response = await this.put(API_CONFIG.ENDPOINTS.USER.UPDATE_PROFILE, profileData);
-      return { success: true, user: response.data.user, message: response.data.message || '资料更新成功' };
+      const response = await this.put(
+        API_CONFIG.ENDPOINTS.USER.UPDATE_PROFILE,
+        profileData
+      );
+      return {
+        success: true,
+        user: response.data.user,
+        message: response.data.message || '资料更新成功',
+      };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '资料更新失败' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '资料更新失败',
+      };
     }
   }
 
   async changePassword(currentPassword, newPassword) {
     try {
-      const response = await this.put(API_CONFIG.ENDPOINTS.USER.CHANGE_PASSWORD, { currentPassword, newPassword });
-      return { success: true, message: response.data.message || '密码修改成功' };
+      const response = await this.put(
+        API_CONFIG.ENDPOINTS.USER.CHANGE_PASSWORD,
+        { currentPassword, newPassword }
+      );
+      return {
+        success: true,
+        message: response.data.message || '密码修改成功',
+      };
     } catch (error) {
-      return { success: false, message: error.response?.data?.message || '密码修改失败' };
+      return {
+        success: false,
+        message: error.response?.data?.message || '密码修改失败',
+      };
     }
   }
 }
