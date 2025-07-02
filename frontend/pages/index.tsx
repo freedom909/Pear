@@ -10,7 +10,7 @@ import Image from 'next/image';
  *
  * @returns {JSX.Element} 渲染的首页组件
  */
-export const Home: NextPage = (): React.ReactElement => {
+const Home: NextPage = (): React.ReactElement => {
   return (
     <Layout
       title="AuthApp - Secure Authentication Solution"
@@ -285,6 +285,8 @@ export const Home: NextPage = (): React.ReactElement => {
                 <Image
                   src="/images/avatar-1.jpg"
                   alt="Avatar 1"
+                  width={40}
+                  height={40}
                   className={styles.testimonialAvatarImage}
                 />
               </div>
@@ -320,3 +322,4 @@ export const Home: NextPage = (): React.ReactElement => {
     </Layout>
   );
 };
+export default Home;

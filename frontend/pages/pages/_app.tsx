@@ -4,7 +4,7 @@ import { AppProps } from 'next/app';
 import { NextPage } from 'next';
 import React, { ReactElement, ReactNode } from 'react';
 import { UserProvider } from '../../contexts/UserContext';
-import '../../styles/globals.css';
+import '../../globals.css';
 
 // Define types for pages with layouts
 export type NextPageWithLayout<P = object, IP = P> = NextPage<P, IP> & {

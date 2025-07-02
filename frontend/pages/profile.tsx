@@ -153,7 +153,10 @@ const Profile: React.FC = () => {
                 <Image
                   src={formData.avatar}
                   alt={`${formData.name}'s avatar`}
+                  width={100}
+                  height={100}
                   className={styles.avatar}
+                  priority
                 />
               ) : (
                 <div className={styles.avatarPlaceholder}>

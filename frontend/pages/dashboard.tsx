@@ -70,7 +70,7 @@ const Dashboard: NextPage = (): React.ReactElement => {
             name: 'John Doe',
             email: 'john@example.com',
             role: 'Orchard Manager',
-            avatar: '/images/avatar.jpg',
+            avatar: '/images/avatar-1.jpg',
           });
 
           setStats({
@@ -180,6 +180,8 @@ const Dashboard: NextPage = (): React.ReactElement => {
                 <Image
                   src={user.avatar}
                   alt={user.name}
+                  width={40}
+                  height={40}
                   className={styles.avatarImage}
                 />
               ) : (

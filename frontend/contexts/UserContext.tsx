@@ -24,6 +24,7 @@ export interface User {
   token?: string;
   role?: string;
   permissions?: string[];
+  avatar?: string; // User avatar URL
   [key: string]: any; // For any additional fields
 }
 
@@ -33,9 +34,9 @@ interface ApiResponse {
   message?: string;
 }
 
-interface UserApiResponse extends ApiResponse {
-  user?: User;
-}
+// interface UserApiResponse extends ApiResponse {
+//   user?: User;
+// }
 
 // Context value interface
 export interface UserContextType {
@@ -105,7 +106,7 @@ const sanitizeUserData = (userData: User | null): User | null => {
   }
 
   // Keep essential auth fields
-  const preservedFields = ['token', 'id', 'username', 'role', 'permissions'];
+  const preservedFields = ['token', 'id', 'username', 'role', 'permissions', 'avatar', 'name'];
   preservedFields.forEach((field) => {
     if (userData[field]) {
       sanitized[field] = userData[field];

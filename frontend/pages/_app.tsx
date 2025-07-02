@@ -1,7 +1,7 @@
 import { AppProps } from 'next/app';
 import { UserProvider } from '../contexts/UserContext';
 import { JSX } from 'react';
-import '../styles/globals.css';
+import '../globals.css';
 
 /**
  * 主应用组件，作为所有页面的包装器

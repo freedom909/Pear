@@ -1,8 +1,8 @@
-import React from 'react';
 import Link from 'next/link';
 import styles from '../styles/Footer.module.css';
+import React from 'react';
 
-const Footer: React.FC = () => {
+const Footer = (): React.ReactElement => {
   const currentYear = new Date().getFullYear();
 
   return (

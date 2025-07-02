@@ -75,6 +75,13 @@
   margin-top: 0.25rem;
 }
 
+.avatarImage {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 @media (max-width: 768px) {
   .grid {
     grid-template-columns: 1fr;

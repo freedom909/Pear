@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import api from '../utils/api';
 import styles from '../styles/Callback.module.css';
+import { User } from '../contexts/UserContext';
 
 interface AuthResponse {
   token: string;
+  user: User;
 }
 
 const Callback: React.FC = () => {
@@ -31,9 +33,14 @@ const Callback: React.FC = () => {
         if (response.data && response.data.token) {
           // Save the token to localStorage
           localStorage.setItem('token', response.data.token);
+          
+          // Save user data if available
+          if (response.data.user) {
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+          }
 
-          // Redirect to home page
-          router.push('/');
+          // Redirect to dashboard page
+          router.push('/dashboard');
         } else {
           setError('Failed to authenticate with Google');
           setLoading(false);
