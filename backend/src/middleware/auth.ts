@@ -8,6 +8,7 @@ import userService from '../services/user.service';
 import { UserRole } from '../models/interface/index';
 import logger from './logger';
 
+
 export interface AuthRequest extends Request {
   user?: { id: string; role: UserRole };
 }
@@ -111,6 +112,33 @@ export const authorize = (...roles: UserRole[]) => {
   };
 };
 
+// 限制特定角色的访问
+
+export const restrictTo = (...roles: UserRole[]) => {
+  return (req: AuthRequest, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      return next(
+        new AppError({
+          message: 'Not authenticated',
+          code: ErrorCode.UNAUTHORIZED,
+          details: 'User not found',
+        })
+      );
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError({
+          message: `Access denied: requires one of roles: [${roles.join(', ')}]`,
+          code: ErrorCode.FORBIDDEN,
+          details: 'User role is not authorized',
+        })
+      );
+    }
+
+    next();
+  };
+};
 /**
  * Middleware: Role check (alias for authorize)
  */

@@ -54,10 +54,12 @@ const Dashboard: NextPage = (): React.ReactElement => {
 
   useEffect(() => {
     // Check if user is authenticated
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
     }
 
     // Fetch user data

@@ -16,63 +16,68 @@ export enum UserStatus {
 
 // IUser — plain data
 export interface IUser {
-  id: string;
+
+
+  // Username
   username: {
     firstname: string;
     lastname: string;
   };
+
+  // Local auth
   email: string;
+  password?: string;
   passwordHash: string;
   salt: string;
+
+  // Roles and status
   role: UserRole;
   status: UserStatus;
-  createdAt?: Date;
-  updatedAt?: Date;
-  lastLogin?: Date;
+  provider?: 'local' | 'google' | 'facebook' | 'twitter' | 'apple';
+
+  // Verification
   isVerified?: boolean;
+  verified?: boolean; // If you prefer, you can remove one of these
+
+  // Timestamps
+
+  lastLogin?: Date;
+
+  // Avatar
   avatar?: string;
+
+  // OAuth fields
   googleId?: string;
   googleAccessToken?: string;
   googleRefreshToken?: string;
+
   facebookId?: string;
   facebookAccessToken?: string;
   facebookRefreshToken?: string;
+
   twitterId?: string;
   twitterAccessToken?: string;
   twitterRefreshToken?: string;
+
   appleId?: string;
   appleAccessToken?: string;
   appleRefreshToken?: string;
+
+  // Password reset
   resetPasswordToken?: string;
-  resetPasswordExpires?: Date;
   passwordResetToken?: string;
+  resetPasswordExpires?: Date;
+
+  // Session refresh tokens
+  refreshToken?: string;
 }
 
 // UserDocument — extends Mongo Document and adds methods
 // models/user/user.types.ts
-export interface IUserFields {
-  username: {
-    firstname: string;
-    lastname: string;
-  };
-  password?: string;
-  verified: boolean;
-  email: string;
-  passwordHash: string;
-  refreshToken?: string;
-  resetPasswordExpires?: Date;
-  salt: string;
-  role: UserRole;
-  status: UserStatus;
-  lastLogin?: Date;
-  isVerified?: boolean;
-  avatar?: string;
-  provider: string;
-  passwordResetToken?: string;
-}
+
 
 // Document interface extends Mongoose's Document and our fields
-export interface UserDocument extends Document, IUserFields, Timestamps {
+export interface UserDocument extends Document, IUser, Timestamps {
   verifyPassword(password: string): Promise<boolean>;
   clearResetToken(): void;
   getSignedJwtToken(): string;
@@ -81,9 +86,11 @@ export interface UserDocument extends Document, IUserFields, Timestamps {
   generateResetPasswordToken(): string;
   setPassword(password: string): void;
   getResetPasswordToken(): string;
+  findByEmail(email: string): Promise<UserDocument | null>;
+  linkedAccounts(): Promise<any>;
 }
 
 // UserModel — static methods interface
 export interface IUserModel extends Model<UserDocument> {
-  findByEmail(email: string): Promise<UserDocument | null>;
+  
 }

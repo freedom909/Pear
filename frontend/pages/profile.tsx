@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect, ChangeEvent, FormEvent } from 'react';
 import { UserContext } from '../contexts/UserContext';
 import { withProtection } from '../components/ProtectedRoute';
-import Layout from '../components/Layout';
+import Layout from '../components/Layout.jsx';
 import styles from '../styles/Profile.module.css';
 import Image from 'next/image';
 
@@ -283,10 +283,17 @@ const Profile: React.FC = () => {
                     {formData.email && (
                       <button
                         className={styles.copyButton}
-                        onClick={() => {
-                          navigator.clipboard.writeText(formData.email);
-                          setSuccessMessage('Email copied to clipboard!');
-                          setTimeout(() => setSuccessMessage(''), 3000);
+                        onClick={async () => {
+                          if (typeof window !== 'undefined' && navigator.clipboard) {
+                            try {
+                              await navigator.clipboard.writeText(formData.email);
+                              setSuccessMessage('Email copied to clipboard!');
+                              setTimeout(() => setSuccessMessage(''), 3000);
+                            } catch (err) {
+                              setError('Failed to copy email');
+                              setTimeout(() => setError(null), 3000);
+                            }
+                          }
                         }}
                         title="Copy email"
                       >

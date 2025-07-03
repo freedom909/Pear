@@ -160,8 +160,10 @@ const Login: NextPage = (): React.ReactElement => {
               type="button"
               className={styles.socialButton}
               onClick={() => {
-                window.location.href =
-                  'http://localhost:5000/api/v1/auth/google';
+                if (typeof window !== 'undefined') {
+                  window.location.href =
+                    'http://localhost:5000/api/v1/auth/google';
+                }
               }}
             >
               <svg
@@ -193,8 +195,10 @@ const Login: NextPage = (): React.ReactElement => {
               type="button"
               className={styles.socialButton}
               onClick={() => {
-                window.location.href =
-                  'http://localhost:5000/api/v1/auth/facebook';
+                if (typeof window !== 'undefined') {
+                  window.location.href =
+                    'http://localhost:5000/api/v1/auth/facebook';
+                }
               }}
             >
               <svg

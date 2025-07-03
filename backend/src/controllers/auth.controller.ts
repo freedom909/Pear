@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import passport from 'passport';
+
 import crypto from 'crypto';
 import User from '../models/user/user.model';
 import { AppError } from '../errors/appError';
@@ -8,7 +8,7 @@ import logger from '../middleware/logger';
 import { UserDocument, UserRole } from '../models/interface';
 import { UserResponseDTO } from '../dtos/userDTO';
 import { asyncHandler } from '../middleware/errorHandler';
-import { authService } from '../services/auth.service';
+
 import jwt from 'jsonwebtoken';
 interface AuthRequest extends Request {
   user: UserDocument;
@@ -167,53 +167,9 @@ export const resetPassword = asyncHandler(
 
 
 /**
- * Step 1: Redirect to Facebook for consent.
- * Route: GET /api/v1/auth/Facebook
- */
-export const facebookLogin = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  passport.authenticate('facebook', { scope: ['email'], session: false })(
-    req,
-    res,
-    next
-  );
-};
-
-/**
- * Step 2: Handle Facebook callback.
- * Route: GET /api/v1/auth/Facebook/callback
- */
-export const facebookCallback = [
-  passport.authenticate('facebook', {
-    session: false,
-    failureRedirect: '/api/v1/auth/login?error=oauth_failed',
-  }),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user as UserDocument;
-      if (!user) {
-        return res.redirect('/api/v1/auth/login?error=oauth_failed');
-      }
-      const token = await authService.generateJwtForUser(user);
-      return res.redirect(
-        `http://localhost:3000/social-success?token=${token}`
-      );
-    } catch (error) {
-      return next(error);
-    }
-  },
-];
-
-
-
-
-/**
  * Helper to send token in response
  */
-function sendTokenResponse(user: any, statusCode: number, res: Response) {
+export function sendTokenResponse(user: any, statusCode: number, res: Response) {
   const token = user.getSignedJwtToken();
   res
     .status(statusCode)

@@ -20,7 +20,7 @@ import logger, { logStream } from './middleware/logger';
 import { initRedis } from './middleware/redis';
 import { connectDB } from './config/database';
 import { setupSessionSerialization } from './strategies/session'; // ✅ your helper function
-import { OAuthStrategyFactory } from './strategies/auth.factory';
+import { AuthStrategyFactory } from './strategies/auth.factory';
 import userService from './services/user.service';
 import apiRoutes from './routes/index';
 
@@ -36,7 +36,7 @@ initRedis();
 setupSessionSerialization();
 
 // ✅ Initialize OAuth strategies
-const factory = new OAuthStrategyFactory(passport, oauthConfigs, userService);
+const factory = new AuthStrategyFactory(passport, oauthConfigs, userService);
 factory.initializeStrategies();
 
 // Initialize Express app

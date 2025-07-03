@@ -2,21 +2,21 @@
 import passport, { PassportStatic } from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import userService from '../services/user.service';
-import { OAuthStrategyFactory } from '../strategies/auth.factory';
+import { AuthStrategyFactory } from '../strategies/auth.factory';
 import { OAuthConfiguration } from '../config/oauth';
 import logger from '../middleware/logger';
 import User from '../models/user/user.model';
 import { UserDocument } from '@/models/interface';
 
 export class PassportConfig {
-  private static oauthFactory: OAuthStrategyFactory;
+  private static oauthFactory: AuthStrategyFactory;
 
   /**
    * Initialize all passport strategies
    */
   static initialize(): void {
     // Initialize OAuth strategies
-    this.oauthFactory = new OAuthStrategyFactory(
+    this.oauthFactory = new AuthStrategyFactory(
       passport,
       OAuthConfiguration.getConfigs(),
       userService

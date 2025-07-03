@@ -1,4 +1,4 @@
-import { SYSTEM_CONFIG } from '../config';
+import { SYSTEM_CONFIG } from '../config/index.js';
 
 /**
  * 日志级别枚举

@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SYSTEM_CONFIG = exports.UI_CONFIG = exports.AUTH_CONFIG = exports.API_CONFIG = void 0;
-exports.API_CONFIG = {
+export const API_CONFIG = {
     BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
     ENDPOINTS: {
         AUTH: {
@@ -39,7 +36,7 @@ exports.API_CONFIG = {
     },
     TIMEOUT: 10000,
 };
-exports.AUTH_CONFIG = {
+export const AUTH_CONFIG = {
     TOKEN_KEY: 'auth_token',
     USER_KEY: 'user_info',
     TOKEN_EXPIRY: 24 * 60 * 60 * 1000,
@@ -58,7 +55,7 @@ exports.AUTH_CONFIG = {
         '/reset-password',
     ],
 };
-exports.UI_CONFIG = {
+export const UI_CONFIG = {
     COLORS: {
         PRIMARY: '#3B82F6',
         SECONDARY: '#6B7280',
@@ -81,7 +78,7 @@ exports.UI_CONFIG = {
     },
     LOADING_TIMEOUT: 30000,
 };
-exports.SYSTEM_CONFIG = {
+export const SYSTEM_CONFIG = {
     APP_NAME: '梨子',
     APP_DESCRIPTION: '您的个人助手，帮助您管理日常任务和提高生产力',
     VERSION: '1.0.0',
@@ -90,10 +87,10 @@ exports.SYSTEM_CONFIG = {
     LOG_LEVEL: process.env.NEXT_PUBLIC_LOG_LEVEL || 'error',
 };
 const config = {
-    API: exports.API_CONFIG,
-    AUTH: exports.AUTH_CONFIG,
-    UI: exports.UI_CONFIG,
-    SYSTEM: exports.SYSTEM_CONFIG,
+    API: API_CONFIG,
+    AUTH: AUTH_CONFIG,
+    UI: UI_CONFIG,
+    SYSTEM: SYSTEM_CONFIG,
 };
-exports.default = config;
+export default config;
 //# sourceMappingURL=index.js.map

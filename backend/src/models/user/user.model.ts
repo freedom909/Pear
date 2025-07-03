@@ -5,42 +5,28 @@ dotenv.config();
 import mongoose, { Schema } from 'mongoose';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { UserDocument, IUserModel, UserRole, UserStatus } from './user.types';
+import { UserDocument} from './user.types';
 import { config } from '../config';
 
-const userSchema = new Schema<UserDocument, IUserModel>(
+const userSchema = new Schema<UserDocument>(
   {
-    username: {
-      firstname: { type: String, required: true, trim: true },
-      lastname: { type: String, required: true, trim: true },
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    passwordHash: { type: String },
-    salt: { type: String },
-    role: {
-      type: String,
-      enum: Object.values(UserRole),
-      default: UserRole.USER,
-    },
-    status: {
-      type: String,
-      enum: Object.values(UserStatus),
-      default: UserStatus.ACTIVE,
-    },
-    lastLogin: { type: Date },
-    isVerified: { type: Boolean, default: false },
-    avatar: { type: String },
-    provider: {
-      type: String,
-      enum: ['local', 'google', 'facebook', 'twitter', 'apple'],
-      required: true,
-    },
+    // other fields...
+  linkedAccounts: {
+  type: [
+    {
+      provider: {
+        type: String,
+        enum: ['google', 'facebook', 'twitter', 'apple'],
+        required: true,
+      },
+      providerId: { type: String, required: true },
+      email: { type: String },
+      linkedAt: { type: Date, default: Date.now },
+    }
+  ],
+  default: [],
+},
+
   },
   {
     timestamps: true,
@@ -54,6 +40,7 @@ const userSchema = new Schema<UserDocument, IUserModel>(
     },
   }
 );
+
 
 // Method to set password
 userSchema.methods.setPassword = function (password: string): void {
@@ -127,6 +114,6 @@ userSchema.methods.getSignedJwtToken = function (): string {
   );
 };
 
-const User = mongoose.model<UserDocument, IUserModel>('User', userSchema);
+const User = mongoose.model<UserDocument>('User', userSchema);
 
 export default User;

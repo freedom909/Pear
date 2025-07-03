@@ -89,13 +89,24 @@ export class AuthStrategyFactory {
       if (this.configs.apple) {
         if (
           this.configs.apple?.clientID &&
-          this.configs.apple?.clientSecret &&
-          this.configs.apple?.callbackURL
+          this.configs.apple?.teamID &&
+          this.configs.apple?.keyID &&
+          this.configs.apple?.privateKey
         ) {
-          const appleStrategy = new AppleOAuthStrategy();
-          appleStrategy.init(this.passport);
-          this.strategies.set('apple', appleStrategy);
-          logger.info('Apple OAuth strategy initialized');
+          try {
+            const appleStrategy = new AppleOAuthStrategy();
+            appleStrategy.init(
+              this.passport,
+              this.configs.apple,
+              this.userService
+            );
+            this.strategies.set('apple', appleStrategy);
+            logger.info('Apple OAuth strategy initialized');
+          } catch (error) {
+            logger.error('Error initializing Apple OAuth strategy', { error });
+          }
+        } else {
+          logger.warn('Apple OAuth configuration incomplete, skipping initialization');
         }
       }
 

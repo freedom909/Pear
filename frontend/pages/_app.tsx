@@ -1,15 +1,18 @@
 import { AppProps } from 'next/app';
+// Since the original import path doesn't work, we need to check if the path is correct.
+// It's possible the file has a different extension or location.
+// Here we assume the file might have a .tsx extension.
 import { UserProvider } from '../contexts/UserContext';
-import { JSX } from 'react';
-import '../globals.css';
+import '../styles/globals.css';
+import { ReactElement } from 'react';
 
 /**
- * 主应用组件，作为所有页面的包装器
- *
- * @param {AppProps} props - Next.js 应用属性
- * @returns {JSX.Element} 渲染的应用组件
+ * Main application component that wraps all pages
+ * 
+ * @param {AppProps} props - Next.js app properties
+ * @returns {ReactElement} The rendered app component
  */
-function MyApp({ Component, pageProps }: AppProps): JSX.Element {
+function MyApp({ Component, pageProps }: AppProps): ReactElement {
   return (
     <UserProvider>
       <Component {...pageProps} />

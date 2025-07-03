@@ -1,43 +1,90 @@
 import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PassportStatic } from 'passport';
 import { BaseStrategy } from './base';
+import { OAuthConfig, UserDocument } from '../models/interface';
+
+import { logger } from '../utils/logger';
+
 
 /**
  * ** Twitter OAuth Strategy
- */ // src/passport/strategies/AppleStrategy.ts
-
+ */
 export class TwitterOAuthStrategy extends BaseStrategy {
-  init(passport: PassportStatic, config: any, userService: any): void {
+  init(passport: PassportStatic, config: OAuthConfig, userService: any): void {
+    logger.info('Initializing Twitter OAuth strategy');
+
     passport.use(
       new TwitterStrategy(
         {
-          consumerKey: config.consumerKey,
-          consumerSecret: config.consumerSecret,
+          consumerKey: config.clientID,
+          consumerSecret: config.clientSecret,
           callbackURL: config.callbackURL,
-          passReqToCallback: true,
+          // scope: config.scope || ['profile', 'email'],
+          // passReqToCallback: config.passReqToCallback || true,
         },
-        async (_req, accessToken, refreshToken, profile, done) => {
+        async (_accessToken, _refreshToken, profile, done) => {
+          logger.info('Twitter OAuth callback received', {
+            profileId: profile.id,
+          });
+
           try {
-            let user = await userService.findOne({ twitterId: profile.id });
+            // 1. Find user by Twitter profile ID
+            let user = await userService.findUserByOAuthProfile(
+              { id: profile.id },
+              'twitter'
+            );
+
+            // 2. If not found, check by email
             if (!user) {
-              user = await userService.create({
-                email: profile.emails?.[0]?.value || '',
-                name: profile.displayName || profile.username || '',
-                provider: 'twitter',
-                accessToken,
-                refreshToken,
-                profile: {
-                  twitterId: profile.id,
-                },
-                avatar: profile.photos?.[0]?.value,
+              const email = profile.emails?.[0]?.value;
+
+              if (email) {
+                const existingUserByEmail =
+                  await userService.findUserByEmail({email});
+                if (existingUserByEmail) {
+                  logger.info(
+                    'Existing user found by email, linking Twitter account',
+                    { email }
+                  );
+
+                  // 3. Link the Twitter profile ID to the existing user
+                  await userService.linkOAuthProviderToUser(
+                    existingUserByEmail,
+                    {
+                      provider: 'twitter',
+                      id: profile.id,
+                      profile,
+                    }
+                  );
+
+                  return done(null, existingUserByEmail);
+                }
+              }
+
+              // 4. No user by ID or email, create a new one
+              logger.info('Creating new user from Twitter profile', {
+                profileId: profile.id,
+              });
+              user = await userService.createUserFromOAuthProfile(
+                profile as unknown as UserDocument,
+                'twitter'
+              );
+            } else {
+              logger.info('Found existing user with Twitter profile', {
+                userId: user.id,
+                profileId: profile.id,
               });
             }
-            done(null, user);
+
+            return done(null, user);
           } catch (error) {
-            done(error, null);
+            logger.error('Error in Twitter OAuth strategy', { error });
+            return done(error as Error, undefined);
           }
         }
       )
     );
+
+    logger.info('Twitter OAuth strategy initialized');
   }
 }

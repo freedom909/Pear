@@ -1,21 +1,16 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const axios_1 = __importDefault(require("axios"));
-const index_1 = require("../config/index");
+import axios from "axios";
+import { API_CONFIG, AUTH_CONFIG } from "../config/index.js";
 class ApiService {
     baseUrl;
     timeout;
     api;
     constructor() {
         this.baseUrl =
-            index_1.API_CONFIG.BASE_URL ||
+            API_CONFIG.BASE_URL ||
                 process.env.NEXT_PUBLIC_API_URL ||
                 'http://localhost:3000';
-        this.timeout = index_1.API_CONFIG.TIMEOUT || 10000;
-        this.api = axios_1.default.create({
+        this.timeout = API_CONFIG.TIMEOUT || 10000;
+        this.api = axios.create({
             baseURL: this.baseUrl,
             headers: {
                 'Content-Type': 'application/json',
@@ -42,18 +37,18 @@ class ApiService {
     }
     getToken() {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem(index_1.AUTH_CONFIG.TOKEN_KEY || 'token');
+            return localStorage.getItem(AUTH_CONFIG.TOKEN_KEY || 'token');
         }
         return null;
     }
     setToken(token) {
         if (typeof window !== 'undefined') {
-            localStorage.setItem(index_1.AUTH_CONFIG.TOKEN_KEY || 'token', token);
+            localStorage.setItem(AUTH_CONFIG.TOKEN_KEY || 'token', token);
         }
     }
     clearToken() {
         if (typeof window !== 'undefined') {
-            localStorage.removeItem(index_1.AUTH_CONFIG.TOKEN_KEY || 'token');
+            localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY || 'token');
         }
     }
     get(url, config) {
@@ -204,5 +199,5 @@ class ApiService {
     }
 }
 const apiService = new ApiService();
-exports.default = apiService;
+export default apiService;
 //# sourceMappingURL=api.js.map

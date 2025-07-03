@@ -17,6 +17,18 @@ import {
 } from '../models/interface/index';
 import { UserDocument } from '../models/user/user.types';
 
+export interface CreateUserFromOAuthProfileInput {
+  id: string;
+  name: { familyName: string; givenName: string };
+  emails: { value: string }[];
+  username?: string;
+  password?: string;
+  avatar?: string;
+  provider: 'local'|'apple' | 'google' | 'facebook' | 'twitter' | 'github';
+  oauth?: any;
+}
+
+
 // 用户服务接口
 export interface UserService {
   linkProvider(
@@ -37,6 +49,9 @@ export interface UserService {
     providerId: string,
     profile: PassportProfile
   ): Promise<UserDocument>;
+ createUserFromOAuthProfile(
+  input: CreateUserFromOAuthProfileInput
+): Promise<UserDocument>
 
   createOAuthUser(userData: UserDocument): Promise<IUserProfile>;
   updateUser(
@@ -493,7 +508,7 @@ class UserServiceImpl implements UserService {
           lastName: user.username.lastname,
           role: (user as any).role,
           status: user.status,
-          verified: user.verified,
+          verified: user.verified || false,
           avatar: user.avatar,
         },
       };
@@ -734,25 +749,20 @@ class UserServiceImpl implements UserService {
   }
 
   async createUserFromOAuthProfile(
-    profile: PassportProfile,
-    provider: 'google' | 'facebook' | 'twitter' | 'apple'
+    input: CreateUserFromOAuthProfileInput
   ): Promise<UserDocument> {
-    if (!provider || !profile) {
+    if (!input.provider ) {
       throw AppError.badRequest('无效的OAuth用户资料');
     }
-    if (!profile.emails?.[0]?.value) {
-      throw AppError.badRequest('无效的OAuth用户资料');
-    }
+  
     return User.create({
-      [`${provider}Id`]: profile.id,
-      email: profile.emails?.[0]?.value || '',
-      username: {
-        firstname: profile.displayName?.split(' ')[0] || '${provider}',
-        lastname: profile.displayName?.split(' ').slice(1).join(' ') || 'User',
-      },
-      photo: profile.photos?.[0]?.value || '',
-      provider,
-      role: 'user',
+    name: input.name,
+    email: input.emails[0]?.value || '',
+    avatar: input.avatar,
+    [`${input.provider}`]: {
+      id: input.id,
+      ...(input.oauth || {}),
+    },
     }) as unknown as UserDocument;
   }
 
@@ -1078,6 +1088,7 @@ class UserServiceImpl implements UserService {
 
     return jwt.sign({ id: user._id }, secret, { expiresIn: '1d' });
   }
+
 }
 const userService = new UserServiceImpl();
 // 导出用户服务实例

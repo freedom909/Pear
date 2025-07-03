@@ -1,50 +1,91 @@
 // src/strategies/apple.ts
 import { BaseStrategy } from './base';
 import { PassportStatic } from 'passport';
-import { Strategy as AppleStrategy } from 'passport-apple';
-import userService from '../services/user.service';
+import {
+  Strategy as AppleStrategy,
+  VerifyFunctionWithRequest, 
+} from 'passport-apple';
+import { OAuthConfig } from '../models/interface/index';
+import { UserService } from '../services/user.service';
+import logger from '../middleware/logger';
+
 
 export class AppleOAuthStrategy extends BaseStrategy {
-  init(passport: PassportStatic): void {
+  init(passport: PassportStatic, config: OAuthConfig, userService: UserService): void {
+    logger.info('Initializing Apple OAuth strategy');
+
+    const verify: VerifyFunctionWithRequest = async (
+      _req,
+      _accessToken,
+      _refreshToken,
+      idToken,
+      profile,
+      done
+    ) => {
+      try {
+        logger.debug(`Apple OAuth callback for profile: ${profile.id}`);
+
+        let user = await userService.findOne({ 'oauth.apple.id': profile.id });
+
+        if (!user && profile.emails && profile.emails.length > 0) {
+          const email = profile.emails[0].value;
+          logger.debug(`User not found by Apple ID, trying email: ${email}`);
+          let user = await userService.findUserByEmail(email);
+
+          if (user) {
+            logger.debug(`User found by email, linking Apple account: ${profile.id}`);
+            await userService.linkOAuthProviderToUser(user, 'apple', profile.id, profile as any);
+            await user.save();
+          }
+        }
+
+        if (!user) {
+          logger.debug(`Creating new user from Apple profile: ${profile.id}`);
+ 
+          user = await userService.createUserFromOAuthProfile(
+            {
+              id: profile.id,
+              name: {
+                familyName: profile.name?.familyName || '',
+                givenName: profile.name?.givenName || ''
+              },
+              emails: profile.emails ?? [],
+              // Remove avatar if not expected by your DTO, or add to input type
+              username: profile.username || '',
+              avatar: profile.photos?.[0]?.value || '',
+              provider: 'apple',
+             
+              oauth: {
+                apple: {
+                  id: profile.id,
+                  token: idToken
+                }
+              }
+            },
+          
+          );
+        }
+
+        logger.debug(`Apple OAuth authentication successful for user: ${user._id}`);
+        done(null, user);
+      } catch (error) {
+        logger.error(`Apple OAuth authentication error: ${(error as Error).message}`, { error });
+        done(error as Error);
+      }
+    };
+
     passport.use(
       new AppleStrategy(
         {
-          clientID: process.env.APPLE_CLIENT_ID!,
-          teamID: process.env.APPLE_TEAM_ID!,
-          keyID: process.env.APPLE_KEY_ID!,
-          privateKey: process.env.APPLE_PRIVATE_KEY!,
-          callbackURL: '/api/v1/auth/apple/callback',
+          clientID: config.clientID ?? '',
+          teamID: config.teamID ?? '',
+          keyID: config.keyID ?? '',
+          privateKeyLocation: config.privateKeyLocation ?? '',
+          callbackURL: config.callbackURL ?? '',
           scope: ['email', 'name'],
           passReqToCallback: true,
-        } as any,
-        async (
-          _req: any,
-          accessToken: any,
-          refreshToken: any,
-          _idToken: any,
-          profile: any,
-          done: any
-        ) => {
-          try {
-            let user = await userService.findOne({ appleId: profile.id });
-            if (!user) {
-              user = await userService.create({
-                provider: 'apple',
-                email: profile.emails[0].value,
-                name: profile.name.givenName,
-                accessToken, // pass the token too
-                refreshToken, // pass the refresh token too
-                profile: {
-                  appleId: profile.id, // ✅ store under appleId
-                },
-                avatar: profile.photos[0].value,
-              });
-            }
-            done(null, user);
-          } catch (error) {
-            done(error as any, null as any);
-          }
-        }
+        },
+        verify
       )
     );
   }

@@ -12,7 +12,7 @@ const UserContext_1 = require("../contexts/UserContext");
 const Layout_module_css_1 = __importDefault(require("../styles/Layout.module.css"));
 const Layout = ({ children, title = 'pear', description = 'A secure authentication solution', }) => {
     const router = (0, router_1.useRouter)();
-    const { user, logout } = (0, react_1.useContext)(UserContext_1.UserContext);
+    const { user, logout } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = (0, react_1.useState)(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = (0, react_1.useState)(false);
     const toggleMenu = async () => {

@@ -8,8 +8,8 @@ import {
 } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import logger, { errorHandler } from '../utils/logger';
-import apiService from '../utils/api';
+import logger, { errorHandler } from '../utils/logger.js';
+import apiService from '../utils/api.js';
 
 const log = logger.createSubLogger('UserContext');
 
@@ -42,6 +42,7 @@ interface ApiResponse {
 export interface UserContextType {
   user: User | null;
   loading: boolean;
+  initialized: boolean;
   login: (
     email: string,
     password: string,
@@ -52,6 +53,7 @@ export interface UserContextType {
     email: string,
     password: string
   ) => Promise<ApiResponse>;
+  
   logout: () => Promise<ApiResponse>;
   forgotPassword: (email: string) => Promise<ApiResponse>;
   resetPassword: (token: string, password: string) => Promise<ApiResponse>;
@@ -136,11 +138,15 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
           setUser(result.user);
           // Also persist sanitized copy to localStorage
           const sanitized = sanitizeUserData(result.user);
-          localStorage.setItem('user', JSON.stringify(sanitized));
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('user', JSON.stringify(sanitized));
+          }
         } else {
           log.debug('User not logged in');
           setUser(null);
-          localStorage.removeItem('user');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('user');
+          }
         }
       } catch (error) {
         log.error('Error verifying token:', error);
@@ -166,8 +172,10 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
       if (result.success) {
         log.info('Login successful', { userId: result.user.id });
         setUser(result.user);
-        const sanitized = sanitizeUserData(result.user);
-        localStorage.setItem('user', JSON.stringify(sanitized));
+                  const sanitized = sanitizeUserData(result.user);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('user', JSON.stringify(sanitized));
+                  }
         return { success: true };
       } else {
         log.warn('Login failed', { email, message: result.message });
@@ -191,7 +199,9 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
         log.info('Registration successful', { userId: result.user.id });
         setUser(result.user);
         const sanitized = sanitizeUserData(result.user);
-        localStorage.setItem('user', JSON.stringify(sanitized));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(sanitized));
+        }
         return { success: true };
       } else {
         log.warn('Registration failed', { email, message: result.message });
@@ -210,7 +220,9 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
       if (result.success) {
         log.info('Logout successful');
         setUser(null);
-        localStorage.removeItem('user');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user');
+        }
         router.push('/login');
         return { success: true };
       } else {
@@ -268,7 +280,9 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
       if (data.success) {
         setUser(data.user);
         const sanitized = sanitizeUserData(data.user);
-        localStorage.setItem('user', JSON.stringify(sanitized));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(sanitized));
+        }
         return { success: true, message: data.message };
       } else {
         return { success: false, message: data.message || '更新个人资料失败' };
@@ -310,6 +324,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
       value={{
         user,
         loading,
+        initialized: !loading,
         login,
         register,
         logout,
@@ -343,7 +358,7 @@ export async function fetchWithAuth(
   url: string,
   options: RequestInit = {}
 ): Promise<any> {
-  const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const storedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null;
   if (!storedUser) {
     throw new Error('No authenticated user');
   }
@@ -364,8 +379,10 @@ export async function fetchWithAuth(
 
     if (!response.ok) {
       if (response.status === 401) {
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
         throw new Error('Session expired');
       }
       throw new Error(`HTTP error! status: ${response.status}`);

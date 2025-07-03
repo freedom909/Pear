@@ -7,6 +7,7 @@ import { FacebookOAuthStrategy } from '../strategies/facebook';
 import { TwitterOAuthStrategy } from '../strategies/twitter';
 import User from '../models/user/user.model';
 import { OAuthConfiguration } from '../config/oauth';
+
 export function initPassportStrategies() {
   const oauthConfig = OAuthConfiguration.getConfigs();
 
@@ -23,7 +24,7 @@ export function initPassportStrategies() {
     update: User.findOneAndUpdate.bind(User),
   };
 
-  new AppleOAuthStrategy().init(passport);
+  new AppleOAuthStrategy().init(passport, oauthConfig.apple, userService as any );
   new GoogleOAuthStrategy().init(passport, oauthConfig.google, userService);
   new FacebookOAuthStrategy().init(passport, oauthConfig.facebook, userService);
   new TwitterOAuthStrategy().init(passport, oauthConfig.twitter, userService);

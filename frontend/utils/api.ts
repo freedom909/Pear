@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { API_CONFIG, AUTH_CONFIG } from '../config/index';
+import { API_CONFIG, AUTH_CONFIG } from '../config';
 
 // API response interfaces
 export interface ApiResponse {

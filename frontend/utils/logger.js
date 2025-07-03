@@ -1,15 +1,12 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.errorHandler = exports.ErrorHandler = exports.LogLevel = void 0;
-const config_1 = require("../config");
-var LogLevel;
+import * as config_1 from "../config/index.js";
+export var LogLevel;
 (function (LogLevel) {
     LogLevel["DEBUG"] = "debug";
     LogLevel["INFO"] = "info";
     LogLevel["WARN"] = "warn";
     LogLevel["ERROR"] = "error";
     LogLevel["NONE"] = "none";
-})(LogLevel || (exports.LogLevel = LogLevel = {}));
+})(LogLevel || (LogLevel = {}));
 const LOG_LEVEL_WEIGHT = {
     [LogLevel.DEBUG]: 0,
     [LogLevel.INFO]: 1,
@@ -136,8 +133,8 @@ class ErrorHandler {
         };
     }
 }
-exports.ErrorHandler = ErrorHandler;
+export { ErrorHandler };
 const logger = new Logger();
-exports.errorHandler = new ErrorHandler(logger);
-exports.default = logger;
+export const errorHandler = new ErrorHandler(logger);
+export default logger;
 //# sourceMappingURL=logger.js.map

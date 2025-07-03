@@ -6,7 +6,8 @@ import { Input, Button } from '../components/FormElements';
 import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
 import { UserContext } from '../contexts/UserContext';
-import { validatePassword } from '../utils/validation';
+import dynamic from 'next/dynamic';
+const validatePassword = dynamic(() => import('../utils/validation').then(mod => mod.validatePassword), { ssr: false });
 
 interface FormData {
   password: string;
@@ -28,9 +29,26 @@ interface UserContextType {
 
 const ResetPassword: React.FC = () => {
   const router = useRouter();
-  const { resetPassword } = useContext(
-    UserContext
-  ) as unknown as UserContextType;
+  const userContext = useContext(UserContext);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (userContext?.initialized) {
+      setInitialized(true);
+    }
+  }, [userContext]);
+
+  if (!initialized) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.formWrapper}>
+          <h1 className={styles.title}>Loading...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  const { resetPassword } = userContext as unknown as UserContextType;
   const { token } = router.query;
 
   const [formData, setFormData] = useState<FormData>({
@@ -70,23 +88,28 @@ const ResetPassword: React.FC = () => {
     setApiError('');
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+  const validateForm = async (): Promise<boolean> => {
+  const newErrors: FormErrors = {};
 
-    // Validate password
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) {
-      newErrors.password = passwordError;
-    }
+  // dynamically import
+  const { validatePassword } = await import('../utils/validation');
 
-    // Validate confirm password
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
+  // Validate password
+  const passwordError = validatePassword(formData.password);
+  if (passwordError) {
+    newErrors.password = passwordError;
+  }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  // Validate confirm password
+  if (formData.password !== formData.confirmPassword) {
+    newErrors.confirmPassword = 'Passwords do not match';
+  }
+
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
+
+   
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();

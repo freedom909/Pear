@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import { ErrorResponse } from '../../utils/errorResponse';
-import { sendTokenResponse } from '../../utils/auth';
+import { AppError } from '../../errors/appError';
+import ErrorCode from '../../errors/error-code';
+import { sendTokenResponse } from '../auth.controller';
 import logger from '../../middleware/logger';
 
 /**
@@ -13,12 +14,26 @@ export const localLogin = (req: Request, res: Response, next: NextFunction) => {
   passport.authenticate('local', (err: any, user: any, info: any) => {
     if (err) {
       logger.error('Error in local authentication', { error: err });
-      return next(new ErrorResponse('Authentication error', 500));
+      return next(new AppError({
+        message: 'Authentication error', code: ErrorCode.INTERNAL_SERVER_ERROR, details: err }));
+    }
+
+    if (err || !user) {
+      logger.info('Login failed', { message: info.message });
+      return next(new AppError({
+        message: 'Invalid credentials',
+        code: ErrorCode.UNAUTHORIZED,
+        details: info.message,
+      }));
     }
 
     if (!user) {
       logger.info('Login failed', { message: info.message });
-      return next(new ErrorResponse(info.message || 'Invalid credentials', 401));
+      return next(new AppError({
+        message: 'Invalid credentials',
+        code: ErrorCode.UNAUTHORIZED,
+        details: info.message,
+      }));
     }
 
     logger.info('User logged in successfully', { userId: user.id });
@@ -37,7 +52,11 @@ export const localRegister = async (req: Request, res: Response, next: NextFunct
 
     // Validate required fields
     if (!email || !password || !name) {
-      return next(new ErrorResponse('Please provide all required fields', 400));
+      return next(new AppError({
+        message: 'Please provide all required fields',
+        code: ErrorCode.BAD_REQUEST,
+        details: 'Missing required fields',
+      }));
     }
 
     // Create user

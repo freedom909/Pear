@@ -140,6 +140,12 @@ export class RateLimitError extends HttpError {
   }
 }
 
+
+export class AuthenticationError extends HttpError {
+  constructor(message = '认证失败', details?: any) {
+    super(message, ErrorCode.UNAUTHORIZED, true, details);
+  }
+}
 /**
  * 创建错误响应对象
  */
