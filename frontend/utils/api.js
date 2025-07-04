@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_CONFIG, AUTH_CONFIG } from "../config/index.js";
+import { User, UserRole } from "../types/user";
 class ApiService {
     baseUrl;
     timeout;
@@ -151,6 +152,27 @@ class ApiService {
             return {
                 success: false,
                 message: error.response?.data?.message || '令牌验证失败',
+            };
+        }
+    }
+
+    async refreshToken() {
+        try {
+            const response = await this.post(index_1.API_CONFIG.ENDPOINTS.AUTH.REFRESH_TOKEN);
+            if (response.data.token) {
+                this.setToken(response.data.token);
+            }
+            return {
+                success: true,
+                user: response.data.user,
+                message: response.data.message,
+            };
+        }
+        catch (error) {
+            this.clearToken();
+            return {
+                success: false,
+                message: error.response?.data?.message || '令牌刷新失败',
             };
         }
     }

@@ -2,22 +2,25 @@ import { useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/router';
 import { useUser } from '../contexts/UserContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { UserRole } from '../types/user';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role?: string;
+  role?: UserRole;
+  tokenExpiry?: number;
 }
 
 interface UserContextType {
   user: User | null;
   loading: boolean;
+  refreshToken: () => Promise<boolean>;
 }
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: string[];
+  allowedRoles?: UserRole[];
 }
 
 /**
@@ -36,29 +39,61 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   allowedRoles = [],
 }) => {
-  const { user, loading } = useUser() as UserContextType;
+  const { user, loading, refreshToken } = useUser() as UserContextType;
   const router = useRouter();
   const [isChecking, setIsChecking] = useState<boolean>(true);
 
   useEffect(() => {
     if (!loading) {
-      if (!user) {
-        // No user logged in—redirect to login
-        router.push({
-          pathname: '/login',
-          query: { redirect: router.asPath },
-        });
-      } else if (
-        allowedRoles.length > 0 &&
-        user.role &&
-        !allowedRoles.includes(user.role)
-      ) {
-        // User logged in but lacks the required role
-        router.push('/unauthorized');
-      } else {
-        // Authenticated and has access
-        setIsChecking(false);
-      }
+      const checkAccess = async () => {
+        try {
+          if (!user) {
+            // No user logged in—redirect to login
+            router.push({
+              pathname: '/login',
+              query: { redirect: router.asPath },
+            });
+            return;
+          }
+
+          // Handle unverified accounts
+          // if (user.isVerified === false) {
+          //   router.push('/verify-email');
+          //   return;
+          // }
+
+          // Check role-based access
+          if (
+            allowedRoles.length > 0 &&
+            user.role &&
+            !allowedRoles.includes(user.role)
+          ) {
+            router.push('/unauthorized');
+            return;
+          }
+
+          // Check token expiry if available
+          if (user.tokenExpiry && user.tokenExpiry * 1000 < Date.now() + 300000) {
+            // Token expired or about to expire (within 5 minutes)
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              router.push({
+                pathname: '/login',
+                query: { redirect: router.asPath, sessionExpired: 'true' },
+              });
+              return;
+            }
+          }
+
+          // All checks passed
+          setIsChecking(false);
+        } catch (error) {
+          console.error('Protected route check failed:', error);
+          router.push('/500');
+        }
+      };
+
+      checkAccess();
     }
   }, [user, loading, router, allowedRoles]);
 
@@ -86,7 +121,7 @@ export default ProtectedRoute;
  */
 export const withProtection = <P extends object>(
   Component: React.ComponentType<P>,
-  allowedRoles: string[] = []
+  allowedRoles: UserRole[] = []
 ): React.FC<P> => {
   const ProtectedComponent: React.FC<P> = (props) => (
     <ProtectedRoute allowedRoles={allowedRoles}>

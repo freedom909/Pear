@@ -15,6 +15,7 @@ export interface ApiEndpointGroups {
     FORGOT_PASSWORD: string;
     RESET_PASSWORD: string;
     VERIFY_TOKEN: string;
+    REFRESH_TOKEN: string;
   };
   USER: {
     PROFILE: string;
@@ -125,6 +126,7 @@ export const API_CONFIG: ApiConfig = {
       FORGOT_PASSWORD: '/auth/forgot-password',
       RESET_PASSWORD: '/auth/reset-password',
       VERIFY_TOKEN: '/auth/verify-token',
+      REFRESH_TOKEN: '/auth/refresh-token',
     },
 
     // 用户相关

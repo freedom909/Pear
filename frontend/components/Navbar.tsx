@@ -4,9 +4,12 @@ import { useRouter } from 'next/router';
 import { UserContext } from '../contexts/UserContext';
 import styles from '../styles/Navbar.module.css';
 
+import Avatar from './Avatar';
+
 interface User {
   name: string;
   email?: string;
+  avatar?: string;
 }
 
 interface UserContextType {
@@ -101,10 +104,29 @@ const Navbar: React.FC = () => {
           <div className={styles.authButtons}>
             {user ? (
               <div className={styles.userMenu}>
-                <span className={styles.userName}>Welcome, {user.name}</span>
-                <button onClick={handleLogout} className={styles.logoutButton}>
-                  Logout
-                </button>
+                <div className={styles.userInfo}>
+                  <Avatar user={user} size={40} />
+                  <div className={styles.userDetails}>
+                    <span className={styles.userName}>{user.name}</span>
+                    {user.email && (
+                      <span className={styles.userEmail}>{user.email}</span>
+                    )}
+                  </div>
+                </div>
+                <div className={styles.userDropdown}>
+                  <Link href="/profile" className={styles.dropdownItem}>
+                    My Profile
+                  </Link>
+                  <Link href="/settings" className={styles.dropdownItem}>
+                    Settings
+                  </Link>
+                  <button 
+                    onClick={handleLogout} 
+                    className={styles.dropdownItem}
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             ) : (
               <div className={styles.authLinks}>

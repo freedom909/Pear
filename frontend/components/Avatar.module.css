@@ -1,0 +1,17 @@
+.avatarContainer {
+  display: flex;
+  align-items: center;
+}
+
+.avatarImage {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Add hover effect */
+.avatarImage:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease-in-out;
+}

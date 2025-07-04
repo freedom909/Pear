@@ -40,10 +40,11 @@ interface ActivityItem {
  *
  * @returns {JSX.Element} 渲染的仪表盘页面组件
  */
-const Dashboard: NextPage = (): React.ReactElement => {
+const Dashboard: NextPage = () => {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [stats, setStats] = useState<StatsData>({
     totalPears: 0,
     pearsPicked: 0,
@@ -54,33 +55,40 @@ const Dashboard: NextPage = (): React.ReactElement => {
 
   useEffect(() => {
     // Check if user is authenticated
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/login');
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+    } else {
+      setAuthChecked(true);
     }
+  }, [router]);
+
+  useEffect(() => {
+    if (!authChecked) return;
 
     // Fetch user data
     const fetchUserData = async (): Promise<void> => {
       try {
-        // In a real app, you would fetch user data from your API
-        // For now, we'll use mock data
-        setTimeout(() => {
+        // Get user data from localStorage
+        const userInfoStr = localStorage.getItem('userInfo');
+        if (userInfoStr) {
+          const userInfo = JSON.parse(userInfoStr);
           setUser({
-            name: 'John Doe',
-            email: 'john@example.com',
-            role: 'Orchard Manager',
-            avatar: '/images/avatar-1.jpg',
+            name: userInfo.name || 'User',
+            email: userInfo.email || '',
+            role: 'Orchard Manager', // Default role
+            avatar: userInfo.avatar || '', // Will use fallback if empty
           });
+        }
 
-          setStats({
-            totalPears: 1250,
-            pearsPicked: 850,
-            pearsSold: 720,
-            revenue: 3600,
-          });
+        // For now, we'll still use mock data for stats
+        // In a real app, you would fetch this from your API
+        setStats({
+          totalPears: 1250,
+          pearsPicked: 850,
+          pearsSold: 720,
+          revenue: 3600,
+        });
 
           setRecentActivity([
             {
@@ -112,7 +120,6 @@ const Dashboard: NextPage = (): React.ReactElement => {
           ]);
 
           setLoading(false);
-        }, 1000);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
         setLoading(false);

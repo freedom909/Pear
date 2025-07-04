@@ -237,6 +237,28 @@ class ApiService {
     }
   }
 
+  async refreshToken(): Promise<UserResponse> {
+    try {
+      const response = await this.post<UserResponse>(
+        API_CONFIG.ENDPOINTS.AUTH.REFRESH_TOKEN
+      );
+      if (response.data.token) {
+        this.setToken(response.data.token);
+      }
+      return {
+        success: true,
+        user: response.data.user,
+        message: response.data.message,
+      };
+    } catch (error: any) {
+      this.clearToken();
+      return {
+        success: false,
+        message: error.response?.data?.message || '令牌刷新失败',
+      };
+    }
+  }
+
   // User profile
   async getUserProfile(): Promise<UserResponse> {
     try {

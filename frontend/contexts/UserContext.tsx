@@ -13,19 +13,31 @@ import apiService from '../utils/api.js';
 
 const log = logger.createSubLogger('UserContext');
 
+import { UserRole } from '../types/user';
+
 // User interface
 export interface User {
   id: string;
   name?: string;
-  username?: string;
+  username?: {
+    firstname: string;
+    lastname: string;
+  };
   email?: string;
   phone?: string;
   idNumber?: string;
   token?: string;
-  role?: string;
+  refreshToken?: string;
+  tokenExpiry?: number; // Unix timestamp
+  role?: UserRole;
   permissions?: string[];
-  avatar?: string; // User avatar URL
-  [key: string]: any; // For any additional fields
+  avatar?: string;
+  provider?: string;
+  isVerified?: boolean;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: any;
 }
 
 // API response interfaces
@@ -63,6 +75,7 @@ export interface UserContextType {
     newPassword: string
   ) => Promise<ApiResponse>;
   isAuthenticated: () => boolean;
+  refreshToken: () => Promise<boolean>;
 }
 
 // Create context with default undefined value
@@ -126,6 +139,25 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
+  // Token refresh function
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const result = await apiService.refreshToken();
+      if (result.success && result.user) {
+        setUser(result.user);
+        const sanitized = sanitizeUserData(result.user);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(sanitized));
+        }
+        return true;
+      }
+      return false;
+    } catch (error) {
+      log.error('Token refresh failed:', error);
+      return false;
+    }
+  };
+
   // On mount: try to validate token with backend
   useEffect(() => {
     const checkLoggedIn = async (): Promise<void> => {
@@ -140,6 +172,13 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
           const sanitized = sanitizeUserData(result.user);
           if (typeof window !== 'undefined') {
             localStorage.setItem('user', JSON.stringify(sanitized));
+          }
+
+          // Set up token refresh before expiration
+          if (result.user.tokenExpiry) {
+            const expiresIn = result.user.tokenExpiry * 1000 - Date.now();
+            const refreshTime = Math.max(expiresIn - 300000, 0); // Refresh 5 minutes before expiry
+            setTimeout(refreshToken, refreshTime);
           }
         } else {
           log.debug('User not logged in');
@@ -333,6 +372,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
         updateProfile,
         changePassword,
         isAuthenticated,
+        refreshToken,
       }}
     >
       {children}

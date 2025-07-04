@@ -25,22 +25,41 @@ const Callback: React.FC = () => {
           return;
         }
 
-        // Exchange the code for a token
+        // Exchange the code for tokens
         const response = await api.get<AuthResponse>(
           `/auth/google/callback?code=${code}`
         );
 
         if (response.data && response.data.token) {
-          // Save the token to localStorage
-          localStorage.setItem('token', response.data.token);
-          
-          // Save user data if available
+          // Store tokens in HTTP-only cookies via API endpoint
+          await api.post('/auth/store-tokens', {
+            token: response.data.token,
+            refreshToken: response.data.user?.refreshToken,
+            tokenExpiry: response.data.user?.tokenExpiry
+          });
+
+          // Enhance user object with Google avatar if available
+          const userWithAvatar = {
+            ...response.data.user,
+            avatar: response.data.user?.picture || 
+                   `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                     response.data.user?.username?.firstname + ' ' + 
+                     response.data.user?.username?.lastname
+                   )}&background=random`
+          };
+
+          // Save sanitized user data to context (localStorage handled by UserProvider)
           if (response.data.user) {
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+            localStorage.setItem('user', JSON.stringify({
+              ...userWithAvatar,
+              token: undefined, // Don't store token in localStorage
+              refreshToken: undefined
+            }));
           }
 
-          // Redirect to dashboard page
-          router.push('/dashboard');
+          // Redirect to dashboard or intended page
+          const redirectTo = router.query.redirect || '/dashboard';
+          router.push(typeof redirectTo === 'string' ? redirectTo : '/dashboard');
         } else {
           setError('Failed to authenticate with Google');
           setLoading(false);

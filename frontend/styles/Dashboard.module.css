@@ -75,9 +75,30 @@
   margin-top: 0.25rem;
 }
 
+.userAvatar {
+  display: flex;
+  align-items: center;
+}
+
 .avatarImage {
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.avatarPlaceholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.125rem;
+  text-transform: uppercase;
   border: 2px solid var(--border-color);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
