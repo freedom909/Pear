@@ -7,7 +7,8 @@ export interface IUser extends Document {
   name: string;
   role?: UserRole | '';
   emailVerified: boolean;
-  profilePhoto?: string;
+  // Change profilePhoto to avatar
+  avatar?: string;
   bio?: string;
 
   // OAuth 相关字段
@@ -150,7 +151,8 @@ export interface UserDocument extends Document {
   facebookId?: string;
   twitterId?: string;
   appleId?: string;
-  photo?: string;
+  // Change photo to avatar
+  avatar?: string;
   tokenInfo?: string[];
   refreshTokens?: string[];
   refreshTokensExpires?: Date;

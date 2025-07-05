@@ -45,11 +45,25 @@ export const googleCallback = (
           .json({ success: false, message: 'Google OAuth failed' });
       }
       const token = user.getSignedJwtToken();
-      // You can also issue a refresh token here if you like
+      // Transform user object to ensure avatar is included
+      const userResponse = {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        isVerified: user.isVerified,
+        provider: user.provider,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        linkedAccounts: user.linkedAccounts || [],
+        avatar: user.avatar || '/images/avatar.jpg' // Ensure avatar is included
+      };
+      
       return res.status(200).json({
         success: true,
         token,
-        user,
+        user: userResponse,
       });
     }
   )(req, res, next);

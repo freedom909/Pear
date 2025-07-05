@@ -34,7 +34,8 @@ export class AppleOAuthStrategy extends BaseStrategy {
 
           if (user) {
             logger.debug(`User found by email, linking Apple account: ${profile.id}`);
-            await userService.linkOAuthProviderToUser(user, 'apple', profile.id, profile as any);
+            const emailVerified = profile.email_verified || false;
+            await userService.linkOAuthProviderToUser(user, 'apple', profile.id, profile as any, emailVerified);
             await user.save();
           }
         }
@@ -42,26 +43,26 @@ export class AppleOAuthStrategy extends BaseStrategy {
         if (!user) {
           logger.debug(`Creating new user from Apple profile: ${profile.id}`);
  
-          user = await userService.createUserFromOAuthProfile(
-            {
-              id: profile.id,
-              name: {
-                familyName: profile.name?.familyName || '',
-                givenName: profile.name?.givenName || ''
-              },
-              emails: profile.emails ?? [],
-              // Remove avatar if not expected by your DTO, or add to input type
-              username: profile.username || '',
-              avatar: profile.photos?.[0]?.value || '',
-              provider: 'apple',
-             
-              oauth: {
-                apple: {
-                  id: profile.id,
-                  token: idToken
-                }
-              }
-            },
+                        const emailVerified = profile.email_verified || false;
+                        user = await userService.createUserFromOAuthProfile(
+                      {
+                        id: profile.id,
+                        name: {
+                          familyName: profile.name?.familyName || '',
+                          givenName: profile.name?.givenName || ''
+                        },
+                        emails: profile.emails ?? [],
+                        username: profile.username || '',
+                        avatar: profile.photos?.[0]?.value || '',
+                        provider: 'apple',
+                        isVerified: emailVerified,
+                        oauth: {
+                          apple: {
+                            id: profile.id,
+                            token: idToken
+                          }
+                        }
+                      },
           
           );
         }

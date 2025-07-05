@@ -1,0 +1,10 @@
+export enum ErrorCode {
+  // Authentication errors
+  EMAIL_ALREADY_REGISTERED = 'AUTH_001',
+  INVALID_EMAIL_FORMAT = 'AUTH_002',
+  REGISTRATION_FAILED = 'AUTH_003',
+  
+  // General errors
+  INTERNAL_SERVER_ERROR = 'GEN_001',
+  VALIDATION_ERROR = 'GEN_002'
+}

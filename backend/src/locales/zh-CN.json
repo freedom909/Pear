@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "email_already_registered": "该邮箱已被注册",
+    "invalid_email_format": "请填写有效的邮箱地址",
+    "registration_failed": "注册失败"
+  }
+}

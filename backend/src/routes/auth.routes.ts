@@ -8,6 +8,7 @@ import {
   resetPassword,
   updateDetails,
   updatePassword,
+  refreshToken,
 } from '../controllers/auth.controller';
 import {
   facebookLogin,
@@ -29,9 +30,15 @@ import {
   deleteUser,
   changeUserRole,
 } from '../controllers/user.controller';
-import { protect, role } from '../middleware/auth';
+import { protect} from '../middleware/auth';
+import { role } from '../middleware/role';
 
-import { UserRole } from '../models/interface';
+
+export enum UserRole {
+  ADMIN = 'admin',
+  USER = 'user',
+  MANAGER = 'manager',
+}
 
 const router = Router();
 /**
@@ -41,9 +48,10 @@ const router = Router();
  */
 router.post('/register', register);
 router.post('/login', login);
-router.get('/logout', logout);
+router.post('/logout', logout);
 router.post('/forgotpassword', forgotPassword);
 router.put('/resetpassword/:resettoken', resetPassword);
+router.post('/refresh-token', refreshToken); // Add refresh token endpoint
 
 /**
  * ========================
@@ -89,9 +97,8 @@ router.put('/updatepassword', updatePassword);
  * Admin routes
  * ========================
  */
-router.use(role(UserRole.ADMIN) as any);
-router.use(role(UserRole.SUPER_ADMIN) as any);
-
+router.use(role(UserRole.ADMIN) as any);//Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
+router.use (role(UserRole.ADMIN) as any); // Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
 router.get('/', getUsers);
 router.post('/', createUser);
 router.get('/:id', getUserById);

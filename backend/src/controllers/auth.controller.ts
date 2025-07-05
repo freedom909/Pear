@@ -3,9 +3,10 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import User from '../models/user/user.model';
 import { AppError } from '../errors/appError';
-import ErrorCode from '@/errors/error-code';
+import ErrorCode from '../errors/error-code';
 import logger from '../middleware/logger';
-import { UserDocument, UserRole } from '../models/interface';
+import { UserDocument } from '../models/interface';
+import { UserRole } from '../models/user/user.types';
 import { UserResponseDTO } from '../dtos/userDTO';
 import { asyncHandler } from '../middleware/errorHandler';
 
@@ -25,7 +26,7 @@ export const getMe = asyncHandler(
     if (!user) {
       return next(
         new AppError({
-          message: '用户不存在',
+          message: 'User not found',
           code: ErrorCode.NOT_FOUND,
           details: { user: user },
         })
@@ -64,13 +65,13 @@ export const updatePassword = asyncHandler(
     )) as UserDocument;
     if (!user) {
       return next(
-        new AppError({ message: '用户不存在', code: ErrorCode.NOT_FOUND })
+        new AppError({ message: 'User not found', code: ErrorCode.NOT_FOUND })
       );
     }
     const isMatch = await user.comparePassword(req.body.currentPassword);
     if (!isMatch) {
       return next(
-        new AppError({ message: '密码不正确', code: ErrorCode.UNAUTHORIZED })
+        new AppError({ message: 'Incorrect password', code: ErrorCode.UNAUTHORIZED })
       );
     }
 
@@ -81,15 +82,28 @@ export const updatePassword = asyncHandler(
 );
 
 /**
- * @desc    Log user out / clear cookie
+ * @desc    Log user out / clear cookies
  * @access  Private
  */
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
+  // Clear access token cookie
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
   });
-  res.status(200).json({ success: true, data: {} });
+  
+  // Clear refresh token cookie
+  res.cookie('refreshToken', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+  });
+  
+  res.status(200).json({ 
+    success: true, 
+    message: 'Logged out successfully' 
+  });
 });
 
 /**
@@ -103,7 +117,7 @@ export const forgotPassword = asyncHandler(
     if (!user) {
       return next(
         new AppError({
-          message: '没有使用该邮箱的用户',
+          message: 'No user with this email exists',
           code: ErrorCode.NOT_FOUND,
           details: { user: user },
         })
@@ -114,7 +128,7 @@ export const forgotPassword = asyncHandler(
     await user.save({ validateBeforeSave: false });
 
     const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
-    logger.info(`重置密码链接: ${resetUrl}`);
+    logger.info(`Password reset link: ${resetUrl}`);
 
     res.status(200).json({ success: true, resetUrl }); // Replace with actual mail sender in production
   }
@@ -139,7 +153,7 @@ export const resetPassword = asyncHandler(
     if (!user) {
       return next(
         new AppError({
-          message: '无效的令牌',
+          message: 'Invalid token',
           code: ErrorCode.BAD_REQUEST,
           details: { user: user },
         })
@@ -165,35 +179,44 @@ export const resetPassword = asyncHandler(
  */
 
 
-
 /**
  * Helper to send token in response
  */
 export function sendTokenResponse(user: any, statusCode: number, res: Response) {
   const token = user.getSignedJwtToken();
+  const refreshToken = generateRefreshToken(user);
+  const tokenExpiry = Math.floor(Date.now() / 1000) + (60 * 60); // 1 hour from now
+
   res
     .status(statusCode)
     .cookie('token', token, {
-      expires: new Date(
-        Date.now() +
-          (Number(process.env.JWT_COOKIE_EXPIRE) || 30) * 24 * 60 * 60 * 1000
-      ),
+      expires: new Date(Date.now() + 3600000), // 1 hour
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
     })
-    .json({ success: true, token });
+    .cookie('refreshToken', refreshToken, {
+      expires: new Date(Date.now() + 604800000), // 7 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    })
+    .json({ 
+      success: true, 
+      token,
+      refreshToken,
+      tokenExpiry
+    });
 }
 
 /**
  * 🔐 JWT utility helpers
  */
-function generateToken(user: UserDocument): string {
-  return jwt.sign(
-    { id: user._id, email: user.email, role: user.role },
-    process.env.JWT_SECRET || 'secret',
-    { expiresIn: '1h' }
-  );
-}
+// function generateToken(user: UserDocument): string {
+//   return jwt.sign(
+//     { id: user._id, email: user.email, role: user.role },
+//     process.env.JWT_SECRET || 'secret',
+//     { expiresIn: '1h' }
+//   );
+// }
 
 function generateRefreshToken(user: UserDocument): string {
   return jwt.sign(
@@ -206,25 +229,26 @@ function generateRefreshToken(user: UserDocument): string {
 /**
  * 🚀 Register new user
  */
-export const register = async (
+export const register = asyncHandler(async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { name, email, password, role } = req.body;
-    
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
       return next(
         new AppError({
-          message: '该邮箱已被注册',
-          code: ErrorCode.BAD_REQUEST,
-          details: { user: existingUser },
+          message: 'Email already registered',
+          code: ErrorCode.EMAIL_ALREADY_REGISTERED,
+          details: { userId: existingUser._id }
         })
       );
     }
+
     const user = (await User.create({
       name,
       email,
@@ -232,112 +256,116 @@ export const register = async (
       role: role === UserRole.ADMIN ? UserRole.USER : role,
     })) as unknown as UserDocument;
 
-    const token = generateToken(user);
-    const refreshToken = generateRefreshToken(user);
+    sendTokenResponse(user, 201, res);
 
-    res.status(201).json({ success: true, token, refreshToken, user });
-  } catch (error) {
-    logger.error('注册用户失败:', error);
-    next(error);
+  } catch (error: any) {
+    logger.error('User registration failed:', error);
+
+    // Duplicate key error
+    if (error.code === 11000) {
+      return next(
+        new AppError({
+          message: 'Email already registered',
+          code: ErrorCode.EMAIL_ALREADY_REGISTERED,
+          details: { error: error.message }
+        })
+      );
+    }
+
+    // Other errors
+    return next(
+      new AppError({
+        message: error.message || 'Registration failed',
+        code: ErrorCode.REGISTRATION_FAILED,
+        details: { error }
+      })
+    );
   }
-};
+})
 
 /**
  * 🔐 Login user
  */
-export const login = async (
+export const login = asyncHandler(async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return next(
-        new AppError({
-          message: '请提供邮箱和密码',
-          code: ErrorCode.BAD_REQUEST,
-          details: { user: { email, password } },
-        })
-      );
-    }
-
-    const user = (await User.findOne({ email }).select(
-      '+password'
-    )) as UserDocument;
-    if (!user || !(await user.comparePassword(password, user.password))) {
-      return next(
-        new AppError({
-          message: '无效的凭据',
-          code: ErrorCode.BAD_REQUEST,
-          details: { user: { email, password } },
-        })
-      );
-    }
-
-    const token = generateToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    res.status(200).json({ success: true, token, refreshToken, user });
-  } catch (error) {
-    logger.error('用户登录失败:', error);
-    next(error);
+  const { email, password } = req.body;
+  
+  if (!email || !password) {
+    return next(
+      new AppError({
+        message: 'Please provide email and password',
+        code: ErrorCode.BAD_REQUEST,
+        details: { email, password }
+      })
+    );
   }
-};
+
+  const user = (await User.findOne({ email }).select('+password')) as UserDocument;
+  
+  if (!user || !(await user.comparePassword(password))) {
+    return next(
+      new AppError({
+        message: 'Invalid email or password',
+        code: ErrorCode.UNAUTHORIZED,
+        details: { email }
+      })
+    );
+  }
+
+  sendTokenResponse(user, 200, res);
+});
 
 /**
  * 🔄 Refresh Token
  */
-export const refreshToken = async (
+export const refreshToken = asyncHandler(async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
-    const { refreshToken } = req.body;
+  const { refreshToken } = req.body;
 
-    if (!refreshToken) {
-      return next(
-        new AppError({
-          message: '需要提供 refreshToken',
-          code: ErrorCode.BAD_REQUEST,
-          details: { refreshToken },
-        })
-      );
-    }
-
-    let decoded: { id: string };
-    try {
-      decoded = jwt.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_SECRET || 'refresh-secret'
-      ) as { id: string };
-    } catch {
-      return next(
-        new AppError({
-          message: '无效的 refresh token',
-          code: ErrorCode.BAD_REQUEST,
-          details: { refreshToken },
-        })
-      );
-    }
-
-    const userId = decoded.id;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return next(
-        new AppError({
-          message: '无效的 refresh token',
-          code: ErrorCode.BAD_REQUEST,
-          details: { refreshToken },
-        })
-      );
-    }
-
-    sendTokenResponse(user, 200, res);
-  } catch (error) {
-    logger.error('刷新令牌失败:', error);
-    next(error);
+  if (!refreshToken) {
+    return next(
+      new AppError({
+        message: 'Please provide a refresh token',
+        code: ErrorCode.BAD_REQUEST,
+        details: { refreshToken }
+      })
+    );
   }
-};
+
+  // Verify refresh token
+  let decoded: { id: string };
+  try {
+    decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET || 'refresh-secret'
+    ) as { id: string };
+  } catch (error) {
+    return next(
+      new AppError({
+        message: 'Invalid refresh token',
+        code: ErrorCode.UNAUTHORIZED,
+        details: { error: (error as Error).message }
+      })
+    );
+  }
+
+  // Find user
+  const user = await User.findById(decoded.id);
+  if (!user) {
+    return next(
+      new AppError({
+        message: 'User not found',
+        code: ErrorCode.NOT_FOUND,
+        details: { userId: decoded.id },
+      })
+    );
+  }
+
+  sendTokenResponse(user, 200, res);
+});

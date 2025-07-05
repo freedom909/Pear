@@ -44,13 +44,15 @@ export class GoogleOAuthStrategy extends BaseStrategy {
                   );
 
                   // 3. Link the Google profile ID to the existing user
+                  const emailVerified = profile.emails?.[0]?.verified || false;
                   await userService.linkOAuthProviderToUser(
                     existingUserByEmail,
                     {
                       provider: 'google',
                       id: profile.id,
                       profile,
-                    }
+                    },
+                    emailVerified
                   );
 
                   return done(null, existingUserByEmail);
@@ -61,8 +63,14 @@ export class GoogleOAuthStrategy extends BaseStrategy {
               logger.info('Creating new user from Google profile', {
                 profileId: profile.id,
               });
+              const avatar = profile.photos?.[0]?.value;
+              const emailVerified = profile.emails?.[0]?.verified || false;
               user = await userService.createUserFromOAuthProfile(
-                profile as unknown as UserDocument,
+                {
+                  ...(profile as unknown as UserDocument),
+                  avatar,
+                  verified: emailVerified
+                },
                 'google'
               );
             } else {

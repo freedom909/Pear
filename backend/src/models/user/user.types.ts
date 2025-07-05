@@ -37,7 +37,6 @@ export interface IUser {
 
   // Verification
   isVerified?: boolean;
-  verified?: boolean; // If you prefer, you can remove one of these
 
   // Timestamps
 

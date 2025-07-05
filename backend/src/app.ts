@@ -47,7 +47,7 @@ app.set('trust proxy', false);
 
 // Security middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors());//CORS configuration
 app.use(mongoSanitize());
 app.use(hpp());
 
@@ -92,6 +92,17 @@ app.use(
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
+// Serve frontend public images
+const frontendImagesPath = path.join(__dirname, '../../../../Pear/frontend/public/images');
+console.log('Frontend images path:', frontendImagesPath);
+
+// Serve .png files directly
+app.use('/images', express.static(frontendImagesPath));
+
+// Redirect .jpg requests to .png for backward compatibility
+app.get('/images/avatar.jpg', (_req, res) => {
+  res.redirect('/images/avatar.png');
+});
 
 // Rate limiting
 const limiter = rateLimit({

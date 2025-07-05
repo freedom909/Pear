@@ -41,19 +41,25 @@ const sanitizeUserData = (user: any) => {
     );
   }
 
-  // 保留必要的认证信息
-  const preservedFields = [
-    '_id',
-    'id',
-    'username',
-    'role',
-    'permissions',
-    'createdAt',
-    'updatedAt',
-  ];
+      // 保留必要的认证信息
+      const preservedFields = [
+        '_id',
+        'id',
+        'username',
+        'role',
+        'permissions',
+        'createdAt',
+        'updatedAt',
+        'avatar'
+      ];
   preservedFields.forEach((field) => {
     if (user[field]) {
-      sanitized[field] = user[field];
+      if (field === 'avatar' && user[field]) {
+        // Convert avatar path to absolute URL
+        sanitized[field] = `http://localhost:5000${user[field]}`;
+      } else {
+        sanitized[field] = user[field];
+      }
     }
   });
 

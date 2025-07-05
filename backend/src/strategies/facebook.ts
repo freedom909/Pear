@@ -34,6 +34,11 @@ export class FacebookOAuthStrategy extends BaseStrategy {
           });
 
           try {
+            // Validate required profile fields
+            if (!profile.id) {
+              throw new Error('Facebook profile missing required field: id');
+            }
+
             // Find existing user or create a new one
             let user = await userService.findUserByOAuthProfile(
               { id: profile.id },
@@ -46,10 +51,11 @@ export class FacebookOAuthStrategy extends BaseStrategy {
                 const existingUserByEmail =
                   await userService.findUserByEmail(email);
                 if (existingUserByEmail) {
-                  logger.info(
-                    'Existing user found by email, linking Facebook account',
-                    { email }
-                  );
+                  logger.info('Linking Facebook account to existing user', {
+                    userId: existingUserByEmail._id,
+                    email,
+                    provider: 'facebook'
+                  });
                   await userService.linkOAuthProviderToUser(
                     existingUserByEmail,
                     {
@@ -61,24 +67,47 @@ export class FacebookOAuthStrategy extends BaseStrategy {
                   return done(null, existingUserByEmail);
                 }
               }
+
               logger.info('Creating new user from Facebook profile', {
                 profileId: profile.id,
+                hasEmail: !!email,
+                name: profile.name
               });
+
               user = await userService.createUserFromOAuthProfile(
-                profile as any,
+                {
+                  ...profile,
+                  provider: 'facebook',
+                  oauth: {
+                    id: profile.id,
+                    accessToken: _accessToken,
+                    refreshToken: _refreshToken
+                  }
+                },
                 'facebook'
               );
+
+              logger.info('Successfully created user from Facebook profile', {
+                userId: user._id,
+                profileId: profile.id
+              });
             } else {
               logger.info('Found existing user with Facebook profile', {
-                userId: user.id,
+                userId: user._id,
                 profileId: profile.id,
               });
             }
 
             return done(null, user);
           } catch (error) {
-            logger.error('Error in Facebook OAuth strategy', { error });
-            return done(error as Error, undefined);
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error('Facebook OAuth authentication failed', {
+              error: err.message,
+              stack: err.stack,
+              profileId: profile.id,
+              hasEmail: !!profile.emails?.[0]?.value
+            });
+            return done(err, undefined);
           }
         }
       )

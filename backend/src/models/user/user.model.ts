@@ -1,3 +1,4 @@
+
 // models/user/user.model.ts
 
 import dotenv from 'dotenv';
@@ -10,8 +11,16 @@ import { config } from '../config';
 
 const userSchema = new Schema<UserDocument>(
   {
-    // other fields...
-  linkedAccounts: {
+    email: {
+      type: String,
+      required: function() { return !this.linkedAccounts?.length }, // Only required for non-OAuth users
+      unique: true,
+      index: true,
+      trim: true,
+      lowercase: true,
+      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, '请填写有效的邮箱地址']
+    },
+    linkedAccounts: {
   type: [
     {
       provider: {

@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "email_already_registered": "This email is already registered",
+    "invalid_email_format": "Please enter a valid email address",
+    "registration_failed": "Registration failed"
+  }
+}

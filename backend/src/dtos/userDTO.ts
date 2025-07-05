@@ -166,7 +166,7 @@ export class UserResponseDTO implements Pick<IUser, 'email' | 'role'> {
     this.name = user.username; // or user.name
     this.email = user.email;
     this.role = user.role;
-    this.avatar = user.avatar;
+    this.avatar = user.avatar || '/images/avatar.jpg'; // Default avatar
     this.isVerified = user.verified;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;

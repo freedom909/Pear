@@ -4,7 +4,7 @@
   "description": "Pear Frontend Application",
   "main": "index.js",
   "type": "module",
-  "repository": "https://github.com/pear-app/Pear",
+  "repository": "https://github.com/freedom909/Pear",
   "author": "pear",
   "license": "MIT",
   "scripts": {
@@ -15,10 +15,17 @@
     "export": "next build && next export"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.0.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.2.0",
+    "@mui/material": "^7.2.0",
     "axios": "^1.4.0",
+    "http-proxy": "^1.18.1",
     "next": "^13.4.7",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "types": "file:../../lib/cors-middleware"
   },
   "devDependencies": {
     "@types/node": "24.0.10",

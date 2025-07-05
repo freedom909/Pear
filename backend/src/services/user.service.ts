@@ -24,6 +24,7 @@ export interface CreateUserFromOAuthProfileInput {
   username?: string;
   password?: string;
   avatar?: string;
+  isVerified: boolean;
   provider: 'local'|'apple' | 'google' | 'facebook' | 'twitter' | 'github';
   oauth?: any;
 }
@@ -47,9 +48,11 @@ export interface UserService {
     existingUserByEmail: UserDocument,
     provider: string,
     providerId: string,
-    profile: PassportProfile
+    profile: PassportProfile,
+    isVerified: boolean
   ): Promise<UserDocument>;
- createUserFromOAuthProfile(
+ 
+  createUserFromOAuthProfile(
   input: CreateUserFromOAuthProfileInput
 ): Promise<UserDocument>
 
@@ -136,7 +139,7 @@ export interface TokenResponse {
     lastName: string;
     role: UserRole;
     status: UserStatus;
-    verified: boolean;
+    isVerified: boolean;
     avatar?: string;
   };
 }
@@ -236,6 +239,7 @@ class UserServiceImpl implements UserService {
         username: user.username,
         email: user.email,
         role: user.role,
+        verified: user.isVerified || false,
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
       } as unknown as UserDocument;
@@ -276,6 +280,7 @@ class UserServiceImpl implements UserService {
         username: user.username,
         email: user.email,
         role: user.role,
+        verified: user.isVerified || false,
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
       } as unknown as UserDocument;
@@ -476,7 +481,7 @@ class UserServiceImpl implements UserService {
       if (!user) {
         throw AppError.notFound('用户不存在');
       }
-      const token = await user.generateResetPasswordToken();
+      const token = user.generateResetPasswordToken();
       return token;
     } catch (error) {
       logger.error('生成重置密码令牌失败:', error);
@@ -508,8 +513,8 @@ class UserServiceImpl implements UserService {
           lastName: user.username.lastname,
           role: (user as any).role,
           status: user.status,
-          verified: user.verified || false,
-          avatar: user.avatar,
+          isVerified: user.isVerified || false,
+          avatar: user.avatar || '/images/avatar.jpg', // Default avatar
         },
       };
     } catch (error) {
@@ -749,21 +754,55 @@ class UserServiceImpl implements UserService {
   }
 
   async createUserFromOAuthProfile(
-    input: CreateUserFromOAuthProfileInput
+    input: CreateUserFromOAuthProfileInput & { verified?: boolean }
   ): Promise<UserDocument> {
-    if (!input.provider ) {
-      throw AppError.badRequest('无效的OAuth用户资料');
+    try {
+      if (!input.provider) {
+        throw AppError.badRequest('无效的OAuth用户资料');
+      }
+
+      // Generate a placeholder email if none provided
+      const email = input.emails[0]?.value || 
+                   `${input.id}@${input.provider}.oauth.local`;
+
+      const userData = {
+        username: {
+          firstname: input.name?.givenName || input.provider,
+          lastname: input.name?.familyName || 'User'
+        },
+        email: email,
+        avatar: input.avatar || '/images/avatar.jpg',
+        verified: input.verified || false,
+        provider: input.provider,
+        [`${input.provider}`]: {
+          id: input.id,
+          ...(input.oauth || {}),
+        },
+      };
+
+      const user = await User.create(userData);
+      logger.info(`Created OAuth user for ${input.provider}: ${user._id}`);
+      
+      return {
+        ...user.toObject(),
+        avatar: userData.avatar
+      } as unknown as UserDocument;
+    } catch (error) {
+      logger.error('创建OAuth用户失败:', {
+        provider: input.provider,
+        error: error instanceof Error ? error.message : String(error),
+        input: {
+          id: input.id,
+          name: input.name,
+          hasEmail: !!input.emails?.[0]?.value
+        }
+      });
+      throw new AppError({
+        message: '创建OAuth用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error instanceof Error ? error : new Error(String(error))
+      });
     }
-  
-    return User.create({
-    name: input.name,
-    email: input.emails[0]?.value || '',
-    avatar: input.avatar,
-    [`${input.provider}`]: {
-      id: input.id,
-      ...(input.oauth || {}),
-    },
-    }) as unknown as UserDocument;
   }
 
   async findUserByEmail(email: string): Promise<UserDocument> {
@@ -925,17 +964,25 @@ class UserServiceImpl implements UserService {
     existingUserByEmail: UserDocument,
     provider: string,
     providerId: string,
-    profile: PassportProfile
+    profile: PassportProfile,
+    emailVerified?: boolean
   ): Promise<UserDocument> {
     if (existingUserByEmail) {
       (existingUserByEmail as any)[provider] = { id: providerId };
+      if (emailVerified) {
+        existingUserByEmail.isVerified = true;
+      }
       await existingUserByEmail.save();
       logger.info(
         `Linked ${provider} account for user: ${existingUserByEmail.email}`
       );
       return existingUserByEmail as unknown as UserDocument;
     } else {
-      const user = new User({ ...profile, [provider]: { id: providerId } });
+      const user = new User({ 
+        ...profile, 
+        [provider]: { id: providerId },
+        verified: emailVerified || false
+      });
       await user.save();
       logger.info(`OAuth user created: ${user.email}`);
       return user as unknown as UserDocument;
