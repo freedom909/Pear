@@ -535,15 +535,16 @@ class UserServiceImpl implements UserService {
   async findById(id: string): Promise<UserDocument> {
     try {
       // 验证ID格式
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw AppError.badRequest('无效的用户ID');
-      }
+    // IDが空なら早期リターン
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw AppError.badRequest('无效的用户ID');
+    }
 
       const user = await User.findById(id);
       if (!user) {
         throw AppError.notFound('用户不存在');
       }
-      return user as unknown as UserDocument;
+      return user as UserDocument;
     } catch (error) {
       logger.error(`根据ID查找用户失败 (ID: ${id}):`, error);
       if (error instanceof AppError) {

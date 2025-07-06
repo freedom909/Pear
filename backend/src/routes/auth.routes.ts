@@ -3,7 +3,6 @@ import {
   register,
   login,
   logout,
-  getMe,
   forgotPassword,
   resetPassword,
   updateDetails,
@@ -32,6 +31,7 @@ import {
 } from '../controllers/user.controller';
 import { protect} from '../middleware/auth';
 import { role } from '../middleware/role';
+import { getMe} from '../controllers/user.controller';
 
 
 export enum UserRole {
@@ -87,7 +87,7 @@ router.get('/twitter/callback', twitterCallback);
  */
 router.use(protect); // require authentication for everything below
 
-router.get('/me', getMe); // Now req.user will ALWAYS be set
+router.get('/me',  getMe);// Now req.user will ALWAYS be set
 
 router.put('/updatedetails', updateDetails);
 router.put('/updatepassword', updatePassword);
@@ -97,8 +97,8 @@ router.put('/updatepassword', updatePassword);
  * Admin routes
  * ========================
  */
-router.use(role(UserRole.ADMIN) as any);//Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
-router.use (role(UserRole.ADMIN) as any); // Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
+router.use(role(UserRole.ADMIN));//Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
+ // Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
 router.get('/', getUsers);
 router.post('/', createUser);
 router.get('/:id', getUserById);

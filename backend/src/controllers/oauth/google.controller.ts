@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 // your JWT‐issuing service
 import { UserDocument } from '../../models/interface/index'; // for typing
-import { asyncHandler } from '../../middleware/errorHandler';
+import { asyncHandler } from '../../middleware/asyncHandler';
 /**
  * Step 1: Redirect to Facebook for consent.
  * Route: GET /api/v1/auth/Facebook
@@ -45,26 +45,44 @@ export const googleCallback = (
           .json({ success: false, message: 'Google OAuth failed' });
       }
       const token = user.getSignedJwtToken();
-      // Transform user object to ensure avatar is included
-      const userResponse = {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        status: user.status,
-        isVerified: user.isVerified,
-        provider: user.provider,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        linkedAccounts: user.linkedAccounts || [],
-        avatar: user.avatar || '/images/avatar.jpg' // Ensure avatar is included
-      };
-      
-      return res.status(200).json({
-        success: true,
-        token,
-        user: userResponse,
-      });
+      console.log('Generated token:', user.getSignedJwtToken());
+
+      const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${baseUrl}/api/v1/auth/me`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+const text = await response.text();
+console.error('Response status:', response.status);
+console.error('Response body:', text);
+if (!response.ok) throw new Error('Failed to fetch user data');
+
+    //   res.cookie('token', token, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production',
+    // });
+     
+      // const userResponse = {
+      //   _id: user._id,
+      //   username: user.username,
+      //   email: user.email,
+      //   role: user.role,
+      //   status: user.status,
+      //   isVerified: user.isVerified,
+      //   provider: user.provider,
+      //   createdAt: user.createdAt,
+      //   updatedAt: user.updatedAt,
+      //   linkedAccounts: user.linkedAccounts || [],
+      //   avatar: user.avatar || '/images/avatar-1.jpg' // Ensure avatar is included
+      // };
+    
+      // return res.status(200).json({
+      //   success: true,
+      //   token,
+      //   user: userResponse,
+      // });
+      return res.redirect(`http://localhost:3000/dashboard?token=${token}`);
+
+
     }
   )(req, res, next);
 };

@@ -33,7 +33,7 @@ export default function GoogleCallback(): React.ReactElement {
         }
         
         // Call our proxy API with the required parameters
-        const res = await fetch(`/api/proxy/google-callback?code=${code}&state=${state}`);
+        const res = await fetch(`/api/v1/proxy/google-callback?code=${code}&state=${state}`);
         const data: OAuthResponse = await res.json();
 
                   if (data.success) {
@@ -61,5 +61,11 @@ export default function GoogleCallback(): React.ReactElement {
     fetchToken();
   }, [router]);
 
-  return <div>Signing you in...</div>;
+  return (
+  <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+    <h2>Signing you in with Google...</h2>
+    <p>Please wait.</p>
+  </div>
+);
+
 }

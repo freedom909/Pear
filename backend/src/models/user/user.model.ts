@@ -119,7 +119,7 @@ userSchema.methods.getSignedJwtToken = function (): string {
   return jwt.sign(
     { id: this._id },
     jwtSecret,
-    { expiresIn: '3d' } // not the reason of 'dotenv', only this way can work.
+    { expiresIn: '3d' } // 3 days
   );
 };
 

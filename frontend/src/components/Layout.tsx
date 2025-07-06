@@ -28,7 +28,7 @@ const Layout: React.FC<LayoutProps> = ({
   description = 'A secure authentication solution',
 }) => {
   const router = useRouter();
-  const { user, logout } = useContext(UserContext) as UserContextType;
+  const { user, logout } = useContext(UserContext) as UserContextType;//TypeError: Cannot destructure property 'user' of '(0 , react__WEBPACK_IMPORTED_MODULE_1__.useContext)(...)' as it is undefined.
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
 

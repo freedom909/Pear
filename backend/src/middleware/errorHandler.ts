@@ -121,8 +121,5 @@ export default function errorHandler(
  *
  * @param fn 异步路由处理器
  */
-export const asyncHandler =
-  (fn: Function) =>
-  (req: Request, res: Response, next: NextFunction): void => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
+
+

@@ -4,11 +4,12 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../errors/appError';
 import { ErrorCode } from '../errors/error-code';
 
-import { asyncHandler } from '../middleware/errorHandler';
+import { asyncHandler } from '../middleware/asyncHandler';
 import User from '../models/user/user.model';
 import { UserRole } from '../models/interface/index';
 import { validateRequest } from '../validators/validateRequest';
 import { UpdateUserDTO } from '../dtos/userDTO';
+import { AuthRequest } from '@/middleware/auth';
 
 // 用户数据脱敏函数
 const sanitizeUserData = (user: any) => {
@@ -71,7 +72,7 @@ const sanitizeUserData = (user: any) => {
  * @route   GET /api/v1/users/me
  * @access  Private
  */
-export const getMe = asyncHandler(
+export const getMe = asyncHandler<AuthRequest>(
   async (req: any, res: Response, next: NextFunction) => {
     const user = await User.findById(req.user.id).select('-password');
 

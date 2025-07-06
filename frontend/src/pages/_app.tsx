@@ -1,11 +1,16 @@
 // pages/_app.tsx
-import { AppProps } from 'next/app';
-import { AuthProvider } from '../contexts/AuthContext'; // adjust path
+import '../styles/globals.css'
+import type { AppProps } from 'next/app'
+import { UserProvider } from '../contexts/UserContext'
+import { AuthProvider } from '../contexts/AuthContext'
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps }: AppProps) {
   return (
-    <AuthProvider>
-      <Component {...pageProps} />
+      <AuthProvider>
+        <UserProvider>
+          <Component {...pageProps} />
+        </UserProvider>
     </AuthProvider>
-  );
+  
+  )
 }

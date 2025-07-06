@@ -54,16 +54,24 @@ const Dashboard: NextPage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+     if (!router.isReady) return; 
+    const queryToken = router.query.token as string | undefined;
+
+    if (queryToken) {
+    localStorage.setItem('token', queryToken);
+    // Optional: you can also call setAuthToken(queryToken) if using context
+  
     const fetchUserData = async () => {
       try {
         setLoading(true);
         setError('');
 
         let data: any = null;
-
-        if (authToken) {
-          const response = await fetch('/api/v1/auth/me', {
-            headers: { Authorization: `Bearer ${authToken}` },
+        const token = queryToken || authToken || localStorage.getItem('token');
+        if (token ) {
+          const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
+          const response = await fetch(`${baseUrl}/api/v1/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
           if (!response.ok) throw new Error('Failed to fetch user data');
           data = await response.json();
@@ -127,7 +135,8 @@ const Dashboard: NextPage = () => {
     };
 
     fetchUserData();
-  }, [authToken, router]);
+    }
+  }, [router.isReady, router.query, authToken]);
 
   const handleLogout = (): void => {
     logout();

@@ -8,50 +8,40 @@ import logger from '../middleware/logger';
 import { UserDocument } from '../models/interface';
 import { UserRole } from '../models/user/user.types';
 import { UserResponseDTO } from '../dtos/userDTO';
-import { asyncHandler } from '../middleware/errorHandler';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 import jwt from 'jsonwebtoken';
 interface AuthRequest extends Request {
   user: UserDocument;
 }
 
-/**
- * @desc    Get current user
- * @route   GET /api/v1/auth/me
- * @access  Private
- */
-export const getMe = asyncHandler(
+export const updateDetails = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const user = await User.findById(req.user.id);
+    const fieldsToUpdate = {
+      name: req.body.name,
+      email: req.body.email,
+    };
+
+    const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
+      new: true,
+      runValidators: true,
+    });
+
     if (!user) {
       return next(
         new AppError({
           message: 'User not found',
           code: ErrorCode.NOT_FOUND,
-          details: { user: user },
         })
       );
     }
-    sendTokenResponse(user, 200, res);
-  }
-);
 
-/**
- * @desc    Update user details
- * @route   PUT /api/v1/auth/updatedetails
- * @access  Private
- */
-export const updateDetails = asyncHandler(
-  async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    const updated = await User.findByIdAndUpdate(
-      req.user.id,
-      { name: req.body.name, email: req.body.email },
-      { new: true, runValidators: true }
-    );
-
-    sendTokenResponse(updated, 200, res);
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
   }
-);
+  );
 
 /**
  * @desc    Update password
@@ -207,16 +197,6 @@ export function sendTokenResponse(user: any, statusCode: number, res: Response) 
     });
 }
 
-/**
- * 🔐 JWT utility helpers
- */
-// function generateToken(user: UserDocument): string {
-//   return jwt.sign(
-//     { id: user._id, email: user.email, role: user.role },
-//     process.env.JWT_SECRET || 'secret',
-//     { expiresIn: '1h' }
-//   );
-// }
 
 function generateRefreshToken(user: UserDocument): string {
   return jwt.sign(

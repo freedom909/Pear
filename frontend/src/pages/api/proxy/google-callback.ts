@@ -15,9 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Forward the request to the backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1/users', '') || 'http://localhost:5000';
+ 
     const response = await axios.get(
-      `${backendUrl}/api/v1/auth/google/callback`,
+      `/api/v1/auth/google/callback`,
       {
         params: {
           code,
