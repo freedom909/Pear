@@ -1,6 +1,7 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { UserDocument } from '../models/interface/index';
 import { JwtTokens } from '../models/interface/index';
+import { promisify } from 'util';
 /**
  * JWT Tokens interface
  */
@@ -100,3 +101,26 @@ export class JwtUtil {
     }
   }
 }
+
+
+
+
+
+
+
+interface TokenPayload {
+  id: string;
+}
+
+export const createToken = (id: string): string => {
+  return jwt.sign({ id }, process.env.JWT_SECRET as string, {
+    expiresIn: '1d',
+  });
+};
+
+export const verifyToken = async (token: string): Promise<TokenPayload> => {
+  return (await promisify(jwt.verify)(
+    token,
+    
+  )) as unknown as TokenPayload;
+};

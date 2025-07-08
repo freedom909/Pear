@@ -1,10 +1,12 @@
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/router';
 
+type OAuthProvider = 'google' | 'facebook' | 'twitter' | 'apple';
+
 interface AuthContextType {
   authToken: string | null;
   isLoading: boolean;
-  login: () => void;
+  login: (provider: OAuthProvider) => void;
   logout: () => void;
   setAuthToken: (token: string | null) => void;
 }
@@ -16,7 +18,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  // Initialize auth state from storage
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token) {
@@ -25,7 +26,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // Persist token to storage when it changes
   useEffect(() => {
     if (authToken) {
       localStorage.setItem('auth_token', authToken);
@@ -34,9 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [authToken]);
 
-  const login = () => {
-    // Redirect to backend Google auth endpoint
-    window.location.href = '/api/v1/auth/google';
+  const login = (provider: OAuthProvider) => {
+    window.location.href = `/api/v1/auth/${provider}`;// login wrong will redirect to /login?
   };
 
   const logout = () => {

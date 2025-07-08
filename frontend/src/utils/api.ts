@@ -26,8 +26,8 @@ class ApiService {
   constructor() {
     this.baseUrl =
       API_CONFIG.BASE_URL ||
-      process.env.NEXT_PUBLIC_API_URL ||
-      'http://localhost:3000';
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1",  
+
     this.timeout = API_CONFIG.TIMEOUT || 10000;
 
     // Create Axios instance
@@ -159,10 +159,12 @@ class ApiService {
     password: string
   ): Promise<UserResponse> {
     try {
-      const response = await this.post<UserResponse>(
+      const response = await this.api.post<UserResponse>(
         API_CONFIG.ENDPOINTS.AUTH.REGISTER,
+       
         { name, email, password }
       );
+      console.log('API_CONFIG.ENDPOINTS.AUTH.REGISTER')
       if (response.data.token) {
         this.setToken(response.data.token);
       }

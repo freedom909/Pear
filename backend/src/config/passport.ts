@@ -1,8 +1,9 @@
 import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
-import User from '../models/user/user.model';
+
 import config from './config';
 import logger from '../middleware/logger';
+import userService from '@/services/user.service';
 
 // JWT选项
 const opts = {
@@ -15,7 +16,7 @@ passport.use(
   new JwtStrategy(opts, async (jwt_payload, done) => {
     try {
       // 查找用户
-      const user = await User.findById(jwt_payload.sub);
+      const user = await userService.findById(jwt_payload.sub);
 
       if (user) {
         return done(null, user);

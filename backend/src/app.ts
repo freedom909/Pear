@@ -110,8 +110,9 @@ app.get('/images/avatar.jpg', (_req, res) => {
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000,
   message: '请求过于频繁，请稍后再试',
+   skip: (req) => req.ip === '127.0.0.1',
 });
 app.use(limiter);
 
@@ -120,7 +121,7 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Routes
+//Routes
 app.use('/', apiRoutes);
 
 // Not found handler
@@ -129,7 +130,7 @@ app.use(notFound);
 // Error handler
 app.use(errorHandler);
 
-// Uncaught exception handler
+//Uncaught exception handler
 process.on('uncaughtException', (err) => {
   logger.error(`❌ 未捕获的异常: ${err.message}`, { stack: err.stack });
   process.exit(1);

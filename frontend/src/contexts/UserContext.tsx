@@ -6,7 +6,7 @@ import {
   ReactNode,
   JSX,
 } from 'react';
-import { useRouter } from 'next/router';
+import Router, { useRouter } from 'next/router';
 import axios from 'axios';
 import logger, { errorHandler } from '../utils/logger';
 import apiService from '../utils/api';
@@ -65,7 +65,7 @@ export interface UserContextType {
     email: string,
     password: string
   ) => Promise<ApiResponse>;
-  
+
   logout: () => Promise<ApiResponse>;
   forgotPassword: (email: string) => Promise<ApiResponse>;
   resetPassword: (token: string, password: string) => Promise<ApiResponse>;
@@ -78,6 +78,15 @@ export interface UserContextType {
   refreshToken: () => Promise<boolean>;
 }
 
+const API_PATHS = {
+  RESET_PASSWORD: '/api/v1/auth/reset-password',
+  CHANGE_PASSWORD: '/api/v1/auth/change-password',
+  FORGOT_PASSWORD: '/api/v1/auth/forgot-password',
+  LOGIN: '/api/v1/auth/login',
+  REGISTER: '/api/v1/auth/register',
+  UPDATE_PROFILE: '/api/v1/auth/update-profile',
+  LOGOUT: '/api/v1/auth/logout',
+}
 // Create context with default undefined value
 export const UserContext = createContext<UserContextType | undefined>(
   undefined
@@ -162,30 +171,43 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
   useEffect(() => {
     const checkLoggedIn = async (): Promise<void> => {
       log.debug('Checking user login status');
+
+      // ✅ Skip verification on login page
+      if (router.pathname === '/login') {
+        log.debug('On login page, skipping verifyToken.');
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Only verify if token exists
+      const token = apiService.getToken();
+      if (!token) {
+        log.debug('No token found, user not logged in.');
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const result = await apiService.verifyToken();
-
         if (result.success && result.user) {
           log.debug('User verified', { userId: result.user.id });
           setUser(result.user);
-          // Also persist sanitized copy to localStorage
+
           const sanitized = sanitizeUserData(result.user);
           if (typeof window !== 'undefined') {
             localStorage.setItem('user', JSON.stringify(sanitized));
           }
 
-          // Set up token refresh before expiration
           if (result.user.tokenExpiry) {
             const expiresIn = result.user.tokenExpiry * 1000 - Date.now();
-            const refreshTime = Math.max(expiresIn - 300000, 0); // Refresh 5 minutes before expiry
+            const refreshTime = Math.max(expiresIn - 300000, 0);
             setTimeout(refreshToken, refreshTime);
           }
         } else {
           log.debug('User not logged in');
           setUser(null);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('user');
-          }
+          localStorage.removeItem('user');
         }
       } catch (error) {
         log.error('Error verifying token:', error);
@@ -197,7 +219,8 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
     };
 
     checkLoggedIn();
-  }, []);
+  }, [router.pathname]);
+
 
   const login = async (
     email: string,
@@ -211,10 +234,12 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
       if (result.success) {
         log.info('Login successful', { userId: result.user.id });
         setUser(result.user);
-                  const sanitized = sanitizeUserData(result.user);
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('user', JSON.stringify(sanitized));
-                  }
+        const sanitized = sanitizeUserData(result.user);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(sanitized));
+        }
+        await router.push('/dashboard');
+
         return { success: true };
       } else {
         log.warn('Login failed', { email, message: result.message });
@@ -232,13 +257,17 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
   ): Promise<ApiResponse> => {
     log.debug('Attempting register', { email });
     try {
-      const result = await apiService.register(name, email, password);
+      const { data } = await axios.post(API_PATHS.REGISTER, {
+        name,
+        email,
+        password,
+      });
 
-      if (result.success) {
-        log.info('Registration successful', { userId: result.user.id });
+      if (data.success) {
+        log.info('Registration successful', { userId: data.user.id });
         try {
-          await setUser(result.user);
-          const sanitized = sanitizeUserData(result.user);
+          await setUser(data.user);
+          const sanitized = sanitizeUserData(data.user);
           if (typeof window !== 'undefined') {
             localStorage.setItem('user', JSON.stringify(sanitized));
           }
@@ -248,49 +277,49 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
           return { success: true };
         } catch (error) {
           log.error('Registration flow error:', error);
-          return { 
-            success: false, 
-            message: 'Registration completed but encountered an error' 
+          return {
+            success: false,
+            message: 'Registration completed but encountered an error'
           };
         }
       } else {
-        log.warn('Registration failed', { email, message: result.message });
-        return { success: false, message: result.message };
+        log.warn('Registration failed', { email, message: data.message });
+        return { success: false, message: data.message };
       }
     } catch (error) {
       log.error('Registration API error:', error);
-      
+
       // Handle specific error cases
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
         const data = error.response?.data;
-        
+
         if (status === 400) {
-          return { 
-            success: false, 
-            message: data?.message || '请求参数错误，请检查填写内容' 
+          return {
+            success: false,
+            message: data?.message || '请求参数错误，请检查填写内容'
           };
         } else if (status === 409) {
-          return { 
-            success: false, 
-            message: data?.message || '该邮箱已被注册' 
+          return {
+            success: false,
+            message: data?.message || '该邮箱已被注册'
           };
         } else if (status === 422) {
-          return { 
-            success: false, 
-            message: data?.message || '输入验证失败，请检查填写内容' 
+          return {
+            success: false,
+            message: data?.message || '输入验证失败，请检查填写内容'
           };
         } else if (status >= 500) {
-          return { 
-            success: false, 
-            message: '服务器错误，请稍后重试' 
+          return {
+            success: false,
+            message: '服务器错误，请稍后重试'
           };
         }
       }
-      
-      return { 
-        success: false, 
-        message: '注册失败，请稍后重试' 
+
+      return {
+        success: false,
+        message: '注册失败，请稍后重试'
       };
     }
   };
@@ -319,7 +348,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
 
   const forgotPassword = async (email: string): Promise<ApiResponse> => {
     try {
-      const { data } = await axios.post('/api/auth/forgot-password', { email });
+      const { data } = await axios.post(API_PATHS.FORGOT_PASSWORD, { email });
       if (data.success) {
         return { success: true, message: data.message };
       } else {
@@ -338,7 +367,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
     password: string
   ): Promise<ApiResponse> => {
     try {
-      const { data } = await axios.post('/api/auth/reset-password', {
+      const { data } = await axios.post(API_PATHS.RESET_PASSWORD, {
         token,
         password,
       });
@@ -359,7 +388,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
     userData: Partial<User>
   ): Promise<ApiResponse> => {
     try {
-      const { data } = await axios.put('/api/auth/profile', userData);
+      const { data } = await axios.put(API_PATHS.UPDATE_PROFILE, userData);
       if (data.success) {
         setUser(data.user);
         const sanitized = sanitizeUserData(data.user);
@@ -383,7 +412,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
     newPassword: string
   ): Promise<ApiResponse> => {
     try {
-      const { data } = await axios.put('/api/auth/change-password', {
+      const { data } = await axios.put(API_PATHS.CHANGE_PASSWORD, {
         currentPassword,
         newPassword,
       });
@@ -442,7 +471,10 @@ export async function fetchWithAuth(
   url: string,
   options: RequestInit = {}
 ): Promise<any> {
-  const storedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null;
+  const storedUser = typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem('user') || 'null')
+    : null;
+
   if (!storedUser) {
     throw new Error('No authenticated user');
   }
@@ -453,7 +485,7 @@ export async function fetchWithAuth(
   };
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/verify-token`, {
       ...options,
       headers: {
         ...defaultHeaders,
@@ -465,7 +497,7 @@ export async function fetchWithAuth(
       if (response.status === 401) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          Router.push('/login?session=expired');
         }
         throw new Error('Session expired');
       }

@@ -1,298 +1,137 @@
+// auth.controller.ts
 import { Request, Response, NextFunction } from 'express';
-
+import bcrypt from 'bcryptjs';
+import validator from 'validator';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import User from '../models/user/user.model';
 import { AppError } from '../errors/appError';
 import ErrorCode from '../errors/error-code';
 import logger from '../middleware/logger';
 import { UserDocument } from '../models/interface';
-import { UserRole } from '../models/user/user.types';
 import { UserResponseDTO } from '../dtos/userDTO';
 import { asyncHandler } from '../middleware/asyncHandler';
+import userService from '../services/user.service';
 
-import jwt from 'jsonwebtoken';
+interface RegisterRequestBody {
+  name: string;
+  email: string;
+  password: string;
+  passwordConfirm: string;
+}
+
 interface AuthRequest extends Request {
   user: UserDocument;
-}
-
-export const updateDetails = asyncHandler(
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-    };
-
-    const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!user) {
-      return next(
-        new AppError({
-          message: 'User not found',
-          code: ErrorCode.NOT_FOUND,
-        })
-      );
-    }
-
-    res.status(200).json({
-      success: true,
-      data: user,
-    });
-  }
-  );
-
-/**
- * @desc    Update password
- * @route   PUT /api/v1/auth/updatepassword
- * @access  Private
- */
-export const updatePassword = asyncHandler(
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const user = (await User.findById(req.user.id).select(
-      '+password'
-    )) as UserDocument;
-    if (!user) {
-      return next(
-        new AppError({ message: 'User not found', code: ErrorCode.NOT_FOUND })
-      );
-    }
-    const isMatch = await user.comparePassword(req.body.currentPassword);
-    if (!isMatch) {
-      return next(
-        new AppError({ message: 'Incorrect password', code: ErrorCode.UNAUTHORIZED })
-      );
-    }
-
-    user.password = req.body.newPassword;
-    await user.save();
-    sendTokenResponse(user, 200, res);
-  }
-);
-
-/**
- * @desc    Log user out / clear cookies
- * @access  Private
- */
-export const logout = asyncHandler(async (_req: Request, res: Response) => {
-  // Clear access token cookie
-  res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-  });
-  
-  // Clear refresh token cookie
-  res.cookie('refreshToken', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-  });
-  
-  res.status(200).json({ 
-    success: true, 
-    message: 'Logged out successfully' 
-  });
-});
-
-/**
- * @desc    Forgot password
- * @route   POST /api/v1/auth/forgotpassword
- * @access  Public
- */
-export const forgotPassword = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const user = await User.findOne({ email: req.body.email });
-    if (!user) {
-      return next(
-        new AppError({
-          message: 'No user with this email exists',
-          code: ErrorCode.NOT_FOUND,
-          details: { user: user },
-        })
-      );
-    }
-
-    const resetToken = user.getResetPasswordToken() as string;
-    await user.save({ validateBeforeSave: false });
-
-    const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
-    logger.info(`Password reset link: ${resetUrl}`);
-
-    res.status(200).json({ success: true, resetUrl }); // Replace with actual mail sender in production
-  }
-);
-
-/**
- * @desc    Reset password
- * @route   PUT /api/v1/auth/resetpassword/:resettoken
- * @access  Public
- */
-export const resetPassword = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(req.params.resettoken)
-      .digest('hex');
-
-    const user = (await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() },
-    })) as UserDocument;
-    if (!user) {
-      return next(
-        new AppError({
-          message: 'Invalid token',
-          code: ErrorCode.BAD_REQUEST,
-          details: { user: user },
-        })
-      );
-    }
-
-    user.password = req.body.password; // the business logic is ok?
-    user.resetPasswordToken = undefined; //
-    user.resetPasswordExpire = undefined; //
-    await user.save();
-
-    // sendTokenResponse(user, 200, res);
-    return res
-      .status(200)
-      .json({ success: true, data: new UserResponseDTO(user) });
-  }
-);
-
-/**
- * ========================
- * ==== OAUTH ROUTES =====
- * ========================
- */
-
-
-/**
- * Helper to send token in response
- */
-export function sendTokenResponse(user: any, statusCode: number, res: Response) {
-  const token = user.getSignedJwtToken();
-  const refreshToken = generateRefreshToken(user);
-  const tokenExpiry = Math.floor(Date.now() / 1000) + (60 * 60); // 1 hour from now
-
-  res
-    .status(statusCode)
-    .cookie('token', token, {
-      expires: new Date(Date.now() + 3600000), // 1 hour
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    })
-    .cookie('refreshToken', refreshToken, {
-      expires: new Date(Date.now() + 604800000), // 7 days
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    })
-    .json({ 
-      success: true, 
-      token,
-      refreshToken,
-      tokenExpiry
-    });
-}
-
-
-function generateRefreshToken(user: UserDocument): string {
-  return jwt.sign(
-    { id: user._id },
-    process.env.JWT_REFRESH_SECRET || 'refresh-secret',
-    { expiresIn: '7d' }
-  );
 }
 
 /**
  * 🚀 Register new user
  */
-export const register = asyncHandler(async (
-  req: Request,
+export const register = async (
+  req: Request<{}, {}, RegisterRequestBody>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, passwordConfirm } = req.body;
 
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return next(
-        new AppError({
-          message: 'Email already registered',
-          code: ErrorCode.EMAIL_ALREADY_REGISTERED,
-          details: { userId: existingUser._id }
-        })
-      );
+    // 1) Validate input
+    if (!name || !email || !password || !passwordConfirm) {
+      return next(new AppError({
+        message: 'Please provide all required fields',
+        code: ErrorCode.BAD_REQUEST,
+        details: { name, email, password, passwordConfirm },
+      }));
     }
 
-    const user = (await User.create({
+    if (!validator.isEmail(email)) {
+      return next(new AppError({
+        message: 'Please provide a valid email',
+        code: ErrorCode.BAD_REQUEST,
+        details: { email },
+      }));
+    }
+
+    if (password !== passwordConfirm) {
+      return next(new AppError({
+        message: 'Passwords do not match',
+        code: ErrorCode.BAD_REQUEST,
+        details: { password, passwordConfirm },
+      }));
+    }
+
+    if (password.length < 8) {
+      return next(new AppError({
+        message: 'Password must be at least 8 characters',
+        code: ErrorCode.BAD_REQUEST,
+        details: { password },
+      }));
+    }
+
+    // 2) Check if user already exists
+    const existingUser = await userService.findOne({ email });
+    if (existingUser) {
+      return next(new AppError({
+        message: 'Email already in use',
+        code: ErrorCode.BAD_REQUEST,
+        details: { email },
+      }));
+    }
+
+    // 3) Create new user
+    const newUser = await userService.create({
       name,
       email,
-      password,
-      role: role === UserRole.ADMIN ? UserRole.USER : role,
-    })) as unknown as UserDocument;
+      password: await bcrypt.hash(password, 10),
+      provider: 'local',
+      accessToken: '',
+      refreshToken: '',
+      profile: {},
+      avatar: '',
+    });
 
-    sendTokenResponse(user, 201, res);
+    // 4) Generate JWT token
+    const token = createToken(newUser._id as string);
 
-  } catch (error: any) {
-    logger.error('User registration failed:', error);
-
-    // Duplicate key error
-    if (error.code === 11000) {
-      return next(
-        new AppError({
-          message: 'Email already registered',
-          code: ErrorCode.EMAIL_ALREADY_REGISTERED,
-          details: { error: error.message }
-        })
-      );
-    }
-
-    // Other errors
-    return next(
-      new AppError({
-        message: error.message || 'Registration failed',
-        code: ErrorCode.REGISTRATION_FAILED,
-        details: { error }
-      })
-    );
+    // 5) Send response
+    res.status(201).json({
+      success: true,
+      token,
+      data: {
+        user: {
+          id: newUser._id,
+          name: newUser.username,
+          email: newUser.email,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
   }
-})
+};
 
 /**
  * 🔐 Login user
  */
-export const login = asyncHandler(async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const login = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
-  
+
   if (!email || !password) {
-    return next(
-      new AppError({
-        message: 'Please provide email and password',
-        code: ErrorCode.BAD_REQUEST,
-        details: { email, password }
-      })
-    );
+    return next(new AppError({
+      message: 'Please provide email and password',
+      code: ErrorCode.BAD_REQUEST,
+      details: { email, password },
+    }));
   }
 
   const user = (await User.findOne({ email }).select('+password')) as UserDocument;
-  
+
   if (!user || !(await user.comparePassword(password))) {
-    return next(
-      new AppError({
-        message: 'Invalid email or password',
-        code: ErrorCode.UNAUTHORIZED,
-        details: { email }
-      })
-    );
+    return next(new AppError({
+      message: 'Invalid email or password',
+      code: ErrorCode.UNAUTHORIZED,
+      details: { email },
+    }));
   }
 
   sendTokenResponse(user, 200, res);
@@ -301,24 +140,17 @@ export const login = asyncHandler(async (
 /**
  * 🔄 Refresh Token
  */
-export const refreshToken = asyncHandler(async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const refreshToken = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
-    return next(
-      new AppError({
-        message: 'Please provide a refresh token',
-        code: ErrorCode.BAD_REQUEST,
-        details: { refreshToken }
-      })
-    );
+    return next(new AppError({
+      message: 'Please provide a refresh token',
+      code: ErrorCode.BAD_REQUEST,
+      details: { refreshToken },
+    }));
   }
 
-  // Verify refresh token
   let decoded: { id: string };
   try {
     decoded = jwt.verify(
@@ -326,26 +158,178 @@ export const refreshToken = asyncHandler(async (
       process.env.JWT_REFRESH_SECRET || 'refresh-secret'
     ) as { id: string };
   } catch (error) {
-    return next(
-      new AppError({
-        message: 'Invalid refresh token',
-        code: ErrorCode.UNAUTHORIZED,
-        details: { error: (error as Error).message }
-      })
-    );
+    return next(new AppError({
+      message: 'Invalid refresh token',
+      code: ErrorCode.UNAUTHORIZED,
+      details: { error: (error as Error).message },
+    }));
   }
 
-  // Find user
   const user = await User.findById(decoded.id);
   if (!user) {
-    return next(
-      new AppError({
-        message: 'User not found',
-        code: ErrorCode.NOT_FOUND,
-        details: { userId: decoded.id },
-      })
-    );
+    return next(new AppError({
+      message: 'User not found',
+      code: ErrorCode.NOT_FOUND,
+      details: { userId: decoded.id },
+    }));
   }
 
   sendTokenResponse(user, 200, res);
 });
+
+/**
+ * 🏷️ Update user details
+ */
+export const updateDetails = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const fieldsToUpdate = {
+    name: req.body.name,
+    email: req.body.email,
+  };
+
+  const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!user) {
+    return next(new AppError({
+      message: 'User not found',
+      code: ErrorCode.NOT_FOUND,
+    }));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: user,
+  });
+});
+
+/**
+ * 🔒 Update password
+ */
+export const updatePassword = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const user = (await User.findById(req.user.id).select('+password')) as UserDocument;
+
+  if (!user) {
+    return next(new AppError({
+      message: 'User not found',
+      code: ErrorCode.NOT_FOUND,
+    }));
+  }
+
+  const isMatch = await user.comparePassword(req.body.currentPassword);
+  if (!isMatch) {
+    return next(new AppError({
+      message: 'Incorrect password',
+      code: ErrorCode.UNAUTHORIZED,
+    }));
+  }
+
+  user.password = req.body.newPassword;
+  await user.save();
+  sendTokenResponse(user, 200, res);
+});
+
+/**
+ * 📨 Forgot password
+ */
+export const forgotPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    return next(new AppError({
+      message: 'No user with this email exists',
+      code: ErrorCode.NOT_FOUND,
+      details: { email: req.body.email },
+    }));
+  }
+
+  const resetToken = user.getResetPasswordToken() as string;
+  await user.save({ validateBeforeSave: false });
+
+  const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
+  logger.info(`Password reset link: ${resetUrl}`);
+
+  res.status(200).json({ success: true, resetUrl });
+});
+
+/**
+ * 🔁 Reset password
+ */
+export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(req.params.resettoken)
+    .digest('hex');
+
+  const user = (await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  })) as UserDocument;
+
+  if (!user) {
+    return next(new AppError({
+      message: 'Invalid token',
+      code: ErrorCode.BAD_REQUEST,
+    }));
+  }
+
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save();
+
+  res.status(200).json({ success: true, data: new UserResponseDTO(user) });
+});
+
+/**
+ * 🚪 Logout
+ */
+export const logout = asyncHandler(async (_req: Request, res: Response) => {
+  res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+  });
+  res.cookie('refreshToken', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+  });
+
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
+});
+
+/**
+ * Helper to create JWT
+ */
+function createToken(id: string): string {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+}
+
+/**
+ * Helper to send token response
+ */
+function sendTokenResponse(user: any, statusCode: number, res: Response) {
+  const token = user.getSignedJwtToken();
+  const refreshToken = generateRefreshToken(user);
+  const tokenExpiry = Math.floor(Date.now() / 1000) + 60 * 60;
+
+  res
+    .status(statusCode)
+    .cookie('token', token, {
+      expires: new Date(Date.now() + 3600000),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    })
+    .cookie('refreshToken', refreshToken, {
+      expires: new Date(Date.now() + 7 * 24 * 3600000),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+    })
+    .json({ success: true, token, refreshToken, tokenExpiry });
+}
+
+function generateRefreshToken(user: UserDocument): string {
+  return jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || 'refresh-secret', { expiresIn: '7d' });
+}

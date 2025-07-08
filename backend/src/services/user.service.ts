@@ -9,7 +9,6 @@ import bcrypt from 'bcryptjs';
 import { Profile as PassportProfile } from 'passport';
 import { OAuthTokenInfo } from '../models/interface/index';
 import {
-  IUser,
   IUserProfile,
   UserStatus,
   UserRole,
@@ -51,7 +50,16 @@ export interface UserService {
     profile: PassportProfile,
     isVerified: boolean
   ): Promise<UserDocument>;
- 
+   create(userData: {
+    email: string;
+    name: string;
+    password?: string;
+    provider: string;
+    accessToken: string;
+    refreshToken: string;
+    profile?: Partial<IUserProfile>;
+    avatar?: string;
+  }): Promise<UserDocument>;
   createUserFromOAuthProfile(
   input: CreateUserFromOAuthProfileInput
 ): Promise<UserDocument>
@@ -68,16 +76,7 @@ export interface UserService {
     provider: string,
     providerId: string
   ): Promise<UserDocument | null>;
-  create(userData: {
-    email: string;
-    name: string;
-    password?: string;
-    provider: string;
-    accessToken: string;
-    refreshToken: string;
-    profile?: Partial<IUser>;
-    avatar?: string;
-  }): Promise<UserDocument>;
+
   findOneOrCreate(
     profile: any,
     tokenInfo: OAuthTokenInfo
@@ -587,31 +586,32 @@ class UserServiceImpl implements UserService {
    * @param userData 用户数据
    * @returns 用户文档
    */
-  async create(userData: {
+ create(userData: {
     email: string;
     name: string;
+    password?: string;
     provider: string;
     accessToken: string;
     refreshToken: string;
+    profile?: Partial<IUserProfile>;
     avatar?: string;
-    profile?: Partial<IUser>;
   }): Promise<UserDocument> {
     try {
       // 创建新用户
-      const newUser = (await User.create({
+      const newUser = (User.create({
         username: {
           firstname: userData.name.split(' ')[0] || 'google',
           lastname: userData.name.split(' ')[1] || 'son of google',
         },
 
         email: userData.email,
-        password: await bcrypt.hash(mathjs.random().toString(), 10),
+        password:  bcrypt.hash(mathjs.random().toString(), 10),
         role: 'user',
         provider: userData.provider,
         accessToken: userData.accessToken,
         refreshToken: userData.refreshToken,
-      })) as unknown as UserDocument;
-      return newUser as unknown as UserDocument;
+      })) 
+      return newUser 
     } catch (error) {
       logger.error('创建OAuth用户失败:', error);
       throw new AppError({

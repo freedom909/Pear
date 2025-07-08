@@ -37,6 +37,7 @@ export const facebookCallback = [
         return res.redirect('/api/v1/auth/login?error=oauth_failed');
       }
       const token = await authService.generateJwtForUser(user);
+      console.log('Generated JWT token:', token);
       return res.redirect(
         `http://localhost:3000/social-success?token=${token}`
       );

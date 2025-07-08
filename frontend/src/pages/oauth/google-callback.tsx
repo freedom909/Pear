@@ -38,7 +38,7 @@ export default function GoogleCallback(): React.ReactElement {
 
                   if (data.success) {
                   // Save token
-                  localStorage.setItem('token', data.token as string);
+                  localStorage.setItem('auth_token', data.token as string);
                   
                   // Extract user info from backend response
                   const userInfo = {

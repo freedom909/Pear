@@ -54,6 +54,7 @@ export default function ProtectedRoute({
       checkAuth();
     }
   }, [user, loading, refreshToken]);
+console.log("ProtectedRoute states", { loading, checking, user });
 
   if (loading || checking) {
     return (
@@ -97,8 +98,9 @@ export function withProtection<P extends object>(
   allowedRoles: UserRole[] = []
 ): React.FC<P> {
   const ProtectedComponent: React.FC<P> = (props) => (
-    <ProtectedRoute allowedRoles={allowedRoles}>
-      <Component {...props} />
+    <ProtectedRoute allowedRoles={allowedRoles} >
+      <Component {...props} />  
+         
     </ProtectedRoute>
   );
 

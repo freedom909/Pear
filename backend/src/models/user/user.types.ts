@@ -78,6 +78,7 @@ export interface IUser {
 // Document interface extends Mongoose's Document and our fields
 export interface UserDocument extends Document, IUser, Timestamps {
   verifyPassword(password: string): Promise<boolean>;
+  comparePassword(candidatePassword: string): Promise<boolean>;
   clearResetToken(): void;
   getSignedJwtToken(): string;
   generateAccessToken(): string;

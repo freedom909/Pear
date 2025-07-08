@@ -6,7 +6,7 @@ import { UserDocument } from '../models/interface/index';
 import userService from '../services/user.service';
 import { UnauthorizedError } from '../errors/httpError';
 import { ErrorCode } from '../errors/error-code';
-import { UserRole } from '../models/interface/index';
+import { UserRole } from '../models/user/user.types';
 
 export interface RegisterDTO {
   username: string;
@@ -120,7 +120,7 @@ class AuthService {
     const payload: TokenPayload = {
       userId: user._id as unknown as string,
       email: user.email,
-      role: user.role,
+      role: user.role as UserRole,
     };
     return jwt.sign(payload, config.jwt.secret, {
       expiresIn: config.jwt.expiresIn as unknown as number,

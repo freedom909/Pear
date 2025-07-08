@@ -163,11 +163,26 @@ export class UserResponseDTO implements Pick<IUser, 'email' | 'role'> {
 
   constructor(user: any) {
     this.id = user._id;
-    this.name = user.username; // or user.name
+    // 处理不同格式的用户名
+    if (user.username && typeof user.username === 'object') {
+      // 如果username是一个包含firstname和lastname的对象
+      const firstname = user.username.firstname || '';
+      const lastname = user.username.lastname || '';
+      this.name = `${firstname} ${lastname}`.trim();
+    } else if (user.username && typeof user.username === 'string') {
+      // 如果username是一个字符串
+      this.name = user.username;
+    } else if (user.name) {
+      // 如果有name字段
+      this.name = user.name;
+    } else {
+      // 默认值
+      this.name = '';
+    }
     this.email = user.email;
     this.role = user.role;
     this.avatar = user.avatar || '/images/avatar.jpg'; // Default avatar
-    this.isVerified = user.verified;
+    this.isVerified = user.isVerified;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
   }

@@ -16,9 +16,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Forward the request to the backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1/users', '') || 'http://localhost:5000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+    console.log('backendUrl:', backendUrl);// no output can be seen
+  //  const provider: 'facebook' | 'google' | 'twitter' | 'apple' = 'google';
+
     const response = await axios.get(
-      `${backendUrl}/api/v1/auth/facebook/callback`,
+      `${backendUrl}/api/v1/auth/google/callback`,
       {
         params: {
           code,
@@ -27,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         withCredentials: true,
       }
     );
-
+   console.log('facebook response:',response);
     // Return the response from the backend API
     return res.status(200).json(response.data);
   } catch (error) {

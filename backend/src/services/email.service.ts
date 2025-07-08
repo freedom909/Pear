@@ -1,22 +1,26 @@
 import nodemailer from 'nodemailer';
 import config from '../config/config';
-import logger from '../middleware/logger';
-import User from '../models/user/user.model';
-import { ErrorCode } from '../errors/error-code';
-import { BadRequestError } from '../errors/httpError';
+
+interface EmailOptions {
+  to: string;
+  subject: string;
+  text?: string;
+  html?: string;
+}
 
 /**
  * 邮件服务类
+ * 用于发送电子邮件
  */
-export class EmailService {
+class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
-    // 创建邮件传输器
+    // 创建一个 SMTP 传输器
     this.transporter = nodemailer.createTransport({
-      host: config.email.host, //
+      host: config.email.host,
       port: config.email.port,
-      secure: config.email.secure,
+      secure: config.email.secure, // true for 465, false for other ports
       auth: {
         user: config.email.user,
         pass: config.email.password,
@@ -24,165 +28,84 @@ export class EmailService {
     });
   }
 
-  async verifyEmail(token: string): Promise<void> {
-    const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: Date.now() },
-    });
-    if (!user) {
-      throw new BadRequestError(
-        ErrorCode.INVALID_TOKEN,
-        'Invalid or expired verification token'
-      );
-    }
-
-    user.isVerified = true;
-    // Assuming the property exists in the User model, but TypeScript needs type assertion
-    (user as any).emailVerificationToken = undefined;
-    (user as any).emailVerificationExpires = undefined;
-    await user.save();
-  }
-
   /**
-   * 发送邮件
-   * @param to 收件人
-   * @param subject 主题
-   * @param html 邮件内容(HTML)
+   * 发送电子邮件
+   * @param options 邮件选项
    * @returns 发送结果
    */
-  async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
-      const mailOptions = {
+      // 发送邮件
+      await this.transporter.sendMail({
         from: `"${config.email.senderName}" <${config.email.user}>`,
-        to,
-        subject,
-        html,
-      };
-
-      const info = await this.transporter.sendMail(mailOptions);
-      logger.info(`Email sent: ${info.messageId}`);
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html,
+      });
       return true;
     } catch (error) {
-      logger.error('Error sending email:', error);
+      console.error('发送邮件失败:', error);
       return false;
     }
   }
 
   /**
-   * 发送验证邮件
-   * @param to 收件人
-   * @param name 用户名
-   * @param token 验证令牌
-   * @returns 发送结果
-   */
-  async sendVerificationEmail(
-    to: string,
-    name: string,
-    token: string
-  ): Promise<boolean> {
-    const verificationUrl = `${config.clientUrl}/verify-email?token=${token}`;
-    const subject = '请验证您的电子邮箱';
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">您好，${name}！</h2>
-        <p>感谢您注册我们的服务。请点击下面的按钮验证您的电子邮箱：</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationUrl}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">验证邮箱</a>
-        </div>
-        <p>或者，您可以复制并粘贴以下链接到您的浏览器：</p>
-        <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-        <p>此链接将在24小时后过期。</p>
-        <p>如果您没有注册我们的服务，请忽略此邮件。</p>
-        <hr style="border: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #777; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
-      </div>
-    `;
-
-    return this.sendEmail(to, subject, html);
-  }
-
-  /**
    * 发送密码重置邮件
-   * @param to 收件人
-   * @param name 用户名
-   * @param token 重置令牌
+   * @param email 用户邮箱
+   * @param resetToken 重置令牌
+   * @param resetUrl 重置链接
    * @returns 发送结果
    */
   async sendPasswordResetEmail(
-    to: string,
-    name: string,
-    token: string
+    email: string,
+    _resetToken: string,
+    resetUrl: string
   ): Promise<boolean> {
-    const resetUrl = `${config.clientUrl}/reset-password?token=${token}`;
     const subject = '密码重置请求';
+    const text = `您收到此邮件是因为您（或其他人）请求重置密码。请点击以下链接或将其粘贴到浏览器中以完成密码重置过程：\n\n${resetUrl}\n\n如果您没有请求此操作，请忽略此邮件，您的密码将保持不变。此链接将在10分钟后过期。`;
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">您好，${name}！</h2>
-        <p>我们收到了您的密码重置请求。请点击下面的按钮重置您的密码：</p>
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+        <h2 style="color: #333; text-align: center;">密码重置</h2>
+        <p>您好，</p>
+        <p>您收到此邮件是因为您（或其他人）请求重置密码。</p>
+        <p>请点击以下按钮完成密码重置过程：</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background-color: #2196F3; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">重置密码</a>
+          <a href="${resetUrl}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">重置密码</a>
         </div>
-        <p>或者，您可以复制并粘贴以下链接到您的浏览器：</p>
+        <p>或者，您可以将以下链接粘贴到浏览器中：</p>
         <p><a href="${resetUrl}">${resetUrl}</a></p>
-        <p>此链接将在1小时后过期。</p>
-        <p>如果您没有请求重置密码，请忽略此邮件，您的账户将保持安全。</p>
-        <hr style="border: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #777; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
+        <p>如果您没有请求此操作，请忽略此邮件，您的密码将保持不变。</p>
+        <p>此链接将在10分钟后过期。</p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+        <p style="color: #777; font-size: 12px; text-align: center;">此邮件由系统自动发送，请勿回复。</p>
       </div>
     `;
 
-    return this.sendEmail(to, subject, html);
+    return this.sendEmail({ to: email, subject, text, html });
   }
 
   /**
-   * 发送欢迎邮件
-   * @param to 收件人
-   * @param name 用户名
+   * 发送密码重置成功确认邮件
+   * @param email 用户邮箱
    * @returns 发送结果
    */
-  async sendWelcomeEmail(to: string, name: string): Promise<boolean> {
-    const subject = '欢迎加入我们的平台';
+  async sendPasswordResetConfirmationEmail(email: string): Promise<boolean> {
+    const subject = '密码重置成功';
+    const text = `您的密码已成功重置。如果您没有进行此操作，请立即联系我们的支持团队。`;
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">欢迎，${name}！</h2>
-        <p>感谢您加入我们的平台。我们很高兴您成为我们社区的一员！</p>
-        <p>您现在可以访问我们的所有功能和服务。</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${config.clientUrl}" style="background-color: #673AB7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">访问平台</a>
-        </div>
-        <p>如果您有任何问题或需要帮助，请随时联系我们的支持团队。</p>
-        <hr style="border: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #777; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+        <h2 style="color: #333; text-align: center;">密码重置成功</h2>
+        <p>您好，</p>
+        <p>我们想通知您，您的密码已成功重置。</p>
+        <p>如果您没有进行此操作，请立即联系我们的支持团队，因为您的账户可能已被盗用。</p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+        <p style="color: #777; font-size: 12px; text-align: center;">此邮件由系统自动发送，请勿回复。</p>
       </div>
     `;
 
-    return this.sendEmail(to, subject, html);
-  }
-
-  /**
-   * 发送密码更改通知
-   * @param to 收件人
-   * @param name 用户名
-   * @returns 发送结果
-   */
-  async sendPasswordChangeNotification(
-    to: string,
-    name: string
-  ): Promise<boolean> {
-    const subject = '密码已更改';
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">您好，${name}！</h2>
-        <p>您的账户密码已成功更改。</p>
-        <p>如果这不是您本人操作，请立即联系我们的支持团队。</p>
-        <hr style="border: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #777; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
-      </div>
-    `;
-
-    return this.sendEmail(to, subject, html);
+    return this.sendEmail({ to: email, subject, text, html });
   }
 }
 
-// 导出单例
-export const emailService = new EmailService();
+export default new EmailService();

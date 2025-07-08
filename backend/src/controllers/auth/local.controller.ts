@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { AppError } from '../../errors/appError';
 import ErrorCode from '../../errors/error-code';
-import { sendTokenResponse } from '../auth.controller';
+import {sendTokenResponse} from '../../middleware/sendTokenResponse';
 import logger from '../../middleware/logger';
 
 /**
@@ -37,7 +37,7 @@ export const localLogin = (req: Request, res: Response, next: NextFunction) => {
     }
 
     logger.info('User logged in successfully', { userId: user.id });
-    sendTokenResponse(user, 200, res);
+    sendTokenResponse(res, 200, user);
   })(req, res, next);
 };
 
@@ -67,7 +67,7 @@ export const localRegister = async (req: Request, res: Response, next: NextFunct
     });
 
     logger.info('User registered successfully', { userId: user.id });
-    sendTokenResponse(user, 201, res);
+    sendTokenResponse(user, 201, res as any);
   } catch (error) {
     logger.error('Error in user registration', { error });
     next(error);

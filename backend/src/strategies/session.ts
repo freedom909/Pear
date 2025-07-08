@@ -1,6 +1,7 @@
 // strategies/session.ts
 import passport from 'passport';
 import { UserDocument } from '../models/interface';
+import userService from '@/services/user.service';
 
 export function setupSessionSerialization() {
   passport.serializeUser((user: Express.User, done) => {
@@ -8,7 +9,14 @@ export function setupSessionSerialization() {
   });
 
   passport.deserializeUser(async (id: string, done) => {
-    // Replace with your user lookup
-    done(null, { id } as any);
-  });
+  try {
+    const user = await userService.getUserById(id);
+    if (!user) {
+      return done(new Error('User not found'));
+    }
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+});
 }

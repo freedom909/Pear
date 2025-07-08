@@ -49,18 +49,18 @@ export const googleCallback = (
 
       const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
       const response = await fetch(`${baseUrl}/api/v1/auth/me`, {
-  headers: { Authorization: `Bearer ${token}` },
-});
-const text = await response.text();
-console.error('Response status:', response.status);
-console.error('Response body:', text);
-if (!response.ok) throw new Error('Failed to fetch user data');
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const text = await response.text();
+      console.error('Response status:', response.status);
+      console.error('Response body:', text);
+      if (!response.ok) throw new Error('Failed to fetch user data');
 
-    //   res.cookie('token', token, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === 'production',
-    // });
-     
+      //   res.cookie('token', token, {
+      //   httpOnly: true,
+      //   secure: process.env.NODE_ENV === 'production',
+      // });
+
       // const userResponse = {
       //   _id: user._id,
       //   username: user.username,
@@ -74,7 +74,7 @@ if (!response.ok) throw new Error('Failed to fetch user data');
       //   linkedAccounts: user.linkedAccounts || [],
       //   avatar: user.avatar || '/images/avatar-1.jpg' // Ensure avatar is included
       // };
-    
+
       // return res.status(200).json({
       //   success: true,
       //   token,

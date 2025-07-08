@@ -5,7 +5,6 @@ import userService from '../services/user.service';
 import { AuthStrategyFactory } from '../strategies/auth.factory';
 import { OAuthConfiguration } from '../config/oauth';
 import logger from '../middleware/logger';
-import User from '../models/user/user.model';
 import { UserDocument } from '@/models/interface';
 
 export class PassportConfig {
@@ -31,9 +30,9 @@ export class PassportConfig {
         { usernameField: 'email' },
         async (email, password, done): Promise<void> => {
           try {
-            const user = (await User.findOne({
+            const user = (await userService.findOne({
               email: email.toLowerCase(),
-            })) as UserDocument;
+            })) as unknown as UserDocument;
             if (!user) {
               return done(null, false, { message: 'Incorrect email.' });
             }
@@ -55,7 +54,7 @@ export class PassportConfig {
     passport.serializeUser((user: any, done) => done(null, user.id));
     passport.deserializeUser(async (id, done) => {
       try {
-        const user = await User.findById(id);
+        const user = await userService.findById(id as string);
         done(null, user || null);
       } catch (error) {
         done(error);

@@ -1,108 +1,42 @@
-import { Router } from 'express';
-import {
-  register,
-  login,
-  logout,
-  forgotPassword,
-  resetPassword,
-  updateDetails,
-  updatePassword,
-  refreshToken,
-} from '../controllers/auth.controller';
-import {
-  facebookLogin,
-  facebookCallback,
-} from '../controllers/oauth/facebook.controller';
-import {
-  appleLogin,
-  appleCallback,
-} from '../controllers/oauth/apple.controller';
-import {
-  twitterLogin,
-  twitterCallback,
-} from '../controllers/oauth/twitter.controller';
-import { googleLogin, googleCallback } from '../controllers/oauth/google.controller';
-import {
-  getUsers,
-  getUserById,
-  createUser,
-  deleteUser,
-  changeUserRole,
-} from '../controllers/user.controller';
-import { protect} from '../middleware/auth';
-import { role } from '../middleware/role';
-import { getMe} from '../controllers/user.controller';
+import express from "express";
+import { login, register } from "../controllers/auth.controller";
+import { googleLogin, googleCallback } from "../controllers/oauth/google.controller";
+import { facebookLogin, facebookCallback } from "../controllers/oauth/facebook.controller";
+import { protect } from "../middleware/auth";
 
+const publicRouter = express.Router();
+const protectedRouter = express.Router();
 
-export enum UserRole {
-  ADMIN = 'admin',
-  USER = 'user',
-  MANAGER = 'manager',
-}
-
-const router = Router();
 /**
- * ========================
  * Public routes
- * ========================
+ * (No authentication required)
  */
-router.post('/register', register);
-router.post('/login', login);
-router.post('/logout', logout);
-router.post('/forgotpassword', forgotPassword);
-router.put('/resetpassword/:resettoken', resetPassword);
-router.post('/refresh-token', refreshToken); // Add refresh token endpoint
+publicRouter.post("/login", login);
+publicRouter.post("/register", register);
+
+// Google OAuth
+publicRouter.get("/google", googleLogin);
+publicRouter.get("/google/callback", googleCallback);
+// Facebook OAuth
+publicRouter.get("/facebook", facebookLogin);
+publicRouter.get("/facebook/callback", facebookCallback);
 
 /**
- * ========================
- * OAuth routes
- * ========================
+ * Protected routes
+ * (Authentication required)
  */
-// your OAuth routes here...
-/**
- * ========================
- * OAuth routes
- * ========================
- */
-// Google
-router.get('/google', googleLogin);
-router.get('/google/callback', googleCallback);
+protectedRouter.use(protect);
+protectedRouter.get("/me", (req, res) => {
+  res.json({ success: true, user: req.user });
+});
 
-// Facebook
-router.get('/facebook', facebookLogin);
-router.get('/facebook/callback', facebookCallback);
+protectedRouter.get("/verify-token", (req, res) => {
+  res.json({ user: req.user });
+});
 
-// Apple
-router.get('/apple', appleLogin);
-router.get('/apple/callback', appleCallback);
+protectedRouter.post("/logout", (req, res) => {
+  req.logout(() => {});
+  res.json({ message: "Logged out" });
+});
 
-// Twitter
-router.get('/twitter', twitterLogin);
-router.get('/twitter/callback', twitterCallback);
-
-/**
- * ========================
- * Authenticated routes
- * ========================
- */
-router.use(protect); // require authentication for everything below
-
-router.get('/me',  getMe);// Now req.user will ALWAYS be set
-
-router.put('/updatedetails', updateDetails);
-router.put('/updatepassword', updatePassword);
-
-/**
- * ========================
- * Admin routes
- * ========================
- */
-router.use(role(UserRole.ADMIN));//Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
- // Argument of type '"admin"' is not assignable to parameter of type 'UserRole'
-router.get('/', getUsers);
-router.post('/', createUser);
-router.get('/:id', getUserById);
-router.delete('/:id', deleteUser);
-router.put('/:id/role', changeUserRole);
-
-export default router;
+export { publicRouter, protectedRouter };
