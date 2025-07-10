@@ -2,9 +2,6 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { UserDocument } from '../models/interface/index';
 import { JwtTokens } from '../models/interface/index';
 import { promisify } from 'util';
-/**
- * JWT Tokens interface
- */
 
 /**
  * JWT Utility
@@ -36,7 +33,7 @@ export class JwtUtil {
       role: user.role || 'user',
     };
 
-    return jwt.sign(payload, process.env.JWT_SECRET || 'access_secret', {
+    return jwt.sign(payload, process.env.JWT_SECRET || 'secure-random-string-here', {
       expiresIn: process.env.JWT_EXPIRES_IN || '15m',
       algorithm: 'HS256',
     } as SignOptions);
@@ -53,7 +50,7 @@ export class JwtUtil {
       tokenVersion: user.tokenVersion || 0,
     };
 
-    const secret = process.env.JWT_REFRESH_SECRET || 'refresh_secret';
+    const secret = process.env.JWT_REFRESH_SECRET || 'another-secure-random-string-here';
     return jwt.sign(payload, secret, {
       expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
     } as SignOptions);

@@ -155,7 +155,7 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response, nex
   try {
     decoded = jwt.verify(
       refreshToken,
-      process.env.JWT_REFRESH_SECRET || 'refresh-secret'
+      process.env.JWT_REFRESH_SECRET || 'another-secure-random-string-here'
     ) as { id: string };
   } catch (error) {
     return next(new AppError({
@@ -170,7 +170,7 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response, nex
     return next(new AppError({
       message: 'User not found',
       code: ErrorCode.NOT_FOUND,
-      details: { userId: decoded.id },
+      details: { id: decoded.id },
     }));
   }
 
@@ -304,7 +304,7 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
  * Helper to create JWT
  */
 function createToken(id: string): string {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1h' });
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'secure-random-string-here', { expiresIn: '1h' });
 }
 
 /**
@@ -331,5 +331,5 @@ function sendTokenResponse(user: any, statusCode: number, res: Response) {
 }
 
 function generateRefreshToken(user: UserDocument): string {
-  return jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || 'refresh-secret', { expiresIn: '7d' });
+  return jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || 'another-secure-random-string-here', { expiresIn: '7d' });
 }

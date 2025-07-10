@@ -119,7 +119,7 @@ userSchema.methods.getSignedJwtToken = function (): string {
   return jwt.sign(
     { id: this._id },
     jwtSecret,
-    { expiresIn: '3d' } // 3 days
+    { expiresIn: '7d' } // 3 days
   );
 };
 

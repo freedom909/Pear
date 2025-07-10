@@ -1,4 +1,6 @@
 // pages/dashboard.tsx
+import dynamic from 'next/dynamic';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { NextPage } from 'next';
@@ -13,6 +15,7 @@ import Alert from '@mui/material/Alert';
 /**
  * Stats and Activity Interfaces
  */
+
 interface StatsData {
   totalPears: number;
   pearsPicked: number;
@@ -52,91 +55,99 @@ const Dashboard: NextPage = () => {
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+console.log('Dashboard component mounted');
 
-  useEffect(() => {
-     if (!router.isReady) return; 
-    const queryToken = router.query.token as string | undefined;
+useEffect(() => {
+  if (!router.isReady) return;
 
-    if (queryToken) {
+  const queryToken = router.query.token as string | undefined;
+  const storedToken = localStorage.getItem('token');
+
+  const effectiveToken = queryToken || authToken || storedToken;
+console.log("router.query:", router.query);
+console.log("queryToken:", queryToken);
+console.log("authToken:", authToken);
+console.log("storedToken:", storedToken);
+
+  if (queryToken) {
     localStorage.setItem('token', queryToken);
-    // Optional: you can also call setAuthToken(queryToken) if using context
-  
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        setError('');
+  }
+console.log("effectiveToken:", effectiveToken);
+  if (!effectiveToken) {
+   
+console.log("effectiveToken:", effectiveToken);//no output in the terminal
 
-        let data: any = null;
-        const token = queryToken || authToken || localStorage.getItem('token');
-        if (token ) {
-          const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
-          const response = await fetch(`${baseUrl}/api/v1/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!response.ok) throw new Error('Failed to fetch user data');
-          data = await response.json();
-        } else {
-          const userStr = localStorage.getItem('userInfo');
-          if (userStr) {
-            data = JSON.parse(userStr);
-          } else {
-            router.push('/login');
-            return;
-          }
-        }
+    router.push('/login');
+    console.log('Inside useEffect');
+    return;
+  }
+console.log("effectiveToken:", effectiveToken);//no output in the terminal
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      setError('');
 
-        setUser({
-          name: data.name || 'User',
-          email: data.email || '',
-          role: 'Orchard Manager',
-          avatar: data.avatar || '',
-        });
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${baseUrl}/api/v1/users/me`, {
+        headers: { Authorization: `Bearer ${effectiveToken}` },
+      });
 
-        setStats({
-          totalPears: 1250,
-          pearsPicked: 850,
-          pearsSold: 720,
-          revenue: 3600,
-        });
+      if (!response.ok) throw new Error('Failed to fetch user data');//why?
+      const data = await response.json();
 
-        setRecentActivity([
-          {
-            id: '1',
-            type: 'harvest',
-            description: 'Harvested 150 pears from Section A',
-            timestamp: '2023-09-15T10:30:00Z',
-            amount: 150,
-          },
-          {
-            id: '2',
-            type: 'sale',
-            description: 'Sold 200 pears to Local Market',
-            timestamp: '2023-09-15T09:15:00Z',
-            amount: 200,
-          },
-          {
-            id: '3',
-            type: 'inspection',
-            description: 'Completed weekly orchard inspection',
-            timestamp: '2023-09-14T16:45:00Z',
-          },
-          {
-            id: '4',
-            type: 'maintenance',
-            description: 'Irrigation system maintenance',
-            timestamp: '2023-09-14T14:20:00Z',
-          },
-        ]);
-      } catch (err: any) {
-        setError(err.message || 'An unexpected error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+      setUser({
+        name: data.name || 'User',
+        email: data.email || '',
+        role: 'Orchard Manager',
+        avatar: data.avatar || '',
+      });
 
-    fetchUserData();
+      setStats({
+        totalPears: 1250,
+        pearsPicked: 850,
+        pearsSold: 720,
+        revenue: 3600,
+      });
+
+      setRecentActivity([
+        {
+          id: '1',
+          type: 'harvest',
+          description: 'Harvested 150 pears from Section A',
+          timestamp: '2023-09-15T10:30:00Z',
+          amount: 150,
+        },
+        {
+          id: '2',
+          type: 'sale',
+          description: 'Sold 200 pears to Local Market',
+          timestamp: '2023-09-15T09:15:00Z',
+          amount: 200,
+        },
+        {
+          id: '3',
+          type: 'inspection',
+          description: 'Completed weekly orchard inspection',
+          timestamp: '2023-09-14T16:45:00Z',
+        },
+        {
+          id: '4',
+          type: 'maintenance',
+          description: 'Irrigation system maintenance',
+          timestamp: '2023-09-14T14:20:00Z',
+        },
+      ]);
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
-  }, [router.isReady, router.query, authToken]);
+  };
+
+  fetchUserData();
+}, [router.isReady, router.query, authToken]);
+
+console.log('Dashboard component mounted');
 
   const handleLogout = (): void => {
     logout();
@@ -227,4 +238,5 @@ const Dashboard: NextPage = () => {
   );
 };
 
-export default Dashboard;
+export default dynamic(() => Promise.resolve(Dashboard), { ssr: false });
+

@@ -1,46 +1,46 @@
 // src/pages/api/proxy/facebook-callback.ts
+
 import { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 
-/**
- * API proxy route for Facebook OAuth callback
- * This route forwards the request to the backend API and returns the response
- */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('Facebook callback proxy called');
+
   try {
-    // Get the code and state from the query parameters
     const { code, state } = req.query;
 
+    console.log('Query params:', req.query);
+
     if (!code || !state) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+      return res.status(400).json({ error: 'Missing required parameters: code or state' });
     }
 
-    // Forward the request to the backend API
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
-    console.log('backendUrl:', backendUrl);// no output can be seen
-  //  const provider: 'facebook' | 'google' | 'twitter' | 'apple' = 'google';
+    // Use a non-public env var
+    const backendUrl = process.env.API_URL || 'http://localhost:5000';
+    const provider = 'facebook';
 
+    // Forward the request to your backend
     const response = await axios.get(
-      `${backendUrl}/api/v1/auth/google/callback`,
+      `${backendUrl}/api/v1/auth/${provider}/callback`,
       {
-        params: {
-          code,
-          state,
-        },
+        params: { code, state },
         withCredentials: true,
       }
     );
-   console.log('facebook response:',response);
-    // Return the response from the backend API
+
+    console.log('Backend response:', response.data);
+
+    // Return data to the browser
     return res.status(200).json(response.data);
   } catch (error) {
     console.error('Facebook callback proxy error:', error);
-    
-    // Handle different types of errors
-    if (axios.isAxiosError(error) && error.response) {
-      return res.status(error.response.status).json(error.response.data);
+
+    if (axios.isAxiosError(error)) {
+      return res.status(error.response?.status || 500).json(
+        error.response?.data || { error: 'Unknown Axios error' }
+      );
     }
-    
+
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

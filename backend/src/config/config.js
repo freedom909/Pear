@@ -14,9 +14,9 @@ console.log({
 var env = process.env.NODE_ENV || 'development';
 var port = process.env.PORT || 5000;
 var mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/pear';
-var jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+var jwtSecret = process.env.JWT_SECRET || 'secure-random-string-here';
 var jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1d';
-var jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
+var jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'another-secure-random-string-here';
 var jwtRefreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 var logLevel = process.env.LOG_LEVEL || 'info';
 var clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';

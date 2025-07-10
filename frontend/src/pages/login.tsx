@@ -24,31 +24,47 @@ interface FormErrors {
 }
 
 export default function Login() {
+  const { setAuthToken } = useAuth(); // ✅ RIGHT PLACE!
+  const router = useRouter();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
     rememberMe: false,
   });
-
+  const [handledToken, setHandledToken] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loginError, setLoginError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingSocial, setIsLoadingSocial] = useState(false);
-  const router = useRouter();
-const { error: errorParam } = router.query;
-
-  const { login } = useAuth();
 
   useEffect(() => {
-    const errorParam = router.query.error as string;
-    if (errorParam) {
+    if (handledToken) return;
+    if (router.pathname !== '/login') return;
+
+    const { token, error } = router.query;
+
+    if (window.location.hash === '#_=_') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
+    if (token && typeof token === 'string') {
+      setAuthToken(token); // ✅ now it works safely
+      localStorage.setItem('authToken', token); // ✅ persist to localStorage
+      setHandledToken(true);
+      router.replace('/dashboard');
+      return;
+    }
+
+    if (error && typeof error === 'string') {
       setLoginError(
-        errorParam === 'authentication_failed'
+        error === 'authentication_failed'
           ? 'Login failed. Please try again.'
           : 'An error occurred during authentication.'
       );
     }
-  }, [errorParam]);
+  }, [router, handledToken, setAuthToken]);
+
+
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;

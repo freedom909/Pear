@@ -6,7 +6,7 @@ export const config = {
       digest: 'sha512',
     },
     jwt: {
-      secret: process.env.JWT_SECRET || 'your-secret-key',
+      secret: process.env.JWT_SECRET || 'secure-random-string-here',
       expiresIn: '1d',
     },
     email: {

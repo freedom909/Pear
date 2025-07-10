@@ -32,7 +32,7 @@ export interface CreateUserFromOAuthProfileInput {
 // 用户服务接口
 export interface UserService {
   linkProvider(
-    userId: string,
+    id: string,
     provider: string,
     providerId: string,
     accessToken: string,
@@ -84,7 +84,7 @@ export interface UserService {
 }
 /**
  * 链接第三方账户
- * @param userId 用户ID
+ * @param id 用户ID
  * @param provider 第三方账户提供商
  * @param providerId 第三方账户ID
  * @param accessToken 访问令牌
@@ -811,7 +811,7 @@ class UserServiceImpl implements UserService {
   }
 
   async linkProvider(
-    userId: string,
+    id: string,
     provider: string,
     providerId: string,
     accessToken: string,
@@ -819,7 +819,7 @@ class UserServiceImpl implements UserService {
   ): Promise<UserDocument> {
     try {
       // 验证用户ID格式
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
         throw AppError.badRequest('用户ID格式错误');
       }
 
@@ -844,7 +844,7 @@ class UserServiceImpl implements UserService {
       }
 
       // 查询用户
-      const user = await User.findById(userId);
+      const user = await User.findById(id);
 
       // 验证用户是否存在
       if (!user) {
@@ -913,10 +913,10 @@ class UserServiceImpl implements UserService {
   }
 
   static async unlinkOAuthAccount(
-    userId: string,
+    id: string,
     provider: string
   ): Promise<UserDocument> {
-    const user = (await User.findById(userId)) as IUserModel & {
+    const user = (await User.findById(id)) as IUserModel & {
       [key: string]: any;
     };
     if (!user) {
@@ -930,11 +930,11 @@ class UserServiceImpl implements UserService {
   }
 
   static async linkOAuthAccount(
-    userId: string,
+    id: string,
     provider: string,
     providerId: string
   ): Promise<UserDocument> {
-    const user = (await User.findById(userId)) as IUserModel & {
+    const user = (await User.findById(id)) as IUserModel & {
       [key: string]: any;
     };
     if (!user) {
@@ -1048,7 +1048,7 @@ class UserServiceImpl implements UserService {
   }
 
   static async updateUser(
-    userId: string,
+    id: string,
     updateData: Partial<UserDocument>
   ): Promise<UserDocument | null> {
     const allowedUpdates = ['name', 'email', 'password', 'avatar'];
@@ -1061,7 +1061,7 @@ class UserServiceImpl implements UserService {
     if (sanitizedData.password) {
       sanitizedData.password = await bcrypt.hash(sanitizedData.password, 10);
     }
-    const user = await User.findByIdAndUpdate(userId, sanitizedData, {
+    const user = await User.findByIdAndUpdate(id, sanitizedData, {
       new: true,
     });
     if (!user) {

@@ -34,14 +34,13 @@ export const facebookCallback = [
     try {
       const user = req.user as UserDocument;
       if (!user) {
-        return res.redirect('/api/v1/auth/login?error=oauth_failed');
+         return res.redirect("http://localhost:3000/login?error=facebook_failed");
       }
       const token = await authService.generateJwtForUser(user);
       console.log('Generated JWT token:', token);
-      return res.redirect(
-        `http://localhost:3000/social-success?token=${token}`
-      );
+      res.redirect(`http://localhost:3000/login?token=${token}`);
     } catch (error) {
+      console.error('Error in Facebook callback:', error);
       return next(error);
     }
   },

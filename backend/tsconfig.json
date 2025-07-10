@@ -35,6 +35,6 @@
     "allowSyntheticDefaultImports": true,
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*", "test/*/*/", "frontend/**/*"],
+  "include": ["src/**/*", "test/*/*/", "frontend/**/*", "../test-jwt.js"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]
 }

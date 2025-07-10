@@ -3,6 +3,8 @@ import { login, register } from "../controllers/auth.controller";
 import { googleLogin, googleCallback } from "../controllers/oauth/google.controller";
 import { facebookLogin, facebookCallback } from "../controllers/oauth/facebook.controller";
 import { protect } from "../middleware/auth";
+import { appleCallback, appleLogin } from "@/controllers/oauth/apple.controller";
+import { twitterCallback, twitterLogin } from "@/controllers/oauth/twitter.controller";
 
 const publicRouter = express.Router();
 const protectedRouter = express.Router();
@@ -17,6 +19,15 @@ publicRouter.post("/register", register);
 // Google OAuth
 publicRouter.get("/google", googleLogin);
 publicRouter.get("/google/callback", googleCallback);
+
+// Apple OAuth
+publicRouter.get("/apple", appleLogin);
+publicRouter.get("/apple/callback", appleCallback);
+
+// Twitter OAuth
+publicRouter.get("/twitter", twitterLogin);
+publicRouter.get("/twitter/callback", twitterCallback);
+
 // Facebook OAuth
 publicRouter.get("/facebook", facebookLogin);
 publicRouter.get("/facebook/callback", facebookCallback);
@@ -26,9 +37,6 @@ publicRouter.get("/facebook/callback", facebookCallback);
  * (Authentication required)
  */
 protectedRouter.use(protect);
-protectedRouter.get("/me", (req, res) => {
-  res.json({ success: true, user: req.user });
-});
 
 protectedRouter.get("/verify-token", (req, res) => {
   res.json({ user: req.user });

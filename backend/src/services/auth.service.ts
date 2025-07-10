@@ -31,7 +31,7 @@ export interface AuthResponse {
 }
 
 interface TokenPayload {
-  userId: string;
+  id: string;
   email: string;
   role: UserRole;
 }
@@ -84,9 +84,9 @@ class AuthService {
 
       if (user) {
         // Link the provider account
-        const userId = user._id as string;
+        const id = user.id ;
         await userService.linkProvider(
-          userId,
+          id,
           provider,
           profile.id,
           profile.displayName,
@@ -118,7 +118,7 @@ class AuthService {
   }
   async generateJwtForUser(user: UserDocument): Promise<string> {
     const payload: TokenPayload = {
-      userId: user._id as unknown as string,
+      id: user._id as unknown as string,
       email: user.email,
       role: user.role as UserRole,
     };
@@ -146,7 +146,7 @@ class AuthService {
    */
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
     const decoded = jwt.verify(refreshToken, config.jwt.secret) as TokenPayload;
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.id);// if I select userId as the token, then Property 'id' does not exist on type 'TokenPayload'.
     if (!user) {
       throw AppError.unauthorized('无效的刷新令牌');
     }
