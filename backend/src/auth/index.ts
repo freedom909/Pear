@@ -1,6 +1,6 @@
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-
+import { UserDocument } from '../models/user/user.types';
 import { AppleOAuthStrategy } from '../strategies/apple';
 import { GoogleOAuthStrategy } from '../strategies/google';
 import { FacebookOAuthStrategy } from '../strategies/facebook';
@@ -45,7 +45,7 @@ export function initPassportStrategies() {
             return done(null, false, { message: 'Incorrect password.' });
           }
 
-          return done(null, user);
+          return done(null, user as unknown as UserDocument);
         } catch (error) {
           return done(error);
         }

@@ -30,7 +30,7 @@ const sanitizeUserData = (user: any) => {
   if (sanitized.phone) {
     sanitized.phone = sanitized.phone.replace(
       /^(\d{3})\d{4}(\d{4})$/,
-      '$1****$2'
+      '$0****$2'
     );
   }
 

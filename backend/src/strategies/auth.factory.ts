@@ -91,7 +91,7 @@ export class AuthStrategyFactory {
           this.configs.apple?.clientID &&
           this.configs.apple?.teamID &&
           this.configs.apple?.keyID &&
-          this.configs.apple?.privateKey
+          this.configs.apple?.privateKeyLocation
         ) {
           try {
             const appleStrategy = new AppleOAuthStrategy();

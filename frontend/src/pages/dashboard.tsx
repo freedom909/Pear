@@ -88,7 +88,8 @@ console.log("effectiveToken:", effectiveToken);//no output in the terminal
       setError('');
 
       const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
-      const response = await fetch(`${baseUrl}/api/v1/users/me`, {
+      console.log('Effective Token:', effectiveToken); // Add this line to check the token
+      const response = await fetch(`${baseUrl}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${effectiveToken}` },
       });
 
@@ -96,7 +97,9 @@ console.log("effectiveToken:", effectiveToken);//no output in the terminal
       const data = await response.json();
 
       setUser({
-        name: data.name || 'User',
+        name: data.username && typeof data.username === 'object' 
+          ? `${data.username.firstname} ${data.username.lastname}` 
+          : (data.username || 'User'),
         email: data.email || '',
         role: 'Orchard Manager',
         avatar: data.avatar || '',
@@ -138,9 +141,10 @@ console.log("effectiveToken:", effectiveToken);//no output in the terminal
         },
       ]);
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+        console.error('Fetch user data failed:', err); // Add this line to log the error
+        setError(err.message || 'An unexpected error occurred');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
@@ -239,4 +243,3 @@ console.log('Dashboard component mounted');
 };
 
 export default dynamic(() => Promise.resolve(Dashboard), { ssr: false });
-

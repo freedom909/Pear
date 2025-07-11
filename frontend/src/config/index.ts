@@ -169,7 +169,7 @@ export const API_CONFIG: ApiConfig = {
 // 认证配置
 export const AUTH_CONFIG: AuthConfig = {
   // Token存储键名
-  TOKEN_KEY: 'auth_token',
+  TOKEN_KEY: 'token',
 
   // 用户信息存储键名
   USER_KEY: 'user_info',

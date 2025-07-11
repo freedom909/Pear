@@ -191,7 +191,7 @@ class UserServiceImpl implements UserService {
         id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role,
+        role: user.roles[0],
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
       }));
@@ -237,7 +237,7 @@ class UserServiceImpl implements UserService {
         id: user._id as unknown as string,
         username: user.username,
         email: user.email,
-        role: user.role,
+        role: user.roles[0],
         verified: user.isVerified || false,
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
@@ -278,7 +278,7 @@ class UserServiceImpl implements UserService {
         id: user._id as unknown as string,
         username: user.username,
         email: user.email,
-        role: user.role,
+        role: user.roles[0],
         verified: user.isVerified || false,
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
@@ -451,7 +451,8 @@ class UserServiceImpl implements UserService {
         id: updatedUser._id as unknown as string,
         username: updatedUser.username,
         email: updatedUser.email,
-        role: updatedUser.role,
+        role: updatedUser.roles[0],
+
         createdAt: (updatedUser as unknown as UserDocument).createdAt,
         updatedAt: (updatedUser as unknown as UserDocument).updatedAt,
       } as unknown as UserDocument;
@@ -543,7 +544,7 @@ class UserServiceImpl implements UserService {
       if (!user) {
         throw AppError.notFound('用户不存在');
       }
-      return user as UserDocument;
+      return user as unknown as UserDocument;
     } catch (error) {
       logger.error(`根据ID查找用户失败 (ID: ${id}):`, error);
       if (error instanceof AppError) {
@@ -611,7 +612,7 @@ class UserServiceImpl implements UserService {
         accessToken: userData.accessToken,
         refreshToken: userData.refreshToken,
       })) 
-      return newUser 
+        return newUser as unknown as Promise<UserDocument>;
     } catch (error) {
       logger.error('创建OAuth用户失败:', error);
       throw new AppError({

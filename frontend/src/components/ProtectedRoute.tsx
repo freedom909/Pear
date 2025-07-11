@@ -41,9 +41,13 @@ export default function ProtectedRoute({
           const refreshed = await refreshToken?.();
           if (!refreshed) {
             console.warn('Token refresh failed.');
+            setChecking(false);
+            return;
           }
         } catch (err) {
           console.error('Error refreshing token:', err);
+          setChecking(false);
+          return;
         }
       }
 

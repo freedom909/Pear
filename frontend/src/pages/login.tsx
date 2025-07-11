@@ -38,30 +38,42 @@ export default function Login() {
   const [isLoadingSocial, setIsLoadingSocial] = useState(false);
 
   useEffect(() => {
-    if (handledToken) return;
-    if (router.pathname !== '/login') return;
+    let isMounted = true;
 
-    const { token, error } = router.query;
+    const handleToken = async () => {
+      if (handledToken) return;
+      if (router.pathname !== '/login') return;
 
-    if (window.location.hash === '#_=_') {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
+      const { token, error } = router.query;
 
-    if (token && typeof token === 'string') {
-      setAuthToken(token); // ✅ now it works safely
-      localStorage.setItem('authToken', token); // ✅ persist to localStorage
-      setHandledToken(true);
-      router.replace('/dashboard');
-      return;
-    }
+      if (window.location.hash === '#_=_') {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
 
-    if (error && typeof error === 'string') {
-      setLoginError(
-        error === 'authentication_failed'
-          ? 'Login failed. Please try again.'
-          : 'An error occurred during authentication.'
-      );
-    }
+      if (token && typeof token === 'string') {
+        if (isMounted) {
+          setAuthToken(token);
+          localStorage.setItem('token', token);
+          setHandledToken(true);
+          await router.replace('/dashboard');
+        }
+        return;
+      }
+
+      if (error && typeof error === 'string' && isMounted) {
+        setLoginError(
+          error === 'authentication_failed'
+            ? 'Login failed. Please try again.'
+            : 'An error occurred during authentication.'
+        );
+      }
+    };
+
+    handleToken();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router, handledToken, setAuthToken]);
 
 

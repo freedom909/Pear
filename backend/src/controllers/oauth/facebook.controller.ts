@@ -3,7 +3,7 @@
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import authService from '../../services/auth.service'; // your JWT‐issuing service
-import { UserDocument } from '../../models/interface/index'; // for typing
+import { UserDocument } from '../../models/user/user.types'; // for typing
 
 /**
  * Step 1: Redirect to Facebook for consent.
@@ -32,7 +32,7 @@ export const facebookCallback = [
   }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const user = req.user as UserDocument;
+      const user = req.user as unknown as UserDocument;
       if (!user) {
          return res.redirect("http://localhost:3000/login?error=facebook_failed");
       }
@@ -45,4 +45,3 @@ export const facebookCallback = [
     }
   },
 ];
-

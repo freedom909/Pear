@@ -30,6 +30,8 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({
           viewBox="0 0 24 24"
           fill="currentColor"
           className={styles.icon}
+          role="img"
+          aria-label="Error icon"
         >
           <path
             fillRule="evenodd"

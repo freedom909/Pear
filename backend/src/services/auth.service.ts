@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 import { AppError } from '../errors/appError';
 import config from '../config/config';
 import User from '../models/user/user.model';
-import { UserDocument } from '../models/interface/index';
+import usrService from '../services/user.service';
+import { UserDocument } from '../models/user/user.types';
 import userService from '../services/user.service';
 import { UnauthorizedError } from '../errors/httpError';
 import { ErrorCode } from '../errors/error-code';
@@ -41,7 +42,7 @@ class AuthService {
    * Register new user
    */
   async register(data: RegisterDTO): Promise<AuthResponse> {
-    const existingUsername = await User.findOne({ username: data.username });
+    const existingUsername = await usrService.findOne({ username: data.username });
     if (existingUsername) {
       throw AppError.badRequest('用户名已被使用');
     }

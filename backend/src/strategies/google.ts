@@ -2,7 +2,8 @@
 import { BaseStrategy } from './base';
 import { PassportStatic } from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { OAuthConfig, UserDocument } from '../models/interface';
+import { OAuthConfig} from '../models/interface';
+import { UserDocument } from '../models/user/user.types';
 import logger from '../middleware/logger';
 
 export class GoogleOAuthStrategy extends BaseStrategy {

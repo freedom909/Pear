@@ -41,7 +41,7 @@ export interface IUser {
   // Timestamps
 
   lastLogin?: Date;
-
+tokenVersion?: number;
   // Avatar
   avatar?: string;
 
@@ -82,6 +82,7 @@ export interface UserDocument extends Document, IUser, Timestamps {
   clearResetToken(): void;
   getSignedJwtToken(): string;
   generateAccessToken(): string;
+  generateAuthToken(): string;
   generateRefreshToken(): string;
   generateResetPasswordToken(): string;
   setPassword(password: string): void;

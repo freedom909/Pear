@@ -8,7 +8,7 @@ import User from '../models/user/user.model';
 import { AppError } from '../errors/appError';
 import ErrorCode from '../errors/error-code';
 import logger from '../middleware/logger';
-import { UserDocument } from '../models/interface';
+import { UserDocument } from '../models/user/user.types';
 import { UserResponseDTO } from '../dtos/userDTO';
 import { asyncHandler } from '../middleware/asyncHandler';
 import userService from '../services/user.service';
@@ -20,9 +20,6 @@ interface RegisterRequestBody {
   passwordConfirm: string;
 }
 
-interface AuthRequest extends Request {
-  user: UserDocument;
-}
 
 /**
  * 🚀 Register new user
@@ -100,7 +97,7 @@ export const register = async (
       data: {
         user: {
           id: newUser._id,
-          name: newUser.username,
+          username: newUser.username,
           email: newUser.email,
         },
       },
@@ -174,13 +171,20 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response, nex
     }));
   }
 
-  sendTokenResponse(user, 200, res);
+  sendTokenResponse(user as unknown as UserDocument, 200, res);
 });
 
 /**
  * 🏷️ Update user details
  */
-export const updateDetails = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const updateDetails = asyncHandler(async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  if (!req.user) {
+    return next(new AppError({
+      message: 'User not authenticated',
+      code: ErrorCode.UNAUTHORIZED,
+    }));
+  }
+
   const fieldsToUpdate = {
     name: req.body.name,
     email: req.body.email,
@@ -189,7 +193,7 @@ export const updateDetails = asyncHandler(async (req: AuthRequest, res: Response
   const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
     new: true,
     runValidators: true,
-  });
+  }) as UserDocument;
 
   if (!user) {
     return next(new AppError({
@@ -204,10 +208,17 @@ export const updateDetails = asyncHandler(async (req: AuthRequest, res: Response
   });
 });
 
+
 /**
  * 🔒 Update password
  */
-export const updatePassword = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const updatePassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return next(new AppError({
+      message: 'User not authenticated',
+      code: ErrorCode.UNAUTHORIZED,
+    }));
+  }
   const user = (await User.findById(req.user.id).select('+password')) as UserDocument;
 
   if (!user) {
@@ -244,10 +255,16 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
     }));
   }
 
-  const resetToken = user.getResetPasswordToken() as string;
+  // The variable resetToken was declared inside an if block, making it out of scope here.
+  // We need to move the resetToken declaration outside the if block.
+  let resetToken: string;
+  if ('getResetPasswordToken' in user) {
+    resetToken = (user as any).getResetPasswordToken() as string;
+  } else {
+    throw new Error('getResetPasswordToken method does not exist on user object');
+  }
   await user.save({ validateBeforeSave: false });
-
-  const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/resetpassword/${resetToken}`;
+  const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/reset-password/${resetToken}`;
   logger.info(`Password reset link: ${resetUrl}`);
 
   res.status(200).json({ success: true, resetUrl });
@@ -276,7 +293,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
 
   user.password = req.body.password;
   user.resetPasswordToken = undefined;
-  user.resetPasswordExpire = undefined;
+  user.resetPasswordExpires = undefined;
   await user.save();
 
   res.status(200).json({ success: true, data: new UserResponseDTO(user) });
@@ -310,7 +327,7 @@ function createToken(id: string): string {
 /**
  * Helper to send token response
  */
-function sendTokenResponse(user: any, statusCode: number, res: Response) {
+function sendTokenResponse(user: UserDocument, statusCode: number, res: Response) {
   const token = user.getSignedJwtToken();
   const refreshToken = generateRefreshToken(user);
   const tokenExpiry = Math.floor(Date.now() / 1000) + 60 * 60;

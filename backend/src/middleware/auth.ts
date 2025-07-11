@@ -6,11 +6,11 @@ import { AppError } from '../errors/appError';
 import { ErrorCode } from '../errors/error-code';
 import userService from '../services/user.service';
 import { UserRole } from '../models/user/user.types';
-
+import { UserDocument } from '../models/user/user.types';
 const jwtSecret = process.env.JWT_SECRET || 'secure-random-string-here';
 
 export interface AuthRequest extends Request {
-  user?: { id: string; role: UserRole };
+  user?: UserDocument;
 }
 
 /**
@@ -46,10 +46,7 @@ export const protect = asyncHandler(async (req: AuthRequest, _res: Response, nex
     throw AppError.unauthorized('User not found');
   }
 
-  req.user = {
-    id: user.id,
-    role: user.role,
-  };
+  req.user = user
 
   next();
 });

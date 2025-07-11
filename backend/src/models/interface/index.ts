@@ -37,7 +37,7 @@ export interface IUser extends Document {
   updatedAt: Date;
 
   // 生成令牌
-  findOrCreate(profile: any): Promise<UserDocument>;
+  findOrCreate(profile: any): Promise<Document>;
   generateAuthToken(): string;
   generateRefreshToken(): string;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -129,39 +129,6 @@ export interface IUserSecurity {
   lockoutUntil?: Date;
 }
 
-export interface UserDocument extends Document {
-  [key: string]: any;
-  id?: string;
-  email: string;
-  password?: string;
-  username: {
-    firstname: string;
-    lastname: string;
-  };
-  role: UserRole;
-  status: UserStatus;
-  verified: boolean;
-  verificationToken?: string;
-  passwordResetToken?: string;
-  passwordResetExpires?: Date;
-  emailVerificationToken?: string;
-  emailVerificationExpires?: Date;
-  tokens?: OAuthToken[];
-  googleId?: string;
-  facebookId?: string;
-  twitterId?: string;
-  appleId?: string;
-  // Change photo to avatar
-  avatar?: string;
-  tokenInfo?: string[];
-  refreshTokens?: string[];
-  refreshTokensExpires?: Date;
-  profile?: IUserProfile;
-  security?: IUserSecurity;
-  createdAt: Date;
-  updatedAt: Date;
-  lastLogin?: Date;
-}
 export interface IUserCreate {
   email: string;
   password: string;
@@ -196,15 +163,15 @@ export interface IUserFilters {
   search?: string;
 }
 
-export interface IUserModel extends Model<UserDocument> {
-  findByEmail(email: string): Promise<UserDocument | null>;
-  findByVerificationToken(token: string): Promise<UserDocument | null>;
-  findByPasswordResetToken(token: string): Promise<UserDocument | null>;
-  findByRefreshToken(token: string): Promise<UserDocument | null>;
+export interface IUserModel extends Model<Document> {
+  findByEmail(email: string): Promise<Document | null>;
+  findByVerificationToken(token: string): Promise<Document | null>;
+  findByPasswordResetToken(token: string): Promise<Document | null>;
+  findByRefreshToken(token: string): Promise<Document | null>;
   isEmailTaken(email: string, excludeUserId?: string): Promise<boolean>;
   pre(
     hook: 'save',
-    callback: (this: UserDocument, next: (err?: Error) => void) => Promise<void>
+    callback: (this: Document, next: (err?: Error) => void) => Promise<void>
   ): void;
   save: () => Promise<void>;
   methods: {

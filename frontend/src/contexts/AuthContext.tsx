@@ -7,6 +7,10 @@ type OAuthProvider = 'google' | 'facebook' | 'twitter' | 'apple';
 interface User {
   id: string;
   email: string;
+  username?: {
+    firstname: string;
+    lastname: string;
+  } | string;
 }
 
 interface AuthContextType {
@@ -34,9 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthTokenState(token);
     if (typeof window !== 'undefined') {
       if (token) {
-        localStorage.setItem('authToken', token);
+        localStorage.setItem('token', token); // Change 'authToken' to 'token'
       } else {
-        localStorage.removeItem('authToken');
+        localStorage.removeItem('token'); // Change 'authToken' to 'token'
       }
     }
   };
@@ -44,27 +48,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Load token after mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('authToken');
+      const storedToken = localStorage.getItem('token');
       if (storedToken) {
         setAuthTokenState(storedToken);
+      } else {
+        setIsLoading(false); // Only set loading false if no token exists
       }
     }
-    setIsLoading(false);
   }, []);
 
   // Fetch user when token changes
   useEffect(() => {
     const fetchUser = async () => {
-      if (!authToken) return;
+      if (!authToken) {
+        setIsLoading(false); // No token means we're done loading
+        return;
+      }
+      
       setIsLoading(true);
       setError(null);
       try {
-        const res = await axios.get('http://localhost:5000/api/v1/auth/me', {
+        const res = await axios.get('http://localhost:5000/api/v1/auth/verify-token', {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
         });
-        setUser(res.data.data);
+        setUser(res.data.user);
       } catch (err) {
         console.error('Failed to fetch user:', err);
         setError('Unauthorized');

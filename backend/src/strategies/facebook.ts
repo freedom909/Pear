@@ -12,6 +12,11 @@ export class FacebookOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: OAuthConfig, userService: any): void {
     logger.info('Initializing Facebook OAuth strategy');
 
+    if (!config.clientID || !config.clientSecret) {
+        logger.error('Missing Facebook OAuth configuration: clientID or clientSecret');
+        throw new Error('Missing required Facebook OAuth configuration');
+    }
+
     passport.use(
       new FacebookStrategy(
         {
@@ -58,11 +63,10 @@ export class FacebookOAuthStrategy extends BaseStrategy {
                   });
                   await userService.linkOAuthProviderToUser(
                     existingUserByEmail,
-                    {
-                      provider: 'facebook',
-                      id: profile.id,
-                      profile,
-                    }
+                    'facebook', 
+                    profile.id,
+                    profile,
+                    true // Assuming Facebook emails are verified
                   );
                   return done(null, existingUserByEmail);
                 }
@@ -73,19 +77,26 @@ export class FacebookOAuthStrategy extends BaseStrategy {
                 hasEmail: !!email,
                 name: profile.name
               });
+logger.debug('Creating user payload from Facebook:', {
+  id: profile.id,
+  provider: 'facebook',
+});
 
-              user = await userService.createUserFromOAuthProfile(
-                {
-                  ...profile,
-                  provider: 'facebook',
-                  oauth: {
-                    id: profile.id,
-                    accessToken: _accessToken,
-                    refreshToken: _refreshToken
-                  }
+              user = await userService.createUserFromOAuthProfile({
+                id: profile.id,
+                name: {
+                  familyName: profile.name?.familyName || '',
+                  givenName: profile.name?.givenName || ''
                 },
-                'facebook'
-              );
+                emails: profile.emails || [],
+                avatar: profile.photos?.[0]?.value,
+                isVerified: true, // Assuming Facebook emails are verified
+                provider: 'facebook',
+                oauth: {
+                  accessToken: _accessToken,
+                  refreshToken: _refreshToken
+                }
+              });
 
               logger.info('Successfully created user from Facebook profile', {
                 userId: user._id,

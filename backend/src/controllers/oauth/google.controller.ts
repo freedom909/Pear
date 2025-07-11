@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 // your JWT‐issuing service
-import { UserDocument } from '../../models/interface/index'; // for typing
+import { UserDocument } from '../../models/user/user.types'; // for typing
 import { asyncHandler } from '../../middleware/asyncHandler';
 
 /**

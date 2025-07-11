@@ -48,8 +48,10 @@ app.set('trust proxy', false);
 // Security middlewares
 app.use(helmet());
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN,
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: process.env.CORS_METHODS?.split(',') || ['GET', 'POST', 'PUT', 'DELETE']
 }));
 app.use(mongoSanitize());
 app.use(hpp());

@@ -1,5 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { UserDocument } from '../models/interface/index';
+import { UserDocument } from '../models/user/user.types';
 import { JwtTokens } from '../models/interface/index';
 import { promisify } from 'util';
 

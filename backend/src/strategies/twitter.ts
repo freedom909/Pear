@@ -1,7 +1,8 @@
 import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PassportStatic } from 'passport';
 import { BaseStrategy } from './base';
-import { OAuthConfig, UserDocument } from '../models/interface';
+import { OAuthConfig} from '../models/interface';
+import { UserDocument } from '../models/user/user.types';
 
 import { logger } from '../utils/logger';
 

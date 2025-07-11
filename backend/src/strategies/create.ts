@@ -5,14 +5,15 @@ import { Strategy as AppleStrategy } from 'passport-apple';
 import { handleOAuthUser } from '../services/handleOAuthUser';
 import dotenv from 'dotenv';
 import passport, { Profile } from 'passport';
-import { IUser, OAuthTokenInfo, UserDocument } from '../models/interface/index';
+import { OAuthTokenInfo, } from '../models/interface/index';
+import { UserDocument } from '../models/user/user.types';
 
 dotenv.config();
 export function createStrategies() {
   // Serialize user for the session
   passport.serializeUser(
     (user: Express.User, done: (err: any, id?: any) => void) => {
-      done(null, (user as UserDocument).id);
+      done(null, (user as unknown as UserDocument).id);
     }
   );
 
@@ -22,7 +23,7 @@ export function createStrategies() {
       // TODO: Implement user lookup from database
       // const user = await UserModel.findById(id);
       // done(null, user);
-      done(null, { id } as IUser);
+      done(null, { id } as any);
     } catch (error) {
       done(error);
     }
