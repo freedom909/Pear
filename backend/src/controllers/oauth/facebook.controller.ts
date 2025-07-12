@@ -38,7 +38,9 @@ export const facebookCallback = [
       }
       const token = await authService.generateJwtForUser(user);
       console.log('Generated JWT token:', token);
-      res.redirect(`http://localhost:3000/login?token=${token}`);
+      const redirectUrl = `http://localhost:3000/dashboard?token=${token}`;
+      return res.redirect(redirectUrl);
+
     } catch (error) {
       console.error('Error in Facebook callback:', error);
       return next(error);

@@ -299,6 +299,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
   res.status(200).json({ success: true, data: new UserResponseDTO(user) });
 });
 
+
 /**
  * 🚪 Logout
  */

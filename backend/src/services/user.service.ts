@@ -768,18 +768,16 @@ class UserServiceImpl implements UserService {
                    `${input.id}@${input.provider}.oauth.local`;
 
       const userData = {
-        username: {
-          firstname: input.name?.givenName || input.provider,
-          lastname: input.name?.familyName || 'User'
-        },
+        username: `${input.name?.givenName || ''} ${input.name?.familyName || ''}`.trim(),
         email: email,
-        avatar: input.avatar || '/images/avatar.jpg',
+        role: 'user',
         verified: input.verified || false,
         provider: input.provider,
         [`${input.provider}`]: {
           id: input.id,
           ...(input.oauth || {}),
         },
+        avatar: input.avatar || '/images/avatar.jpg',
       };
 
       const user = await User.create(userData);
@@ -787,6 +785,14 @@ class UserServiceImpl implements UserService {
       
       return {
         ...user.toObject(),
+        id: user._id as unknown as string,
+        username: {
+          firstname: input.name?.givenName || '',
+          lastname: input.name?.familyName || '',
+        },
+        email: user.email,
+        
+        verified: user.isVerified || false,
         avatar: userData.avatar
       } as unknown as UserDocument;
     } catch (error) {
@@ -795,7 +801,15 @@ class UserServiceImpl implements UserService {
         error: error instanceof Error ? error.message : String(error),
         input: {
           id: input.id,
-          name: input.name,
+          username: {
+            givenName: input.name?.givenName,
+            familyName: input.name?.familyName,
+          },
+          email:input.username,
+          emails: input.emails,
+          avatar: input.avatar,
+          ...(input.oauth || {}),
+          
           hasEmail: !!input.emails?.[0]?.value
         }
       });

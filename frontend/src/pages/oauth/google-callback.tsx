@@ -15,57 +15,31 @@ interface OAuthResponse {
   message?: string;
 }
 
+
 export default function GoogleCallback(): React.ReactElement {
   const router = useRouter();
 
   useEffect(() => {
-    // Automatically call the backend callback
-    const fetchToken = async (): Promise<void> => {
-      try {
-        // Get code and state from URL query parameters
-        const { code, state } = router.query;
-        
-        // Only proceed if we have the required parameters
-        if (!code || !state) {
-          console.error('Missing required OAuth parameters');
-          router.replace('/login?error=missing_params');
-          return;
-        }
-        
-        // Call our proxy API with the required parameters
-        const res = await fetch(`/api/v1/proxy/google-callback?code=${code}&state=${state}`);
-        const data: OAuthResponse = await res.json();
+    if (!router.isReady) return; // Wait for router to be ready
 
-                  if (data.success) {
-                  // Save token
-                  localStorage.setItem('auth_token', data.token as string);
-                  
-                  // Extract user info from backend response
-                  const userInfo = {
-                    name: `${data.user.username.firstname} ${data.user.username.lastname}`,
-                    email: data.user.email,
-                    avatar: data.user.avatar || '', // Use avatar if available, otherwise empty string
-                  };
-                  
-                  localStorage.setItem('userInfo', JSON.stringify(userInfo));
-                  router.replace('/dashboard');
-        } else {
-          router.replace('/login?error=oauth_failed');
-        }
-      } catch (error) {
-        console.error('OAuth error', error);
-        router.replace('/login?error=oauth_error');
-      }
-    };
+    const { token } = router.query;
 
-    fetchToken();
-  }, [router]);
+    if (token && typeof token === "string") {
+      console.log("✅ Received token in query:", token);
+      localStorage.setItem("auth_token", token);
+      router.replace("/dashboard");
+      return;
+    }
+
+    console.error("❌ No token found in query params");
+    router.replace("/login?error=missing_token");
+  }, [router.isReady, router]);
 
   return (
-  <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-    <h2>Signing you in with Google...</h2>
-    <p>Please wait.</p>
-  </div>
-);
-
+    <div style={{ textAlign: "center", marginTop: "2rem" }}>
+      <h2>Signing you in with Google...</h2>
+      <p>Please wait.</p>
+    </div>
+  );
 }
+

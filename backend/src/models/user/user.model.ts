@@ -1,7 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-
 enum AuthProvider {
   LOCAL = 'local',
   GOOGLE = 'google',

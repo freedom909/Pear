@@ -1,4 +1,5 @@
-//middleware/logger.ts
+// logger.ts (merged version)
+
 import winston from 'winston';
 import path from 'path';
 import { format } from 'winston';
@@ -9,55 +10,35 @@ import fs from 'fs';
 
 const { combine } = format;
 
-// Create log directory if it doesn't exist
+// Create log directory
 const logDir = path.join(process.cwd(), 'logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
-// Async context storage for request-scoped data
+// Context storage
 export const asyncLocalStorage = new AsyncLocalStorage<Map<string, any>>();
 
-// Sensitive fields to redact
+// Redacted fields
 const SENSITIVE_FIELDS = [
-  'password',
-  'token',
-  'accessToken',
-  'refreshToken',
-  'secret',
-  'apiKey',
-  'privateKey',
-  'authorization',
-  'cookie',
-  'sessionId',
-  'ssn',
-  'creditCard',
-  'cardNumber',
+  'password', 'token', 'accessToken', 'refreshToken', 'secret', 'apiKey',
+  'privateKey', 'authorization', 'cookie', 'sessionId', 'ssn', 'creditCard', 'cardNumber',
 ];
 
-// Log levels
+// Enum for log levels
 export enum LogLevel {
-  ERROR = 'error',
-  WARN = 'warn',
-  INFO = 'info',
-  HTTP = 'http',
-  VERBOSE = 'verbose',
-  DEBUG = 'debug',
-  SILLY = 'silly',
+  ERROR = 'error', WARN = 'warn', INFO = 'info', HTTP = 'http',
+  VERBOSE = 'verbose', DEBUG = 'debug', SILLY = 'silly',
 }
 
-// Determine log level
 const LOG_LEVEL: LogLevel =
   (process.env.LOG_LEVEL as LogLevel) ||
   (process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG);
 
-// Use JSON log format in production
 const USE_JSON_FORMAT =
   process.env.LOG_FORMAT === 'json' || process.env.NODE_ENV === 'production';
 
-/**
- * Helpers
- */
+// Get context data
 const getContextData = () => {
   try {
     const store = asyncLocalStorage.getStore();
@@ -67,21 +48,14 @@ const getContextData = () => {
   }
 };
 
+// Sanitize sensitive fields
 const sanitizeData = (data: any): any => {
-  if (!data) {
-    return data;
-  }
+  if (!data) return data;
   if (typeof data === 'object') {
-    if (Array.isArray(data)) {
-      return data.map(sanitizeData);
-    }
+    if (Array.isArray(data)) return data.map(sanitizeData);
     const sanitized: Record<string, any> = {};
     for (const [key, value] of Object.entries(data)) {
-      if (
-        SENSITIVE_FIELDS.some((field) =>
-          key.toLowerCase().includes(field.toLowerCase())
-        )
-      ) {
+      if (SENSITIVE_FIELDS.some(f => key.toLowerCase().includes(f.toLowerCase()))) {
         sanitized[key] = '[REDACTED]';
       } else if (typeof value === 'object') {
         sanitized[key] = sanitizeData(value);
@@ -101,10 +75,8 @@ const formatError = (error: Error) => ({
   ...(error as any),
 });
 
-/**
- * Custom formatters
- */
-const addContextFormat = format((info) => {
+// Custom formats
+const addContextFormat = format(info => {
   const contextData = getContextData();
   return {
     ...info,
@@ -116,18 +88,16 @@ const addContextFormat = format((info) => {
   };
 });
 
-const errorFormat = format((info) => {
+const errorFormat = format(info => {
   if (info.error instanceof Error) {
     info.error = formatError(info.error);
   }
   return info;
 });
 
-const sanitizeFormat = format((info) => sanitizeData(info));
+const sanitizeFormat = format(info => sanitizeData(info));
 
-/**
- * Common base format
- */
+// Base format
 const baseFormat = combine(
   errorFormat(),
   sanitizeFormat(),
@@ -136,50 +106,31 @@ const baseFormat = combine(
   format.errors({ stack: true })
 );
 
-/**
- * Console formatter
- */
+// Console format
 const consoleFormat = combine(
   baseFormat,
   USE_JSON_FORMAT
     ? format.json()
-    : format.printf(
-        ({ timestamp, level, message, context, error, ...rest }) => {
-          const contextStr =
-            context && Object.keys(context).length
-              ? `[${Object.entries(context)
-                  .filter(([key]) =>
-                    ['requestId', 'userId', 'traceId'].includes(key)
-                  )
-                  .map(([key, val]) => `${key}=${val}`)
-                  .join(', ')}]`
-              : '';
-
-          const restStr =
-            Object.keys(rest).length &&
-            !['context', 'error', 'level', 'message', 'timestamp'].some(
-              (k) => k in rest
-            )
-              ? `\n${JSON.stringify(rest, null, 2)}`
-              : '';
-
-          const errorStr = error
-            ? `\n${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}`
+    : format.printf(({ timestamp, level, message, context, error, ...rest }) => {
+        const contextStr =
+          context && Object.keys(context).length
+            ? `[${Object.entries(context)
+                .filter(([key]) => ['requestId', 'userId', 'traceId'].includes(key))
+                .map(([key, val]) => `${key}=${val}`)
+                .join(', ')}]`
             : '';
 
-          return `${timestamp} [${level}]${contextStr}: ${message}${errorStr}${restStr}`;
-        }
-      )
+        const restStr = Object.keys(rest).length ? `\n${JSON.stringify(rest, null, 2)}` : '';
+        const errorStr = error ? `\n${typeof error === 'object' ? JSON.stringify(error, null, 2) : error}` : '';
+
+        return `${timestamp} [${level}]${contextStr}: ${message}${errorStr}${restStr}`;
+      })
 );
 
-/**
- * File formatter
- */
+// File format
 const fileFormat = combine(baseFormat, format.json());
 
-/**
- * Transports
- */
+// Winston transports
 const consoleTransport = new winston.transports.Console({
   format: consoleFormat,
   level: LOG_LEVEL,
@@ -205,9 +156,7 @@ const errorFileTransport = new DailyRotateFile({
   level: LogLevel.ERROR,
 });
 
-/**
- * Create the logger
- */
+// Create logger
 const logger = winston.createLogger({
   levels: winston.config.npm.levels,
   defaultMeta: {
@@ -236,26 +185,19 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-/**
- * Morgan log stream
- */
+// Morgan stream
 export const logStream = {
   write: (message: string) => {
-    logger.info(message.trim());
+    logger.http(message.trim());
   },
 };
 
-/**
- * Helpers to set level and manage context
- */
+// Context utils
 export const setLogLevel = (level: LogLevel) => {
   logger.transports.forEach((t) => (t.level = level));
 };
 
-export const withContext = <T>(
-  data: Record<string, any>,
-  callback: () => T
-): T => {
+export const withContext = <T>(data: Record<string, any>, callback: () => T): T => {
   const store = new Map(Object.entries(data));
   return asyncLocalStorage.run(store, callback);
 };

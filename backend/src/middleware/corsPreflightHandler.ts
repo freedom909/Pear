@@ -1,88 +1,43 @@
-import { Request, Response, NextFunction } from 'express';
-
-export interface CorsOptions {
-  /**
-   * Allowed HTTP methods
-   * @default ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-   */
-  allowedMethods?: string[];
-  /**
-   * Allowed headers
-   * @default ['Authorization', 'Content-Type', 'X-CSRF-Token']
-   */
-  allowedHeaders?: string[];
-  /**
-   * Allow credentials
-   * @default true
-   */
-  credentials?: boolean;
-  /**
-   * Max age for preflight cache (seconds)
-   * @default 86400 (24 hours)
-   */
-  maxAge?: number;
-  /**
-   * Custom preflight handler
-   */
-  handler?: (req: Request, res: Response, next: NextFunction) => void;
-}
+import {  NextFunction } from 'express';
+import logger  from './logger';
 
 /**
- * Creates a CORS preflight handler middleware with configurable options
+ * Middleware to handle CORS preflight OPTIONS requests
+ * This is needed for routes that require authentication or have custom headers
  */
-export const createCorsPreflightHandler = (options?: CorsOptions) => {
-  const {
-    allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders = ['Authorization', 'Content-Type', 'X-CSRF-Token'],
-    credentials = true,
-    maxAge = 86400,
-    handler
-  } = options || {};
+export const corsPreflightHandler = (req:any, res:any, next:NextFunction) =>{
+  // Check if it's an OPTIONS request
+  if (req.method === 'OPTIONS') {
+    logger.log('debug', 'Handling CORS preflight request', {
+      path: req.path,
+      origin: req.headers.origin
+    });
 
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      // Set CORS headers
-      res.setHeader('Access-Control-Allow-Methods', allowedMethods.join(','));
-      res.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
-      res.setHeader('Access-Control-Allow-Credentials', String(credentials));
-      res.setHeader('Access-Control-Max-Age', maxAge);
-
-      // Allow custom handler to override behavior
-      if (handler) {
-        return handler(req, res, next);
-      }
-
-      // Standard preflight response
+    // Set CORS headers
+    const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const requestOrigin = req.headers.origin || '';
+    
+    // Allow the frontend URL or localhost in development
+    if (requestOrigin === allowedOrigin || 
+        (process.env.NODE_ENV === 'development' && 
+         (requestOrigin.startsWith('http://localhost:') || 
+          requestOrigin.startsWith('http://127.0.0.1:')))) {
+      res.header('Access-Control-Allow-Origin', requestOrigin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Max-Age', '86400'); // 24 hours
+      
+      // End the request
       return res.status(204).end();
-    } catch (error) {
-      console.error('CORS preflight error:', error);
-      return res.status(500).json({
-        error: 'CORS preflight failed',
-        code: 'CORS_ERROR'
+    } else {
+      logger.warn('CORS preflight blocked for origin', { origin: requestOrigin });
+      return res.status(403).json({ 
+        success: false,
+        message: 'CORS not allowed for this origin'
       });
     }
-  };
+  }
+  // Not an OPTIONS request, continue to the next middleware
+  next();
 };
-
-/**
- * Default CORS preflight handler with common settings
- */
-export const corsPreflightHandler = createCorsPreflightHandler();
-
-/**
- * Strict CORS preflight handler for sensitive endpoints
- */
-export const strictCorsPreflightHandler = createCorsPreflightHandler({
-  allowedMethods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type'],
-  maxAge: 3600 // 1 hour
-});
-
-/**
- * Permissive CORS preflight handler for public APIs
- */
-export const permissiveCorsPreflightHandler = createCorsPreflightHandler({
-  allowedMethods: ['*'],
-  allowedHeaders: ['*'],
-  credentials: false
-});

@@ -13,8 +13,8 @@ export class FacebookOAuthStrategy extends BaseStrategy {
     logger.info('Initializing Facebook OAuth strategy');
 
     if (!config.clientID || !config.clientSecret) {
-        logger.error('Missing Facebook OAuth configuration: clientID or clientSecret');
-        throw new Error('Missing required Facebook OAuth configuration');
+      logger.error('Missing Facebook OAuth configuration: clientID or clientSecret');
+      throw new Error('Missing required Facebook OAuth configuration');
     }
 
     passport.use(
@@ -63,7 +63,7 @@ export class FacebookOAuthStrategy extends BaseStrategy {
                   });
                   await userService.linkOAuthProviderToUser(
                     existingUserByEmail,
-                    'facebook', 
+                    'facebook',
                     profile.id,
                     profile,
                     true // Assuming Facebook emails are verified
@@ -77,17 +77,20 @@ export class FacebookOAuthStrategy extends BaseStrategy {
                 hasEmail: !!email,
                 name: profile.name
               });
-logger.debug('Creating user payload from Facebook:', {
-  id: profile.id,
-  provider: 'facebook',
-});
-
+              logger.debug('Creating user payload from Facebook:', {
+                id: profile.id,
+                provider: 'facebook',
+              });
+              const givenName = profile.name?.givenName || '';
+              const familyName = profile.name?.familyName || '';
+              const username = `${givenName}.${familyName}`.toLowerCase();
               user = await userService.createUserFromOAuthProfile({
                 id: profile.id,
                 name: {
                   familyName: profile.name?.familyName || '',
                   givenName: profile.name?.givenName || ''
                 },
+                username,
                 emails: profile.emails || [],
                 avatar: profile.photos?.[0]?.value,
                 isVerified: true, // Assuming Facebook emails are verified

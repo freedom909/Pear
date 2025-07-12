@@ -1,14 +1,21 @@
-// src/strategies/google.ts
-import { BaseStrategy } from './base';
 import { PassportStatic } from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { OAuthConfig} from '../models/interface';
-import { UserDocument } from '../models/user/user.types';
+
+import { BaseStrategy } from './base';
 import logger from '../middleware/logger';
+import { Request } from 'express';
+import { Profile } from 'passport';
+import { VerifyCallback } from 'passport-oauth2';
+import { OAuthConfig } from '../models/interface';
 
 export class GoogleOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: OAuthConfig, userService: any): void {
     logger.info('Initializing Google OAuth strategy');
+
+    if (!config.clientID || !config.clientSecret) {
+      logger.error('Missing Google OAuth configuration: clientID or clientSecret');
+      throw new Error('Missing required Google OAuth configuration');
+    }
 
     passport.use(
       new GoogleStrategy(
@@ -16,75 +23,114 @@ export class GoogleOAuthStrategy extends BaseStrategy {
           clientID: config.clientID,
           clientSecret: config.clientSecret,
           callbackURL: config.callbackURL,
-          scope: config.scope || ['profile', 'email'],
+          scope: [...(config.scope || ['email']), 'profile'],
           passReqToCallback: config.passReqToCallback || true,
+
         },
-        async (_req, _accessToken, _refreshToken, profile, done) => {
-          logger.info('Google OAuth callback received', {
+        async (
+          _req: Request,
+          _accessToken: string,
+          _refreshToken: string,
+          profile: Profile,
+          done: VerifyCallback
+        ) => {
+          logger.info('Processing Google OAuth callback', {
             profileId: profile.id,
           });
 
           try {
-            // 1. Find user by Google profile ID
+            // Validate required profile fields
+            if (!profile.id) {
+              throw new Error('Google profile missing required field: id');
+            }
+
+            // Find existing user or create a new one
             let user = await userService.findUserByOAuthProfile(
               { id: profile.id },
               'google'
             );
 
-            // 2. If not found, check by email
             if (!user) {
               const email = profile.emails?.[0]?.value;
-
               if (email) {
                 const existingUserByEmail =
                   await userService.findUserByEmail(email);
                 if (existingUserByEmail) {
-                  logger.info(
-                    'Existing user found by email, linking Google account',
-                    { email }
-                  );
+                  logger.info('Linking Google account to existing user', {
+                    userId: existingUserByEmail._id,
+                    email,
+                    provider: 'google'
+                  });
+                  const user = existingUserByEmail;
 
-                  // 3. Link the Google profile ID to the existing user
-                  const emailVerified = profile.emails?.[0]?.verified || false;
+                  // Only set username if you want to override
+                  if (!user.username || user.username.startsWith('user_')) {
+                    user.username =
+                      profile.displayName ||
+                      `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim();
+                  }
                   await userService.linkOAuthProviderToUser(
-                    existingUserByEmail,
-                    {
-                      provider: 'google',
-                      id: profile.id,
-                      profile,
-                    },
-                    emailVerified
+                    user,
+                    'google',
+                    profile.id,
+                    profile,
+                    true // Assuming Google emails are verified
                   );
-
                   return done(null, existingUserByEmail);
                 }
               }
 
-              // 4. No user by ID or email, create a new one
               logger.info('Creating new user from Google profile', {
                 profileId: profile.id,
+                hasEmail: !!email,
+                name: profile.name
               });
-              const avatar = profile.photos?.[0]?.value;
-              const emailVerified = profile.emails?.[0]?.verified || false;
-              user = await userService.createUserFromOAuthProfile(
-                {
-                  ...(profile as unknown as UserDocument),
-                  avatar,
-                  verified: emailVerified
+              logger.debug('Creating user payload from Google:', {
+                id: profile.id,
+                provider: 'google',
+              });
+              const givenName = profile.name?.givenName || '';
+              const familyName = profile.name?.familyName || '';
+              const username = `${givenName}.${familyName}`.toLowerCase();
+              user = await userService.createUserFromOAuthProfile({
+                id: profile.id,
+                name: {
+                  familyName: profile.name?.familyName || 'google222',
+                  givenName: profile.name?.givenName || 'google111'
                 },
-                'google'
-              );
+                username,
+                emails: profile.emails || [],
+                avatar: profile.photos?.[0]?.value,
+                isVerified: true, // Assuming Google emails are verified
+                provider: 'google',
+                oauth: {
+                  accessToken: _accessToken,
+                  refreshToken: _refreshToken
+                }
+              });
+
+              logger.info('Successfully created user from Google profile', {
+                userId: user._id,
+                profileId: profile.id
+              });
+
             } else {
               logger.info('Found existing user with Google profile', {
-                userId: user.id,
+                userId: user._id,
                 profileId: profile.id,
               });
             }
 
             return done(null, user);
           } catch (error) {
-            logger.error('Error in Google OAuth strategy', { error });
-            return done(error as Error, undefined);
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error('Google OAuth authentication failed', {
+              error: err.message,
+              stack: err.stack,
+              profileId: profile.id,
+              hasEmail: !!profile.emails?.[0]?.value
+            });
+            return done(err, undefined);
           }
         }
       )

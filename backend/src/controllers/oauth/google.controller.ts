@@ -1,85 +1,52 @@
+// src/controllers/oauth/Google.controller.ts
+
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-// your JWT‐issuing service
+import authService from '../../services/auth.service'; // your JWT‐issuing service
 import { UserDocument } from '../../models/user/user.types'; // for typing
-import { asyncHandler } from '../../middleware/asyncHandler';
 
 /**
- * @desc    Initiate Google OAuth login
- * @route   GET /api/v1/auth/google
- * @access  Public
+ * Step 1: Redirect to Google for consent.
+ * Route: GET /api/v1/auth/Google
  */
-export const googleLogin = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate('google', {
-      scope: ['profile', 'email'],
-      session: false,
-    })(req, res, next);
-  }
-);
-
-/**
- * @desc    Google OAuth callback
- * @route   GET /api/v1/auth/google/callback
- * @access  Public
- */
-export const googleCallback = (
+export const googleLogin = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  passport.authenticate(
-    'google',
-    { session: false },
-    async (err, user: UserDocument, _info) => {
-      console.log('===> OAuth err:', err);
-      console.log('===> OAuth user:', user);
-      console.log('===> OAuth info:', _info);
-
-      if (err || !user) {
-        return res
-          .status(401)
-          .json({ success: false, message: 'Google OAuth failed' });
-      }
-      const token = user.getSignedJwtToken();// the logic of method is ill?
-      console.log('Generated token:', token);
-
-      // const baseUrl = process.env.API_BASE_URL || 'http://localhost:5000';
-      // const response = await fetch(`${baseUrl}/api/v1/auth/me`, {
-      //   headers: { Authorization: `Bearer ${token}` },
-      // });
-      // const text = await response.text();
-      // console.error('Response status:', response.status);
-      // console.error('Response body:', text);
-      // if (!response.ok) throw new Error('Failed to fetch user data');
-
-      //   res.cookie('token', token, {
-      //   httpOnly: true,
-      //   secure: process.env.NODE_ENV === 'production',
-      // });
-
-      // const userResponse = {
-      //   _id: user._id,
-      //   username: user.username,
-      //   email: user.email,
-      //   role: user.role,
-      //   status: user.status,
-      //   isVerified: user.isVerified,
-      //   provider: user.provider,
-      //   createdAt: user.createdAt,
-      //   updatedAt: user.updatedAt,
-      //   linkedAccounts: user.linkedAccounts || [],
-      //   avatar: user.avatar || '/images/avatar-1.jpg' // Ensure avatar is included
-      // };
-
-      // return res.status(200).json({
-      //   success: true,
-      //   token,
-      //   user: userResponse,
-      // });
-      return res.redirect(`http://localhost:3000/dashboard?token=${token}`);
-
-
-    }
-  )(req, res, next);
+  passport.authenticate('google', { scope: ['email'], session: false })(
+    req,
+    res,
+    next
+  );
 };
+
+/**
+ * Step 2: Handle Google callback.
+ * Route: GET /api/v1/auth/Google/callback
+ */
+export const googleCallback = [
+  passport.authenticate('google', {
+    session: false,
+    failureRedirect: '/api/v1/auth/login?error=oauth_failed',
+   
+  }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as unknown as UserDocument;
+      if (!user) {
+         return res.redirect("http://localhost:3000/login?error=google_failed");
+      }
+      const token = await authService.generateJwtForUser(user);
+      console.log('Generated JWT token:', token);
+      console.log('👉 Redirecting to: http://localhost:3000/oauth/google-callback?token=' + token);
+console.log("🌟🌟🌟 About to redirect to:");
+console.log(`http://localhost:3000/oauth/google-callback?token=${token}`);
+
+      res.redirect(`http://localhost:3000/oauth/google-callback?token=${token}`);
+    } catch (error) {
+      console.error('Error in Google callback:', error);
+      return next(error);
+    }
+  },
+];
