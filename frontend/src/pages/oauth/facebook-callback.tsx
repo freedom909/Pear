@@ -3,50 +3,40 @@ import { useRouter } from 'next/router';
 
 interface OAuthResponse {
   success: boolean;
+  user?: {
+    username: {
+      firstname: string;
+      lastname: string;
+    };
+    avatar: string;
+    email: string;
+  };
   token?: string;
   message?: string;
 }
 
+
 export default function FacebookCallback(): React.ReactElement {
   const router = useRouter();
-
+ const { token } = router.query;
   useEffect(() => {
-    // Automatically call the backend callback
-    const fetchToken = async (): Promise<void> => {
-      try {
-        // Get code and state from URL query parameters
-        const { code, state } = router.query;
-        
-        // Only proceed if we have the required parameters
-        if (!code || !state) {
-          console.error('Missing required OAuth parameters');
-          router.replace('/login?error=missing_params');
-          return;
-        }
-        
-        // Call our proxy API with the required parameters
-        const res = await fetch(`/api/proxy/facebook-callback?code=${code}&state=${state}`);
-        const data: OAuthResponse = await res.json();
+    if (!router.isReady) return; // Wait for router to be ready
+    if (token && typeof token === "string") {
+      // Store in localStorage for client-side auth
+    localStorage.setItem('auth_token', token);
+    // Store in a cookie (NOT httpOnly)
+    document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+    router.replace('/dashboard');
+    }
 
-        if (data.success) {
-          // Save token somewhere
-          localStorage.setItem('token', data.token as string);
-          // Optionally set cookie
-          // document.cookie = `token=${data.token}; path=/;`;
+    console.error("❌ No token found in query params");
+    router.replace("/login?error=missing_token");
+  }, [router.isReady, token, router]);//Cannot find name 'token'.
 
-          // Redirect to dashboard
-          router.replace('/dashboard');
-        } else {
-          router.replace('/login?error=oauth_failed');
-        }
-      } catch (error) {
-        console.error('OAuth error', error);
-        router.replace('/login?error=oauth_error');
-      }
-    };
-
-    fetchToken();
-  }, [router]);
-
-  return <div>Signing you in...</div>;
+    return (
+    <div style={{ textAlign: "center", marginTop: "2rem" }}>
+      <h2>Signing you in with Facebook...</h2>
+      <p>Please wait.</p>
+    </div>
+  );
 }

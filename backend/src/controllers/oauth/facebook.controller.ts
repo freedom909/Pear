@@ -39,6 +39,13 @@ export const facebookCallback = [
       const token = await authService.generateJwtForUser(user);
       console.log('Generated JWT token:', token);
       const redirectUrl = `http://localhost:3000/dashboard?token=${token}`;
+      res.cookie('auth_token', token, {
+  httpOnly: true,
+  secure: false,        // ⚠️ set to false for localhost
+  sameSite: 'lax',      // ✅ works with HTTP and is secure enough for dev
+  path: '/',
+  maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+});
       return res.redirect(redirectUrl);
 
     } catch (error) {

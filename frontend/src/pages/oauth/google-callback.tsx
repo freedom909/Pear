@@ -18,22 +18,20 @@ interface OAuthResponse {
 
 export default function GoogleCallback(): React.ReactElement {
   const router = useRouter();
-
+ const { token } = router.query;
   useEffect(() => {
     if (!router.isReady) return; // Wait for router to be ready
-
-    const { token } = router.query;
-
     if (token && typeof token === "string") {
-      console.log("✅ Received token in query:", token);
-      localStorage.setItem("auth_token", token);
-      router.replace("/dashboard");
-      return;
+      // Store in localStorage for client-side auth
+    localStorage.setItem('auth_token', token);
+    // Store in a cookie (NOT httpOnly)
+    document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+    router.replace('/dashboard');
     }
 
     console.error("❌ No token found in query params");
     router.replace("/login?error=missing_token");
-  }, [router.isReady, router]);
+  }, [router.isReady, token, router]);//Cannot find name 'token'.
 
   return (
     <div style={{ textAlign: "center", marginTop: "2rem" }}>

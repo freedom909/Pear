@@ -14,10 +14,11 @@ interface User {
 }
 
 interface AuthContextType {
-  authToken: string | null;
+  authToken: string |  null;
   user: User | null;
   isLoading: boolean;
   error: string | null;
+  loading: boolean;
   login: (provider: OAuthProvider) => void;
   logout: () => void;
   setAuthToken: (token: string | null) => void;
@@ -100,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isLoading,
     error,
+    loading: isLoading,
     login,
     logout,
     setAuthToken,

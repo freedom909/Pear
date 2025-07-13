@@ -125,6 +125,14 @@ app.get('/health', (_req, res) => {
 
 //Routes
 app.use('/', apiRoutes);
+app.post('/api/logout', (_req, res) => {
+  res.clearCookie('auth_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  res.status(200).json({ success: true });
+});
 
 // Not found handler
 app.use(notFound);

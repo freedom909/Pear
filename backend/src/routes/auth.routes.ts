@@ -52,7 +52,7 @@ publicRouter.get("/facebook/callback",
     try {
       const user = req.user as any;
       const token = generateToken(user);
-      const redirectUri = ((req.session as any).redirectUri as string) || `${FRONTEND_URL}/auth/callback`;
+      const redirectUri = ((req.session as any).redirectUri as string) ||`${FRONTEND_URL}/oauth/facebook-callback`;
       if (req.session) delete (req.session as any).redirectUri;
       const redirectUrl = new URL(redirectUri);
       redirectUrl.searchParams.append("token", token);
@@ -92,6 +92,14 @@ publicRouter.get("/google/callback",
       res.redirect(`${FRONTEND_URL}/auth/callback?code=server_error&message=Internal+server+error`);
     }
   });
+
+  publicRouter.post("/logout", (_req, res) => {
+  res.clearCookie("auth_token", {
+    path: "/",
+  });
+  res.status(200).json({ success: true, message: "Logout successful" });
+});
+
 
 // Auth Status Check
 publicRouter.get("/status", async (req, res) => {

@@ -29,24 +29,34 @@ export const googleCallback = [
   passport.authenticate('google', {
     session: false,
     failureRedirect: '/api/v1/auth/login?error=oauth_failed',
-   
   }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user as unknown as UserDocument;
       if (!user) {
-         return res.redirect("http://localhost:3000/login?error=google_failed");
+        return res.redirect("http://localhost:3000/login?error=google_failed");
       }
-      const token = await authService.generateJwtForUser(user);
-      console.log('Generated JWT token:', token);
-      console.log('👉 Redirecting to: http://localhost:3000/oauth/google-callback?token=' + token);
-console.log("🌟🌟🌟 About to redirect to:");
-console.log(`http://localhost:3000/oauth/google-callback?token=${token}`);
 
-      res.redirect(`http://localhost:3000/oauth/google-callback?token=${token}`);
+      const token = await authService.generateJwtForUser(user);
+      console.log('✅ Generated JWT token:', token);
+
+    console.log('✅ Setting cookie for user:', user.email);  // ✅ Set cookie
+res.cookie('auth_token', token, {
+  httpOnly: true,
+  secure: false,        // ⚠️ set to false for localhost
+  sameSite: 'lax',      // ✅ works with HTTP and is secure enough for dev
+  path: '/',
+  maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+});
+
+
+
+      // ✅ Redirect to frontend dashboard
+      return res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
     } catch (error) {
       console.error('Error in Google callback:', error);
       return next(error);
     }
   },
 ];
+

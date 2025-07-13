@@ -12,11 +12,6 @@
   ],
   "rootMainFiles": [],
   "pages": {
-    "/": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/index.js"
-    ],
     "/404": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
@@ -42,10 +37,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/login.js"
     ],
-    "/oauth/google-callback": [
+    "/oauth/facebook-callback": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/oauth/google-callback.js"
+      "static/chunks/pages/oauth/facebook-callback.js"
     ]
   },
   "ampFirstPages": []
