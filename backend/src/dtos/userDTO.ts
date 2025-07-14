@@ -12,8 +12,15 @@ import { UserRole, UserStatus } from '../models/user/user.types';
 
 // userDTO.ts
 export class CreateUserInput {
+  
+  @IsNotEmpty()
   @IsString()
-  username!: string;
+    username!: string;
+  @IsString()
+  firstname!: string;
+
+  @IsString()
+  lastname!: string;
 
   @IsEmail()
   email!: string;
@@ -38,14 +45,14 @@ export class UpdateUserInput {
  * 注册用户DTO
  */
 export class RegisterUserDTO {
-  @IsNotEmpty({ message: '用户名不能为空' })
-  @IsString({ message: '用户名必须是字符串' })
-  @IsNotEmpty({ message: '用户名不能为空' })
-  @IsString({ message: '用户名必须是字符串' })
-  name!: string;
+  @IsNotEmpty({ message: '姓不能为空' })
+  @IsString({ message: '姓必须是字符串' })
+  firstname!: string;
 
-  @IsNotEmpty({ message: '邮箱不能为空' })
-  @IsEmail({}, { message: '请输入有效的邮箱地址' })
+  @IsNotEmpty({ message: '名不能为空' })
+  @IsString({ message: '名必须是字符串' })
+  lastname!: string;
+
   @IsNotEmpty({ message: '邮箱不能为空' })
   @IsEmail({}, { message: '请输入有效的邮箱地址' })
   email!: string;
@@ -83,8 +90,12 @@ export class LoginUserDTO {
  */
 export class UpdateUserDTO {
   @IsOptional()
-  @IsString({ message: '用户名必须是字符串' })
-  name?: string;
+  @IsString({ message: '姓必须是字符串' })
+  firstname?: string;
+
+  @IsOptional()
+  @IsString({ message: '名必须是字符串' })
+  lastname?: string;
 
   @IsOptional()
   @IsEmail({}, { message: '请输入有效的邮箱地址' })
@@ -153,7 +164,8 @@ export class ResetPasswordDTO {
  */
 export class UserResponseDTO implements Pick<IUser, 'email' | 'role'> {
   id: string;
-  name: string;
+  firstname: string;
+  lastname: string;
   email: string;
   role: UserRole;
   avatar?: string;
@@ -163,28 +175,18 @@ export class UserResponseDTO implements Pick<IUser, 'email' | 'role'> {
 
   constructor(user: any) {
     this.id = user._id;
-    // 处理不同格式的用户名
-    if (user.username && typeof user.username === 'object') {
-      // 如果username是一个包含firstname和lastname的对象
-      const firstname = user.username.firstname || '';
-      const lastname = user.username.lastname || '';
-      this.name = `${firstname} ${lastname}`.trim();
-    } else if (user.username && typeof user.username === 'string') {
-      // 如果username是一个字符串
-      this.name = user.username;
-    } else if (user.name) {
-      // 如果有name字段
-      this.name = user.name;
-    } else {
-      // 默认值
-      this.name = '';
-    }
+    this.firstname = user.firstname || '';
+    this.lastname = user.lastname || '';
     this.email = user.email;
     this.role = user.role;
     this.avatar = user.avatar || '/images/avatar.jpg'; // Default avatar
     this.isVerified = user.isVerified;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
+  }
+
+  get fullName(): string {
+    return `${this.firstname} ${this.lastname}`.trim();
   }
 }
 

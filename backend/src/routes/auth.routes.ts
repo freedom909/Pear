@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 
 import { protect } from "../middleware/auth";
 import { logger } from "../utils/logger";
+import { register, login } from "../controllers/auth.controller";
 
 import User from "../models/user/user.model";
 
@@ -13,6 +14,12 @@ const publicRouter = express.Router();
 const protectedRouter = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+// 注册路由
+publicRouter.post("/register", register);
+
+// 登录路由
+publicRouter.post("/login", login);
 
 /**
  * Utility: Generate JWT token
@@ -24,7 +31,11 @@ const generateToken = (user: any): string => {
     { expiresIn: '7d' }
   );
 };
+// 注册路由
+publicRouter.post("/register", register);
 
+// 登录路由（如果需要）
+publicRouter.post("/login", login);
 // Facebook Debug
 publicRouter.get("/facebook/debug", (_req, res) => {
   const config = {

@@ -44,6 +44,7 @@ export interface User {
 interface ApiResponse {
   success: boolean;
   message?: string;
+  details?: string;
 }
 
 // interface UserApiResponse extends ApiResponse {
@@ -262,7 +263,7 @@ export function UserProvider({ children }: UserProviderProps): JSX.Element {
         email,
         password,
       });
-
+console.log('REGISTER API RESPONSE:', data);
       if (data.success) {
         log.info('Registration successful', { userId: data.user.id });
         try {

@@ -9,7 +9,7 @@ export class PasswordService {
     }
 
     const token = user.passwordResetToken;
-    await userService.updateUser(user.id as any, user);
+    await userService.updateUser(user.id as any, user as any);
     return token ?? null;
   }
 
@@ -17,15 +17,15 @@ export class PasswordService {
     const user = await userService.getUserByResetToken(token);
     if (
       !user ||
-      !user.resetPasswordExpires ||
-      user.resetPasswordExpires < new Date()
+      !user.resetPasswordExpiresIn ||
+      new Date(user.resetPasswordExpiresIn()) < new Date()
     ) {
       throw new Error('Invalid or expired token');
     }
 
-    user.setPassword(newPassword);
+    user.password = newPassword;
     user.clearResetToken();
-    await userService.updateUser(user.id as any, user);
+    await userService.updateUser(user.id as any, user as any);
     return true;
   }
 }

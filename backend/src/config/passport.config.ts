@@ -5,7 +5,7 @@ import userService from '../services/user.service';
 import { AuthStrategyFactory } from '../strategies/auth.factory';
 import { OAuthConfiguration } from '../config/oauth';
 import logger from '../middleware/logger';
-import { UserDocument } from '../models/user/user.model';
+import { UserDocument } from '../models/user/user.types';
 
 export class PassportConfig {
   private static oauthFactory: AuthStrategyFactory;

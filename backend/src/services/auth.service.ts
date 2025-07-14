@@ -1,16 +1,17 @@
+//backend/src/services/auth.service.ts
 import jwt from 'jsonwebtoken';
 import { AppError } from '../errors/appError';
 import config from '../config/config';
 import User from '../models/user/user.model';
-import usrService from '../services/user.service';
-import { UserDocument } from '../models/user/user.types';
+import {  UserDocument } from '../models/user/user.types';
 import userService from '../services/user.service';
 import { UnauthorizedError } from '../errors/httpError';
 import { ErrorCode } from '../errors/error-code';
 import { UserRole } from '../models/user/user.types';
 
 export interface RegisterDTO {
-  username: string;
+  firstname: string;
+  lastname: string;
   email: string;
   password: string;
 }
@@ -42,7 +43,10 @@ class AuthService {
    * Register new user
    */
   async register(data: RegisterDTO): Promise<AuthResponse> {
-    const existingUsername = await usrService.findOne({ username: data.username });
+    const existingUsername = await userService.findOne({ 
+      firstname: data.firstname, 
+      lastname: data.lastname 
+    });
     if (existingUsername) {
       throw AppError.badRequest('用户名已被使用');
     }
@@ -52,7 +56,13 @@ class AuthService {
       throw AppError.badRequest('邮箱已被注册');
     }
 
-    const user = await User.create({ ...data });
+    const user = await User.create({ 
+      firstname: data.firstname,
+      lastname: data.lastname,
+      username: `${data.firstname} ${data.lastname}`,
+      email: data.email,
+      password: data.password
+    });
 
     return this.buildAuthResponse(user as unknown as UserDocument);
   }
@@ -135,7 +145,7 @@ class AuthService {
     return {
       user: {
         id: user._id as string,
-        username: user.username,
+        username: { firstname: '', lastname: '' },
         email: user.email,
         role: user.role,
       },

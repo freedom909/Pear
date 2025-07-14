@@ -8,12 +8,12 @@ import * as mathjs from 'mathjs';
 import bcrypt from 'bcryptjs';
 import { Profile as PassportProfile } from 'passport';
 import { OAuthTokenInfo } from '../models/interface/index';
-import {
-  IUserProfile,
+import {  
   UserStatus,
   UserRole,
   IUserModel,
-} from '../models/interface/index';
+} from '../models/user/user.types';
+import { IUserProfile } from '../models/interface/index';
 import { UserDocument } from '../models/user/user.types';
 
 export interface CreateUserFromOAuthProfileInput {
@@ -52,7 +52,8 @@ export interface UserService {
   ): Promise<UserDocument>;
    create(userData: {
     email: string;
-    name: string;
+    firstname: string;
+    lastname: string;
     password?: string;
     provider: string;
     accessToken: string;
@@ -65,11 +66,13 @@ export interface UserService {
 ): Promise<UserDocument>
 
   createOAuthUser(userData: UserDocument): Promise<IUserProfile>;
-  updateUser(
-    id: string,
-    userData: UserDocument,
-    options?: Record<string, any>
-  ): Promise<UserDocument>;
+  updateUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;
+
+
+  updateOAuthUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;
+  deleteUser(id: string): Promise<void>;
+  findOne(query: Record<string, any>): Promise<UserDocument>;
+ 
   deleteUser(id: string): Promise<void>;
   findOne(query: Record<string, any>): Promise<UserDocument>;
   findUserByProvider(
@@ -100,7 +103,8 @@ export interface FilterQuery {
 
 // 创建用户DTO
 export interface CreateUserDTO {
-  username: string;
+  firstname: string;
+  lastname: string;
   status: 'active' | 'inactive';
   verified: boolean;
   photo?: string;
@@ -134,8 +138,8 @@ export interface TokenResponse {
   user: {
     id: string;
     email: string;
-    firstName: string;
-    lastName: string;
+    lastname: string;
+    firstname: string;
     role: UserRole;
     status: UserStatus;
     isVerified: boolean;
@@ -191,7 +195,7 @@ class UserServiceImpl implements UserService {
         id: user._id,
         username: user.username,
         email: user.email,
-        role: user.roles[0],
+        role: user.role,
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
       }));
@@ -237,7 +241,7 @@ class UserServiceImpl implements UserService {
         id: user._id as unknown as string,
         username: user.username,
         email: user.email,
-        role: user.roles[0],
+        role: user.role,
         verified: user.isVerified || false,
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
@@ -278,7 +282,7 @@ class UserServiceImpl implements UserService {
         id: user._id as unknown as string,
         username: user.username,
         email: user.email,
-        role: user.roles[0],
+        role: user.role,
         verified: user.isVerified || false,
         createdAt: (user as any).createdAt,
         updatedAt: (user as any).updatedAt,
@@ -380,7 +384,7 @@ class UserServiceImpl implements UserService {
 
       return {
         id: user._id as unknown as string,
-        username: `${user.username.firstname} ${user.username.lastname}`,
+        username: { firstname: '', lastname: '' },
         email: user.email,
         role: user.role,
         createdAt: (user as any).createdAt,
@@ -405,7 +409,7 @@ class UserServiceImpl implements UserService {
    * @param userData 用户数据
    * @returns 用户响应
    */
-  async updateUser(id: string, userData: UserDocument): Promise<UserDocument> {
+  async updateUser(id: string, userData: UpdateUserDTO): Promise<UserDocument> {
     try {
       // 验证ID格式
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -451,10 +455,10 @@ class UserServiceImpl implements UserService {
         id: updatedUser._id as unknown as string,
         username: updatedUser.username,
         email: updatedUser.email,
-        role: updatedUser.roles[0],
+        role: updatedUser.role,
 
-        createdAt: (updatedUser as unknown as UserDocument).createdAt,
-        updatedAt: (updatedUser as unknown as UserDocument).updatedAt,
+        createdAt: (updatedUser as any).createdAt,
+        updatedAt: (updatedUser as any).updatedAt,
       } as unknown as UserDocument;
     } catch (error) {
       logger.error(`更新用户失败 (ID: ${id}):`, error);
@@ -498,34 +502,7 @@ class UserServiceImpl implements UserService {
    * generateTokenResponse
    * @returns tokenResponse
    */
-  async generateTokenResponse(user: UserDocument): Promise<TokenResponse> {
-    try {
-      const accessToken = user.generateAccessToken();
-      const refreshToken = user.generateRefreshToken();
-      return {
-        accessToken,
-        refreshToken,
-        expiresIn: 3600,
-        user: {
-          id: user._id as unknown as string,
-          email: user.email,
-          firstName: user.username.firstname,
-          lastName: user.username.lastname,
-          role: (user as any).role,
-          status: user.status,
-          isVerified: user.isVerified || false,
-          avatar: user.avatar || '/images/avatar.jpg', // Default avatar
-        },
-      };
-    } catch (error) {
-      logger.error('生成令牌失败:', error);
-      throw new AppError({
-        message: '生成令牌失败',
-        code: ErrorCode.INTERNAL_SERVER_ERROR,
-        details: error as Error,
-      });
-    }
-  }
+  
 
   /**
    * 根据ID查找用户
@@ -563,6 +540,7 @@ class UserServiceImpl implements UserService {
   }
 
   async findOne(query: Record<string, any>): Promise<UserDocument> {
+    console.trace('TRACE: findOne CALLED', query);
     try {
       const user = await User.findOne(query);
       if (!user) {
@@ -582,6 +560,21 @@ class UserServiceImpl implements UserService {
     }
   }
 
+async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
+  try {
+    const user = await User.findOne(query);
+    return user as unknown as UserDocument | null;
+  } catch (error) {
+    logger.error('查找用户失败:', error);
+    throw new AppError({
+      message: '查找用户失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: error as Error,
+    });
+  }
+}
+
+
   /**
    * 创建OAuth用户
    * @param userData 用户数据
@@ -589,7 +582,8 @@ class UserServiceImpl implements UserService {
    */
  create(userData: {
     email: string;
-    name: string;
+    firstname: string;
+    lastname: string;
     password?: string;
     provider: string;
     accessToken: string;
@@ -600,13 +594,11 @@ class UserServiceImpl implements UserService {
     try {
       // 创建新用户
       const newUser = (User.create({
-        username: {
-          firstname: userData.name.split(' ')[0] || 'google',
-          lastname: userData.name.split(' ')[1] || 'son of google',
-        },
-
+        firstname: userData.firstname || 'google',
+        lastname: userData.lastname || 'son of google',
+        username: `${userData.firstname || 'google'} ${userData.lastname || 'son of google'}`,
         email: userData.email,
-        password:  bcrypt.hash(mathjs.random().toString(), 10),
+        password: userData.password || bcrypt.hash(mathjs.random().toString(), 10),
         role: 'user',
         provider: userData.provider,
         accessToken: userData.accessToken,
@@ -644,10 +636,16 @@ class UserServiceImpl implements UserService {
       // 创建新用户
       const newUser = await this.create({
         email: profile.emails[0].value,
-        name: profile.name,
+// Removed the 'name' property as it's not in the expected type
+// This line was removed since it caused a type error
+        firstname: profile.name?.givenName?.trim() || '',
+        lastname: profile.name?.familyName?.trim() || '',
+        password: bcrypt.hash(mathjs.random().toString(), 10) as unknown as string,
+// Remove the role property since it's not in the expected type
         provider: profile.provider,
         accessToken: tokenInfo.accessToken,
         refreshToken: tokenInfo.refreshToken || '',
+   
       });
       return newUser as unknown as UserDocument;
     } catch (error) {
@@ -723,6 +721,46 @@ class UserServiceImpl implements UserService {
     }
   }
 
+
+  async updateOAuthUser(id: string, userData: UpdateUserDTO): Promise<UserDocument> {
+    try {
+      // 验证ID格式
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw AppError.badRequest('无效的用户ID');
+      }
+
+      // 检查用户是否存在
+      const user = await User.findById(id);
+      if (!user) {
+        throw AppError.notFound('用户不存在');
+      }
+
+      // 更新用户
+      const updatedUser = await User.findByIdAndUpdate(
+        id,
+        { $set: userData },
+        { new: true, runValidators: true }
+      );
+      if (!updatedUser) {
+        throw new AppError({
+          message: '更新用户失败',
+          code: ErrorCode.INTERNAL_SERVER_ERROR,
+          details: Error,
+        });
+        }
+      return updatedUser as unknown as UserDocument;
+    } catch (error) {
+      logger.error(`更新用户失败 (ID: ${id}):`, error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError({
+        message: '更新用户失败',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+        details: error as Error,
+        });
+    }
+  }
   /**
    * 删除用户
    * @param id 用户ID
@@ -1012,7 +1050,7 @@ class UserServiceImpl implements UserService {
     const user = (await User.findOne({
       passwordResetToken: token,
       passwordResetExpires: { $gt: Date.now() },
-    })) as IUserModel;
+    })) as UserDocument;
     if (!user) {
       throw new Error('Invalid or expired token');
     }
@@ -1020,7 +1058,7 @@ class UserServiceImpl implements UserService {
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
-    logger.info(`Password reset for user: ${user.name}`);
+    logger.info(`Password reset for user: ${user.username}`);
   }
 
   async getUserByResetToken(token: string): Promise<UserDocument | null> {
@@ -1039,7 +1077,7 @@ class UserServiceImpl implements UserService {
     token: string,
     expires: Date
   ): Promise<void> {
-    const user = (await User.findOne({ email })) as IUserModel;
+    const user = (await User.findOne({ email })) as UserDocument;
     if (!user) {
       return;
     }
@@ -1085,14 +1123,16 @@ class UserServiceImpl implements UserService {
     return user as unknown as UserDocument;
   }
 
-  static async createUser(
-    userData: Partial<UserDocument>
+  async createUser(
+    userData: CreateUserDTO
   ): Promise<UserDocument> {
-    const existingUser = await User.findOne({ email: userData.email });
+    const existingUser = await User.findOne({ email: userData.email });//I want to use mongo native 'findOne'
     if (existingUser) {
       throw new Error('User already exists');
     }
     const hashedPassword = await bcrypt.hash(userData.password!, 10);
+    console.log('userData in createUser:', JSON.stringify(userData, null, 2));
+
     const user = new User({ ...userData, password: hashedPassword });
     try {
       await user.save();

@@ -98,7 +98,7 @@ export class AuthStrategyFactory {
             appleStrategy.init(
               this.passport,
               this.configs.apple,
-              this.userService
+              this.userService as unknown as any
             );
             this.strategies.set('apple', appleStrategy);
             logger.info('Apple OAuth strategy initialized');

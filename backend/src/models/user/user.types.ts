@@ -1,97 +1,81 @@
 // models/user/user.types.ts
 import { Document, Model } from 'mongoose';
-import { Timestamps } from '../base.interface';
 
+/**
+ * User roles
+ */
 export enum UserRole {
   ADMIN = 'admin',
   USER = 'user',
+  MODERATOR = 'moderator',
   GUEST = 'guest',
 }
 
+/**
+ * User account status
+ */
 export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
 }
 
-// IUser — plain data
+/**
+ * Authentication providers
+ */
+export enum AuthProvider {
+  LOCAL = 'local',
+  GOOGLE = 'google',
+  FACEBOOK = 'facebook',
+  APPLE = 'apple',
+  TWITTER = 'twitter',
+}
+
+/**
+ * Basic user fields
+ */
 export interface IUser {
-
-
-  // Username
-  username: {
-    firstname: string;
-    lastname: string;
-  };
-
-  // Local auth
   email: string;
+  firstname: string;
+  lastname: string;
+  username?: string;
   password?: string;
-  passwordHash: string;
-  salt: string;
-
   // Roles and status
   role: UserRole;
   status: UserStatus;
-  provider?: 'local' | 'google' | 'facebook' | 'twitter' | 'apple';
-
-  // Verification
+  provider: AuthProvider;
+  providerId?: string;
+  avatar?: string;
   isVerified?: boolean;
-
-  // Timestamps
+  isActive?: boolean;
 
   lastLogin?: Date;
-tokenVersion?: number;
-  // Avatar
-  avatar?: string;
+  passwordChangedAt?: Date;
 
-  // OAuth fields
-  googleId?: string;
-  googleAccessToken?: string;
-  googleRefreshToken?: string;
-
-  facebookId?: string;
-  facebookAccessToken?: string;
-  facebookRefreshToken?: string;
-
-  twitterId?: string;
-  twitterAccessToken?: string;
-  twitterRefreshToken?: string;
-
-  appleId?: string;
-  appleAccessToken?: string;
-  appleRefreshToken?: string;
-
-  // Password reset
-  resetPasswordToken?: string;
   passwordResetToken?: string;
-  resetPasswordExpires?: Date;
-
-  // Session refresh tokens
-  refreshToken?: string;
+  passwordResetExpires?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpiresIn?: number;
+  // Optional: versioning tokens
+  tokenVersion?: number;
 }
 
-// UserDocument — extends Mongo Document and adds methods
-// models/user/user.types.ts
-
-
-// Document interface extends Mongoose's Document and our fields
-export interface UserDocument extends Document, IUser, Timestamps {
-  verifyPassword(password: string): Promise<boolean>;
+/**
+ * Mongoose Document interface
+ */
+export interface UserDocument extends Document, Omit<IUser, 'resetPasswordExpiresIn'> {
   comparePassword(candidatePassword: string): Promise<boolean>;
-  clearResetToken(): void;
+  getResetPasswordToken(): string;
   getSignedJwtToken(): string;
-  generateAccessToken(): string;
   generateAuthToken(): string;
   generateRefreshToken(): string;
+  resetPasswordExpiresIn(): number;
+  clearResetToken(): void;
+  generateAccessToken(): string;
   generateResetPasswordToken(): string;
-  setPassword(password: string): void;
-  getResetPasswordToken(): string;
-  findByEmail(email: string): Promise<UserDocument | null>;
-  linkedAccounts(): Promise<any>;
 }
 
-// UserModel — static methods interface
-export interface IUserModel extends Model<UserDocument> {
-  
-}
+/**
+ * Mongoose Model interface (for future static methods)
+ */
+export interface IUserModel extends Model<UserDocument> {}

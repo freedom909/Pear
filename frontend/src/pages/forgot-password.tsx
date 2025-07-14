@@ -48,18 +48,18 @@ const ForgotPassword: React.FC = () => {
       setIsSubmitting(true);
 
       try {
-        // Here you would typically make an API call to your password reset endpoint
-        // For example:
-        // const response = await fetch('/api/auth/forgot-password', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ email })
-        // });
+       // Here you would typically make an API call to your password reset endpoint
+       
+        const response = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
 
-        // if (!response.ok) {
-        //   const error = await response.json();
-        //   throw new Error(error.message || 'Failed to send reset link');
-        // }
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to send reset link');
+        }
 
         // Simulate successful submission
         setTimeout(() => {

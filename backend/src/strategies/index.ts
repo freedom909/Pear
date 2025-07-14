@@ -6,6 +6,7 @@ export * from './apple';
 export * from './local';
 
 // src/strategies/setupStrategies.ts
+
 import passport from 'passport';
 import { Strategy as AppleStrategy, Profile } from 'passport-apple';
 import userService from '../services/user.service';
@@ -36,7 +37,8 @@ passport.use(
         if (!user) {
           user = await userService.create({
             email,
-            name: profile.displayName || email.split('@')[0],
+            firstname: profile.name?.givenName || '',
+            lastname: profile.name?.familyName || '',
             provider: 'apple',
             accessToken,
             refreshToken,

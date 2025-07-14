@@ -14,7 +14,7 @@ import path from 'path';
 import session from 'express-session';
 import passport from 'passport';
 
-import errorHandler from './middleware/errorHandler';
+import errorHandler from './errors/errorHandler';
 import notFound from './middleware/notFoundHandler';
 import logger, { logStream } from './middleware/logger';
 import { initRedis } from './middleware/redis';
@@ -25,6 +25,7 @@ import userService from './services/user.service';
 import apiRoutes from './routes/index';
 
 import { OAuthConfiguration } from './config/oauth';
+import { protectedRouter, publicRouter } from './routes/auth.routes';
 const oauthConfigs = OAuthConfiguration.getConfigs();
 // Initialize DB
 connectDB();
@@ -41,6 +42,7 @@ factory.initializeStrategies();
 
 // Initialize Express app
 const app = express();
+app.use(express.json());
 
 // Trust proxy (for e.g., Heroku or Nginx)
 app.set('trust proxy', false);
@@ -124,7 +126,15 @@ app.get('/health', (_req, res) => {
 });
 
 //Routes
+app.use("/api/v1/auth", publicRouter);
+app.use("/api/v1/auth", protectedRouter);
 app.use('/', apiRoutes);
+app._router.stack.forEach((r: any) => {
+  if (r.route && r.route.path) {
+    console.log(`${Object.keys(r.route.methods).join(',').toUpperCase()} ${r.route.path}`);
+  }
+});
+
 app.post('/api/logout', (_req, res) => {
   res.clearCookie('auth_token', {
     httpOnly: true,

@@ -1,49 +1,5 @@
 //models/interface/index.ts
-import { Document, Model } from 'mongoose';
 
-export interface IUser extends Document {
-  email: string;
-  password?: string;
-  name: string;
-  role?: UserRole | '';
-  emailVerified: boolean;
-  // Change profilePhoto to avatar
-  avatar?: string;
-  bio?: string;
-
-  // OAuth 相关字段
-  googleId?: string;
-  googleAccessToken?: string;
-  googleRefreshToken?: string;
-
-  facebookId?: string;
-  facebookAccessToken?: string;
-  facebookRefreshToken?: string;
-
-  twitterId?: string;
-  twitterAccessToken?: string;
-  twitterRefreshToken?: string;
-
-  appleId?: string;
-  appleAccessToken?: string;
-  appleRefreshToken?: string;
-
-  // 账户状态
-  isActive: boolean;
-  lastLogin?: Date;
-
-  // 时间戳
-  createdAt: Date;
-  updatedAt: Date;
-
-  // 生成令牌
-  findOrCreate(profile: any): Promise<Document>;
-  generateAuthToken(): string;
-  generateRefreshToken(): string;
-  comparePassword(candidatePassword: string): Promise<boolean>;
-  generateEmailVerificationToken(): Promise<string>;
-  generatePasswordResetToken(): Promise<string>;
-}
 
 export const UserRole = {
   SUPER_ADMIN: 'super_admin' as const,
@@ -59,8 +15,6 @@ export const UserStatus = {
   INACTIVE: 'inactive' as const,
   SUSPENDED: 'suspended' as const,
 };
-
-export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
 
 export interface JwtTokens {
   accessToken: string;
@@ -79,9 +33,9 @@ export interface IUserProfile {
   email?: string;
   password?: string;
   role?: UserRole;
-  status?: UserStatus;
-  firstName?: string;
-  lastName?: string;
+  status?: typeof UserStatus;
+  firstname?: string;
+  lastname?: string;
   avatar?: string;
   phoneNumber?: string;
   address?: {
@@ -142,7 +96,7 @@ export interface IUserCreate {
 export interface IUserUpdate {
   email?: string;
   role?: UserRole;
-  status?: UserStatus;
+  status?: typeof UserStatus;
   profile?: Partial<IUserProfile>;
   security?: Partial<IUserSecurity>;
 }
@@ -150,46 +104,17 @@ export interface IUserUpdate {
 export interface IUserFilters {
   email?: string | RegExp;
   role?: UserRole;
-  status?: UserStatus;
+  status?: typeof UserStatus;
   verified?: boolean;
   createdAt?: {
     $gte?: Date;
     $lte?: Date;
   };
-  'profile.firstName'?: string | RegExp;
-  'profile.lastName'?: string | RegExp;
+  'profile.firstname'?: string | RegExp;
+  'profile.lastname'?: string | RegExp;
   'profile.phoneNumber'?: string;
   'profile.address.country'?: string;
   search?: string;
-}
-
-export interface IUserModel extends Model<Document> {
-  findByEmail(email: string): Promise<Document | null>;
-  findByVerificationToken(token: string): Promise<Document | null>;
-  findByPasswordResetToken(token: string): Promise<Document | null>;
-  findByRefreshToken(token: string): Promise<Document | null>;
-  isEmailTaken(email: string, excludeUserId?: string): Promise<boolean>;
-  pre(
-    hook: 'save',
-    callback: (this: Document, next: (err?: Error) => void) => Promise<void>
-  ): void;
-  save: () => Promise<void>;
-  methods: {
-    comparePassword: (candidatePassword: string) => Promise<boolean>;
-    generateEmailVerificationToken: () => Promise<string>;
-    generatePasswordResetToken: () => Promise<string>;
-    generateRefreshToken: () => Promise<string>;
-    getSignedJwtToken: () => Promise<string>;
-  };
-  password: string;
-  passwordResetToken?: string;
-  passwordResetExpires?: Date;
-  emailVerificationToken?: string;
-  emailVerificationExpires?: Date;
-  verified?: boolean;
-  provider?: string;
-  email?: string;
-  id?: string;
 }
 /**
  * OAuth profile interface

@@ -1,8 +1,6 @@
 // auth.controller.ts
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import validator from 'validator';
-import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import User from '../models/user/user.model';
 import { AppError } from '../errors/appError';
@@ -12,100 +10,58 @@ import { UserDocument } from '../models/user/user.types';
 import { UserResponseDTO } from '../dtos/userDTO';
 import { asyncHandler } from '../middleware/asyncHandler';
 import userService from '../services/user.service';
+import { UserRole } from '@/middleware/role';
 
 interface RegisterRequestBody {
-  name: string;
+  firstname: string;
+  lastname: string;
   email: string;
   password: string;
   passwordConfirm: string;
 }
 
-
-/**
- * 🚀 Register new user
- */
 export const register = async (
   req: Request<{}, {}, RegisterRequestBody>,
   res: Response,
   next: NextFunction
 ) => {
+  const { firstname, lastname, email, password, passwordConfirm } = req.body;
   try {
-    const { name, email, password, passwordConfirm } = req.body;
-
-    // 1) Validate input
-    if (!name || !email || !password || !passwordConfirm) {
-      return next(new AppError({
-        message: 'Please provide all required fields',
-        code: ErrorCode.BAD_REQUEST,
-        details: { name, email, password, passwordConfirm },
-      }));
+   
+    if (!firstname || !firstname.trim() || !lastname || !lastname.trim() || !email || !password || !passwordConfirm) {
+      return next(
+        new AppError({
+          message: 'Please provide all required fields',
+          code: ErrorCode.BAD_REQUEST,
+        })
+      );
     }
-
-    if (!validator.isEmail(email)) {
-      return next(new AppError({
-        message: 'Please provide a valid email',
-        code: ErrorCode.BAD_REQUEST,
-        details: { email },
-      }));
-    }
-
-    if (password !== passwordConfirm) {
-      return next(new AppError({
-        message: 'Passwords do not match',
-        code: ErrorCode.BAD_REQUEST,
-        details: { password, passwordConfirm },
-      }));
-    }
-
-    if (password.length < 8) {
-      return next(new AppError({
-        message: 'Password must be at least 8 characters',
-        code: ErrorCode.BAD_REQUEST,
-        details: { password },
-      }));
-    }
-
-    // 2) Check if user already exists
-    const existingUser = await userService.findOne({ email });
-    if (existingUser) {
-      return next(new AppError({
-        message: 'Email already in use',
-        code: ErrorCode.BAD_REQUEST,
-        details: { email },
-      }));
-    }
-
-    // 3) Create new user
-    const newUser = await userService.create({
-      name,
-      email,
-      password: await bcrypt.hash(password, 10),
-      provider: 'local',
-      accessToken: '',
-      refreshToken: '',
-      profile: {},
-      avatar: '',
+ const hashedPassword = await bcrypt.hash(password, 10);
+    // Continue creating user
+    const user = await userService.createUser({
+      firstname: firstname.trim(),
+      lastname: lastname.trim(),
+      email: email.trim(),
+      password: hashedPassword,
+      photo: 'avatar-default.png',
+      role: UserRole.USER,
+      status: 'active',
+      verified: false,
+      
     });
 
-    // 4) Generate JWT token
-    const token = createToken(newUser._id as string);
-
-    // 5) Send response
-    res.status(201).json({
-      success: true,
-      token,
-      data: {
-        user: {
-          id: newUser._id,
-          username: newUser.username,
-          email: newUser.email,
-        },
-      },
-    });
-  } catch (err) {
-    next(err);
+    sendTokenResponse(user, 201, res);
+  } catch (error) {
+    logger.error(error);
+    return next(new AppError({
+      message: '注册失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: { error: (error as Error).message },
+    }));
   }
+  // ...
 };
+
 
 /**
  * 🔐 Login user
@@ -207,8 +163,6 @@ export const updateDetails = asyncHandler(async (req: Request, res: Response, ne
     data: user,
   });
 });
-
-
 /**
  * 🔒 Update password
  */
@@ -274,10 +228,7 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
  * 🔁 Reset password
  */
 export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const resetPasswordToken = crypto
-    .createHash('sha256')
-    .update(req.params.resettoken)
-    .digest('hex');
+  const resetPasswordToken = req.params.resetPasswordToken;
 
   const user = (await User.findOne({
     resetPasswordToken,
@@ -293,7 +244,6 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
 
   user.password = req.body.password;
   user.resetPasswordToken = undefined;
-  user.resetPasswordExpires = undefined;
   await user.save();
 
   res.status(200).json({ success: true, data: new UserResponseDTO(user) });
@@ -321,9 +271,9 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
 /**
  * Helper to create JWT
  */
-function createToken(id: string): string {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'secure-random-string-here', { expiresIn: '1h' });
-}
+// function createToken(id: string): string {
+//   return jwt.sign({ id }, process.env.JWT_SECRET || 'secure-random-string-here', { expiresIn: '1h' });
+// }
 
 /**
  * Helper to send token response

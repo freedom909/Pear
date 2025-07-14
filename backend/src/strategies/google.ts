@@ -89,24 +89,29 @@ export class GoogleOAuthStrategy extends BaseStrategy {
                 id: profile.id,
                 provider: 'google',
               });
-              const givenName = profile.name?.givenName || '';
-              const familyName = profile.name?.familyName || '';
-              const username = `${givenName}.${familyName}`.toLowerCase();
+              const firstname = profile.name?.givenName || '';
+              const lastname = profile.name?.familyName || '';
+              const username = `${firstname}.${lastname}`.toLowerCase();
               user = await userService.createUserFromOAuthProfile({
                 id: profile.id,
-                name: {
-                  familyName: profile.name?.familyName || 'google222',
-                  givenName: profile.name?.givenName || 'google111'
-                },
+                
+                  lastname: profile.name?.familyName || 'google222',
+                  firstname: profile.name?.givenName || 'google111',
+              
                 username,
                 emails: profile.emails || [],
-                avatar: profile.photos?.[0]?.value,
+                avatar: profile.photos?.[0]?.value|| 'assets/images/default-avatar.png',
                 isVerified: true, // Assuming Google emails are verified
                 provider: 'google',
                 oauth: {
                   accessToken: _accessToken,
                   refreshToken: _refreshToken
                 }
+              }
+              );
+              logger.info('Created new user from Google profile', {
+                userId: user._id,
+                profileId: profile.id
               });
 
               logger.info('Successfully created user from Google profile', {

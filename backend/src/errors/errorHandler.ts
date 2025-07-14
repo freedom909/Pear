@@ -3,9 +3,9 @@
 import { Request, Response, NextFunction } from 'express';
 
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
-import logger from './logger';
-import { AppError } from '../errors/appError';
-import { ErrorCode, ErrorCodeToStatusCode } from '../errors/error-code';
+import logger from '../middleware/logger';
+import { AppError } from './appError';
+import { ErrorCode, ErrorCodeToStatusCode } from './error-code';
 import { ValidationError } from 'express-validator';
 
 /**
