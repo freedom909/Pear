@@ -956,7 +956,7 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
         if (name) {
           (user as any).name = name;
         }
-
+      
         await user.save();
       } else {
         (user as any)[provider + 'Id'] = providerId as string;
@@ -1135,8 +1135,12 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
     const hashedPassword = await bcrypt.hash(userData.password!, 10);
     console.log('userData in createUser:', JSON.stringify(userData, null, 2));
 
-    const user = new User({ ...userData, password: hashedPassword });
+    const user = new User({
+       ...userData,
+       provider: 'local',
+        password: hashedPassword });
     try {
+      user.providerId = user.id.toString() ;
       await user.save();
     } catch (err) {
       if (err instanceof Error) {

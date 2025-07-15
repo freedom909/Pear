@@ -61,9 +61,11 @@ class AuthService {
       lastname: data.lastname,
       username: `${data.firstname} ${data.lastname}`,
       email: data.email,
-      password: data.password
+      password: data.password,
+        provider: 'local',
+        
     });
-
+      user.providerId = user.id.toString();
     return this.buildAuthResponse(user as unknown as UserDocument);
   }
 

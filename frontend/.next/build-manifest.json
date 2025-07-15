@@ -42,6 +42,11 @@
       "static/chunks/main.js",
       "static/chunks/pages/oauth/facebook-callback.js"
     ],
+    "/oauth/google-callback": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/oauth/google-callback.js"
+    ],
     "/register": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

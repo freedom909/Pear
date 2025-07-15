@@ -53,7 +53,7 @@ const UserSchema = new Schema<UserDocument>(
       default: AuthProvider.LOCAL,
       required: true,
     },
-    providerId: {
+    providerId: { // how to use 'user._id.toString()'
       type: String,
       select: false,
     },

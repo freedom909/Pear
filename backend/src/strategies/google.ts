@@ -6,6 +6,7 @@ import { Request } from 'express';
 import { Profile } from 'passport';
 import { VerifyCallback } from 'passport-oauth2';
 import { OAuthConfig } from '../models/interface';
+import { handleOAuthCallback } from './handleOAuthCallback';
 
 export class GoogleOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: OAuthConfig, userService: any): void {
@@ -37,74 +38,15 @@ export class GoogleOAuthStrategy extends BaseStrategy {
           });
 
           try {
-            if (!profile.id) {
-              throw new Error('Google profile missing required field: id');
-            }
-
-            // 0️⃣ Get user info from Google profile
-            const firstname = profile.name?.givenName || 'Google';
-            const lastname = profile.name?.familyName || 'User';
-            const username = `${firstname}.${lastname}`.toLowerCase();
-
-            // 1️⃣ Try to find existing user linked by provider
-            let user = await userService.findUserByOAuthProfile(
-              { id: profile.id },
-              'google'
+            const user = await handleOAuthCallback(
+              profile,
+              'google',
+              userService,
+              accessToken,
+              refreshToken
             );
 
-            if (user) {
-              logger.info('Found existing user with Google provider', {
-                userId: user._id
-              });
-              return done(null, user);
-            }
-
-            // 2️⃣ If no linked user, check by email
-const email = profile.emails?.[0]?.value || `${profile.id}@google.com`;
-
-if (!user && email) {
-  const existingUserByEmail = await userService.findUserByEmail(email);
-  if (existingUserByEmail) {
-    // Link Google to this user
-    await userService.linkOAuthProviderToUser(
-      existingUserByEmail,
-      'google',
-      profile.id,
-      profile,
-      true
-    );
-    return done(null, existingUserByEmail);
-  }
-}
-
-
-            // 3️⃣ If no user found, create new user
-            logger.info('Creating new user from Google profile', {
-              profileId: profile.id,
-              email
-            });
-if (!user) {
-            user = await userService.createUserFromOAuthProfile({
-              id: profile.id,
-              name: {
-                firstname,
-                lastname
-              },
-              username,
-              emails: profile.emails?.[0]?.value || [],
-              avatar: profile.photos?.[0]?.value,
-              isVerified: true, // Assuming verified
-              provider: 'google',
-              oauth: {
-                accessToken,
-                refreshToken
-              }
-            });
-          }
-            logger.info('Successfully created user from Google profile', {
-              userId: user._id
-            });
-
+            logger.info("Google authentication successful");
             return done(null, user);
           } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error));
