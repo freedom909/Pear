@@ -18,7 +18,7 @@ import { UserDocument } from '../models/user/user.types';
 
 export interface CreateUserFromOAuthProfileInput {
   id: string;
-  name: { familyName: string; givenName: string };
+  name: { firstname: string; lastname: string };
   emails: { value: string }[];
   username?: string;
   password?: string;
@@ -67,7 +67,6 @@ export interface UserService {
 
   createOAuthUser(userData: UserDocument): Promise<IUserProfile>;
   updateUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;
-
 
   updateOAuthUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;
   deleteUser(id: string): Promise<void>;
@@ -596,7 +595,6 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
       const newUser = (User.create({
         firstname: userData.firstname || 'google',
         lastname: userData.lastname || 'son of google',
-        username: `${userData.firstname || 'google'} ${userData.lastname || 'son of google'}`,
         email: userData.email,
         password: userData.password || bcrypt.hash(mathjs.random().toString(), 10),
         role: 'user',
@@ -802,14 +800,25 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
       }
 
       // Generate a placeholder email if none provided
-      const email = input.emails[0]?.value || 
-                   `${input.id}@${input.provider}.oauth.local`;
+  const email = input.emails?.[0]?.value ||
+  `${input.id}@${input.provider}.com`;
+
+
+      // Ensure firstname and lastname are not empty
+      const firstname = input.name?.firstname || `${input.provider}用户`;
+      const lastname = input.name?.lastname || `${input.provider}用户`;
+      
+      if (!input.name?.firstname || !input.name?.lastname) {
+        logger.warn(`Missing name fields for OAuth user: provider=${input.provider}, id=${input.id}, using defaults`);
+      }
 
       const userData = {
-        username: `${input.name?.givenName || ''} ${input.name?.familyName || ''}`.trim(),
+        username: `${firstname} ${lastname}`.trim() || `user_${Math.random().toString(36).substring(2, 10)}`,
+        firstname: firstname,
+        lastname: lastname,
         email: email,
         role: 'user',
-        verified: input.verified || false,
+        isVerified: input.verified || input.isVerified || false,
         provider: input.provider,
         [`${input.provider}`]: {
           id: input.id,
@@ -818,35 +827,28 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
         avatar: input.avatar || '/images/avatar.jpg',
       };
 
+      logger.debug('Creating OAuth user with data:', {
+        ...userData,
+        [`${input.provider}`]: { id: input.id }  // Don't log full OAuth details
+      });
+
       const user = await User.create(userData);
       logger.info(`Created OAuth user for ${input.provider}: ${user._id}`);
       
-      return {
-        ...user.toObject(),
-        id: user._id as unknown as string,
-        username: {
-          firstname: input.name?.givenName || '',
-          lastname: input.name?.familyName || '',
-        },
-        email: user.email,
-        
-        verified: user.isVerified || false,
-        avatar: userData.avatar
-      } as unknown as UserDocument;
+      return user as unknown as UserDocument;
     } catch (error) {
       logger.error('创建OAuth用户失败:', {
         provider: input.provider,
         error: error instanceof Error ? error.message : String(error),
         input: {
           id: input.id,
-          username: {
-            givenName: input.name?.givenName,
-            familyName: input.name?.familyName,
-          },
-          email:input.username,
+          
+            firstname: input.name?.firstname,
+            lastname: input.name?.lastname,
+          
+          email:input.emails?.[0]?.value,
           emails: input.emails,
           avatar: input.avatar,
-          ...(input.oauth || {}),
           
           hasEmail: !!input.emails?.[0]?.value
         }

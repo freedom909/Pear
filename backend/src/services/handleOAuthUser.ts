@@ -72,9 +72,28 @@ export const handleOAuthUser = async (
       return user;
     } else {
       // 创建新用户
+      // 从 displayName 中提取 firstname 和 lastname
+      let firstname = '';
+      let lastname = '';
+      
+      if (profile.displayName) {
+        const nameParts = profile.displayName.split(' ');
+        firstname = nameParts[0] || '';
+        lastname = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+      } else if (profile.name) {
+        // 如果有 name 对象，优先使用它
+        firstname = profile.name.firstname || profile.name.givenName || '';
+        lastname = profile.name.lastname || profile.name.familyName || '';
+      }
+      
+      // 确保 firstname 和 lastname 不为空
+      firstname = firstname || `${provider}用户`;
+      lastname = lastname || `${provider}用户`;
+      
       const userData: any = {
         [`${provider}Id`]: providerId,
-        name: profile.displayName || `${provider}用户`,
+        firstname,
+        lastname,
         email,
         emailVerified: email ? true : false, // OAuth 提供的邮箱通常已验证
         role: 'user',

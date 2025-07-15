@@ -13,17 +13,18 @@ import {
 
 const UserSchema = new Schema<UserDocument>(
   {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
-      match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        'Please fill a valid email address',
-      ],
-    },
+ email: {
+  type: String,
+  required: true,
+  unique: true,
+  trim: true,
+  lowercase: true,
+  match: [
+    /^[\w.-]+@([\w-]+\.)+[\w-]{2,}$/,
+    'Please fill a valid email address',
+  ],
+},
+
     password: {
       type: String,
       select: false,
@@ -162,3 +163,4 @@ UserSchema.index({ provider: 1, providerId: 1 }, { unique: true, sparse: true })
  */
 const User = mongoose.model<UserDocument>('User', UserSchema);
 export default User;
+console.log('Schema paths:', User.schema.paths);

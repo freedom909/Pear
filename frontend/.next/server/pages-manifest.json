@@ -2,8 +2,9 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/register": "pages/register.js",
-  "/login": "pages/login.js",
+  "/404": "pages/404.js",
   "/dashboard": "pages/dashboard.js",
-  "/404": "pages/404.js"
+  "/login": "pages/login.js",
+  "/oauth/facebook-callback": "pages/oauth/facebook-callback.js",
+  "/register": "pages/register.js"
 }

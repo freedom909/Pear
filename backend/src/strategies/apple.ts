@@ -44,12 +44,22 @@ export class AppleOAuthStrategy extends BaseStrategy {
           logger.debug(`Creating new user from Apple profile: ${profile.id}`);
  
                         const emailVerified = profile.email_verified || false;
+                        // Ensure we have valid firstname and lastname
+                        const firstname = profile.name?.firstname || 'Apple';
+                        const lastname = profile.name?.lastname || 'User';
+                        
+                        logger.debug('Name fields from Apple profile:', {
+                          firstname,
+                          lastname,
+                          displayName: profile.displayName
+                        });
+                        
                         user = await userService.createUserFromOAuthProfile(
                       {
                         id: profile.id,
                         name: {
-                          familyName: profile.name?.familyName || '',
-                          givenName: profile.name?.givenName || ''
+                          firstname: firstname,
+                          lastname: lastname
                         },
                         emails: profile.emails ?? [],
                         username: profile.username || '',

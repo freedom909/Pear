@@ -2,7 +2,7 @@ import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PassportStatic } from 'passport';
 import { BaseStrategy } from './base';
 import { OAuthConfig} from '../models/interface';
-import { UserDocument } from '../models/user/user.types';
+
 
 import { logger } from '../utils/logger';
 
@@ -66,10 +66,33 @@ export class TwitterOAuthStrategy extends BaseStrategy {
               logger.info('Creating new user from Twitter profile', {
                 profileId: profile.id,
               });
-              user = await userService.createUserFromOAuthProfile(
-                profile as unknown as UserDocument,
-                'twitter'
-              );
+              
+              // Extract name from Twitter profile
+              const nameParts = profile.displayName ? profile.displayName.split(' ') : [];
+              const firstname = nameParts[0] || 'Twitter';
+              const lastname = nameParts.length > 1 ? nameParts[nameParts.length - 1] : 'User';
+              
+              logger.debug('Name fields from Twitter profile:', {
+                firstname,
+                lastname,
+                displayName: profile.displayName
+              });
+              
+              user = await userService.createUserFromOAuthProfile({
+                id: profile.id,
+                name: {
+                  firstname: firstname,
+                  lastname: lastname
+                },
+                username: profile.username || profile.displayName,
+                emails: profile.emails || [],
+                avatar: profile.photos?.[0]?.value,
+                provider: 'twitter',
+                oauth: {
+                  accessToken: _accessToken,
+                  refreshToken: _refreshToken
+                }
+              });
             } else {
               logger.info('Found existing user with Twitter profile', {
                 userId: user.id,
