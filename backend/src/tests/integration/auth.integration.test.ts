@@ -4,11 +4,20 @@ import mongoose from 'mongoose';
 import User from '../../models/user/user.model';
 import { hash } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import {jest,describe,expect,it,beforeAll,beforeEach,afterAll} from '@jest/globals';
+
+jest.mock('../../models/user/user.model');
 
 describe('Auth Integration Tests', () => {
   beforeAll(async () => {
-    // 连接到测试数据库
-    await mongoose.connect(process.env.MONGODB_URI_TEST || '');
+    // 确保在连接前断开任何现有连接
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+    
+    // 连接到测试数据库，使用唯一的数据库名称
+    const testDbUri = process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/pear_test_auth';
+    await mongoose.connect(testDbUri);
   });
 
   beforeEach(async () => {

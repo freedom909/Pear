@@ -93,6 +93,74 @@ export const getMe = asyncHandler<AuthRequest>(
   }
 );
 
+export const getCurrentUser = asyncHandler<AuthRequest>(
+  async (req: any, _res: Response, next: NextFunction) => {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return next(
+        new AppError({
+          message: 'User not found',
+          code: ErrorCode.NOT_FOUND,
+          details: { user: user },
+        })
+      );
+    }
+    req.user = sanitizeUserData(user);
+    next();
+    }
+    );
+
+export const updateCurrentUser= asyncHandler<AuthRequest>(
+  async (req: any, _res: Response, next: NextFunction) => {
+    const dto = (await validateRequest(UpdateUserDTO)(req, _res, next)) as any;
+    if (!dto) {
+      return;
+    }
+
+    const updateData: any = {};
+    if (dto.name) {
+      updateData.name = dto.name;
+    }
+    if (dto.email) {
+      const existingUser = await User.findOne({
+        email: dto.email,
+        _id: { $ne: req.user.id },
+      });
+      if (existingUser) {
+        return next(
+          new AppError({
+            message: 'Email is already taken',
+            code: ErrorCode.BAD_REQUEST,
+            details: { user: existingUser },
+          })
+        );
+      }
+      if (dto.email === req.user.email) {
+        return next(
+          new AppError({
+            message: 'Email is already taken',
+            code: ErrorCode.BAD_REQUEST,
+            details: { user: req.user },
+          })
+        );
+      }
+      updateData.email = dto.email;
+    } 
+   if (dto.role) {
+      if (dto.role === UserRole.ADMIN) {
+        return next(
+          new AppError({
+            message: 'Cannot change role to admin',
+            code: ErrorCode.BAD_REQUEST,
+            details: { user: req.user },
+          })
+        );
+      }
+      updateData.email = dto.email;
+    }
+  });
+
+
 /**
  * @desc    Update logged-in user's profile
  * @route   PUT /api/v1/users/me

@@ -1,8 +1,8 @@
 // models/user/user.model.ts
 import mongoose, { Schema } from 'mongoose';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
 import {
 
   UserDocument,
@@ -155,7 +155,6 @@ UserSchema.methods.getSignedJwtToken = function (): string {
 };
 
 // Indexes
-UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ provider: 1, providerId: 1 }, { unique: true, sparse: true });
 
 /**
@@ -163,4 +162,3 @@ UserSchema.index({ provider: 1, providerId: 1 }, { unique: true, sparse: true })
  */
 const User = mongoose.model<UserDocument>('User', UserSchema);
 export default User;
-console.log('Schema paths:', User.schema.paths);

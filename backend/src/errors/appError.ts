@@ -8,6 +8,7 @@ export class AppError extends Error {
   public readonly code: ErrorCode;
   public readonly statusCode: number;
   public readonly details?: any;
+  public status: string;
 
   /**
    * 构造函数
@@ -16,6 +17,7 @@ export class AppError extends Error {
     super(options.message);
     this.code = options.code;
     this.details = options.details;
+    this.status = 'error';
     this.statusCode = ErrorCodeToStatusCode[options.code] ?? 500;
 
     // 捕获堆栈跟踪

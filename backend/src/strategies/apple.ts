@@ -30,13 +30,14 @@ export class AppleOAuthStrategy extends BaseStrategy {
         if (!user && profile.emails && profile.emails.length > 0) {
           const email = profile.emails[0].value;
           logger.debug(`User not found by Apple ID, trying email: ${email}`);
-          let user = await userService.findUserByEmail(email);
+          const existingUser = await userService.findUserByEmail(email);
 
-          if (user) {
+          if (existingUser) {
             logger.debug(`User found by email, linking Apple account: ${profile.id}`);
             const emailVerified = profile.email_verified || false;
-            await userService.linkOAuthProviderToUser(user, 'apple', profile.id, profile as any, emailVerified);
-            await user.save();
+            await userService.linkOAuthProviderToUser(existingUser, 'apple', profile.id, profile as any, emailVerified);
+            await existingUser.save();
+            user = existingUser;
           }
         }
 

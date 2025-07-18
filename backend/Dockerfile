@@ -1,15 +1,13 @@
-FROM node:17-slim
+FROM node:18-slim
 
-WORKDIR  /starter
+WORKDIR /app
 ENV NODE_ENV development
 
-COPY package.json /starter/package.json
+COPY package*.json ./
 
-RUN npm install pm2 -g
-RUN npm install --production
+RUN npm install
 
-COPY .ENV
-COPY ./starter 
+COPY . .
 
-CMD [ "pm2-runtime","app.json" ]
-EXPOSE 8080
+CMD ["npm", "start"]
+EXPOSE 3001

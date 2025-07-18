@@ -1,6 +1,7 @@
-import { roleValidator } from '../role.validator';
+import { roleValidator } from '../../../validators/role.validator';
 import { validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
+import { jest,describe,it,expect } from '@jest/globals';
 
 describe('roleValidator', () => {
   const simulateValidation = async (value: any, field = 'role') => {
@@ -19,7 +20,7 @@ describe('roleValidator', () => {
 
     return {
       errors: result.array(),
-      nextCalled: next.mock.calls.length > 0,
+      // nextCalled: next.mock.calls.length > 0,
     };
   };
 

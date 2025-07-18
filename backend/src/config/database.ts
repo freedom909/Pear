@@ -41,11 +41,9 @@ export const connectDB = async () => {
       logger.error(`MongoDB连接错误: ${err.message}`);
     });
 
-    // 监听断开连接事件
-    mongoose.connection.on('disconnected', () => {
+       mongoose.connection.on('disconnect', () => {
       logger.warn('MongoDB连接断开');
     });
-
     // 监听进程终止事件
     process.on('SIGINT', async () => {
       await mongoose.connection.close();

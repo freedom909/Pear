@@ -12,7 +12,9 @@ import { logger } from '../utils/logger';
  */
 export class TwitterOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: OAuthConfig, userService: any): void {
-    logger.info('Initializing Twitter OAuth strategy');
+    if (logger && logger.info) {
+      logger.info('Initializing Twitter OAuth strategy');
+    }
 
     passport.use(
       new TwitterStrategy(

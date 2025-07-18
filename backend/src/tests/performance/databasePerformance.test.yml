@@ -1,0 +1,32 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 30
+      name: "Ramp up load"
+  processor: "./databaseTestHooks.js"
+
+scenarios:
+  - name: "Database CRUD Operations"
+    flow:
+      - post:
+          url: "/api/v1/auth/register"
+          json:
+            email: "{{ $randomEmail }}"
+            password: "Test@1234"
+            name: "{{ $randomName }}"
+          capture:
+            json: "$.user.id"
+            as: "userId"
+      - get:
+          url: "/api/v1/users/{{ userId }}"
+      - patch:
+          url: "/api/v1/users/{{ userId }}"
+          json:
+            name: "Updated Name"
+      - delete:
+          url: "/api/v1/users/{{ userId }}"

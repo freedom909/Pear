@@ -40,14 +40,14 @@ export interface IUser {
   lastname: string;
   username?: string;
   password?: string;
+  isVerified?: boolean;
+  isActive?: boolean;
   // Roles and status
   role: UserRole;
   status: UserStatus;
   provider: AuthProvider;
   providerId?: string;
   avatar?: string;
-  isVerified?: boolean;
-  isActive?: boolean;
 
   lastLogin?: Date;
   passwordChangedAt?: Date;
@@ -64,6 +64,8 @@ export interface IUser {
  * Mongoose Document interface
  */
 export interface UserDocument extends Document, Omit<IUser, 'resetPasswordExpiresIn'> {
+  createdAt: Date;
+  updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
   getResetPasswordToken(): string;
   getSignedJwtToken(): string;

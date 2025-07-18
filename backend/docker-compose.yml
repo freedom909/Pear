@@ -1,9 +1,29 @@
-environment:
- - MONGODB_URI=mongodb+srv://chika:chika@cluster0.lidru.mongodb.net/
-links:
- - mongodb
- dependencies:
-  - mongodb
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/pear
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
 volumes:
- - .:/starter
- - /starter/node_modules
+  mongodb_data:

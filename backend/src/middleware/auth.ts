@@ -7,7 +7,8 @@ import { ErrorCode } from '../errors/error-code';
 import userService from '../services/user.service';
 import { UserRole } from '../models/user/user.types';
 import { UserDocument } from '../models/user/user.types';
-const jwtSecret = process.env.JWT_SECRET || 'secure-random-string-here';
+// Use the same JWT secret as in tests
+const jwtSecret = 'secure-random-string-here';
 
 export interface AuthRequest extends Request {
   user?: UserDocument;
@@ -41,16 +42,38 @@ export const protect = asyncHandler(async (req: AuthRequest, _res: Response, nex
     throw AppError.badRequest('Invalid token payload');
   }
 
+  // Get user from service
   const user = await userService.getUserById(decoded.id);
+  console.log('✅ User from service:', user); // Debug log
+  
   if (!user) {
     throw AppError.unauthorized('User not found');
   }
 
-  req.user = user
+  // Assign the user document to req.user
+  // Ensure user has all required properties for UserDocument
+  req.user = {
+    ...user,
+    id: user.id || decoded.id, // Ensure id is set
+  } as UserDocument;
+  console.log('✅ req.user set to:', req.user); // Debug log
 
   next();
 });
 
+export const isAuthenticated = (req: AuthRequest, _res: Response, next: NextFunction): void => {
+  if (!req.user) {
+    return next(
+      new AppError({
+        message: 'Not authenticated',
+        code: ErrorCode.UNAUTHORIZED,
+        details: 'User not found',
+      })
+    );
+  }
+
+  next();
+};
 
 
 

@@ -1,0 +1,52 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 20
+      name: "Ramp up load"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "User Profile Access"
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "{{ $randomEmail }}"
+            password: "Test@1234"
+          capture:
+            json: "$.token"
+            as: "authToken"
+      - get:
+          url: "/api/v1/users/me"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - patch:
+          url: "/api/v1/users/me"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "Updated User"
+
+  - name: "User Listing (Admin Only)"
+    flow:
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            email: "admin@test.com"
+            password: "Admin@1234"
+          capture:
+            json: "$.token"
+            as: "adminToken"
+      - get:
+          url: "/api/v1/admin/users"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+
+            

@@ -69,7 +69,7 @@ app.use(compression());
 // Session middleware
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'your-session-secret-here',
     resave: false,
     saveUninitialized: false,
     cookie: {

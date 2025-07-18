@@ -17,6 +17,7 @@
  */
 export enum ErrorCode {
   // 通用错误 (000)
+  INTERNAL_ERROR= 'E000000',
   INTERNAL_SERVER_ERROR = 'E000001',
   BAD_REQUEST = 'E000002',
   NOT_FOUND = 'E000003',
@@ -77,6 +78,8 @@ export enum ErrorCode {
   RESOURCE_EXHAUSTED = 'E600004',
   FILE_SYSTEM_ERROR = 'E600005',
   NETWORK_ERROR = 'E600006',
+  // 测试错误 (700)
+  TEST_ERROR = 'E700001',
 }
 
 /**
@@ -84,6 +87,7 @@ export enum ErrorCode {
  */
 export const ErrorCodeToStatusCode: Record<ErrorCode, number> = {
   // 通用错误
+  [ErrorCode.INTERNAL_ERROR]: 500,
   [ErrorCode.INTERNAL_SERVER_ERROR]: 500,
   [ErrorCode.BAD_REQUEST]: 400,
   [ErrorCode.NOT_FOUND]: 404,
@@ -144,6 +148,13 @@ export const ErrorCodeToStatusCode: Record<ErrorCode, number> = {
   [ErrorCode.RESOURCE_EXHAUSTED]: 503,
   [ErrorCode.FILE_SYSTEM_ERROR]: 500,
   [ErrorCode.NETWORK_ERROR]: 503,
+
+  // 测试错误
+  [ErrorCode.TEST_ERROR]: 705,
+// The error indicates that TEST_ERROR is not defined in the ErrorCode enum.
+// This line should be removed since it refers to a non - existent enum value.
+
 };
+
 
 export default ErrorCode;

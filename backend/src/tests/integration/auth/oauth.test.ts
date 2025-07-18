@@ -1,16 +1,51 @@
 import request from 'supertest';
 import express, { Request, Response, NextFunction } from 'express';
+
+// Mock UserDocument factory
+import {createMockUser} from '../../createMockUser';
 import passport from 'passport';
 import session from 'express-session';
 import { handleOAuthUser } from '../../../services/handleOAuthUser';
+// Since the module has no exported member 'isAuthenticated',
+// you need to check the actual exported name in the auth module.
+// Here we assume it's exported as 'authenticate' for demonstration.
 import { isAuthenticated } from '../../../middleware/auth';
 import { errorHandler } from '../../../middleware/errorHandler';
-import User from '../../../models/user/model';
-
+// Try to adjust the import path based on the actual project structure.
+import type { RequestHandler } from 'express';
+import User from '../../../models/user/user.model';
+import { UserDocument } from '../../../models/user/user.types';
+import {jest, describe, beforeEach, it, expect} from '@jest/globals';
+import { OAuthTokenInfo } from '../../../models/interface';
+import type { AuthenticateOptions } from 'passport';
 // 模拟依赖
-jest.mock('passport');
+jest.mock('passport', () => ({
+  initialize: jest.fn(() => (_req: any, _res: any, next: any) => next()),
+  session: jest.fn(() => (_req: any, _res: any, next: any) => next()),
+  authenticate: jest.fn((_strategy: string, options: any) => 
+    (_req: any, res: any, next: any) => {
+      if (options?.failureRedirect) {
+        return res.redirect(options.failureRedirect);
+      }
+      if (options?.successRedirect) {
+        return res.redirect(options.successRedirect);
+      }
+      next();
+    }
+  ),
+  use: jest.fn(),
+  serializeUser: jest.fn(),
+  deserializeUser: jest.fn()
+}));
 jest.mock('../../../services/handleOAuthUser');
-jest.mock('../../../models/user/model');
+jest.mock('../../../models/user/user.model');
+
+export interface AuthRequest extends Request {
+  user?: Partial<UserDocument> | typeof User | any;
+}
+
+
+
 
 // 创建测试应用
 const createTestApp = () => {
@@ -37,7 +72,7 @@ const createTestApp = () => {
   app.get(
     '/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
-    (req: Request, res: Response) => {
+    (_req: Request, res: Response) => {
       res.redirect('/');
     }
   );
@@ -50,14 +85,15 @@ const createTestApp = () => {
   app.get(
     '/auth/facebook/callback',
     passport.authenticate('facebook', { failureRedirect: '/login' }),
-    (req: Request, res: Response) => {
+    (_req: Request, res: Response) => {
       res.redirect('/');
     }
   );
 
-  app.get('/profile', isAuthenticated, (req: Request, res: Response) => {
-    res.json({ user: req.user });
-  });
+app.get('/profile', isAuthenticated as express.RequestHandler, (req: AuthRequest, res: Response) => {
+  res.json({ user: req.user });
+});
+
 
   app.use(errorHandler);
 
@@ -72,33 +108,37 @@ describe('OAuth Authentication Flow', () => {
     app = createTestApp();
 
     // 模拟 passport.authenticate 方法
-    (passport.authenticate as jest.Mock).mockImplementation(
-      (strategy, options) => {
-        return (req: Request, res: Response, next: NextFunction) => {
-          if (req.query.error) {
-            return res.redirect(`/login?error=${req.query.error}`);
-          }
+  (passport.authenticate as jest.MockedFunction<
+  (strategy: string, options?: Partial<AuthenticateOptions>) => RequestHandler
+>).mockImplementation((strategy, options) => {
 
-          if (strategy === 'google' || strategy === 'facebook') {
-            if (req.path.includes('callback')) {
-              req.user = {
-                id: 'test-user-id',
-                email: 'test@example.com',
-                name: 'Test User',
-                role: 'user',
-              };
-              req.isAuthenticated = jest.fn().mockReturnValue(true);
-            }
-          }
-
-          next();
-        };
+       return (req: Request, _res: Response, next: NextFunction) => {
+      if (req.query.error) {
+        if (options?.failureRedirect) {
+          return _res.redirect(options.failureRedirect);
+        }
+        return next(new Error(req.query.error as string));
       }
-    );
-  });
+
+        // Handle successful authentication
+        if (strategy === 'google' || strategy === 'facebook') {
+          const authReq = req as AuthRequest;
+          authReq.user = createMockUser();
+          (authReq as any).isAuthenticated = jest.fn().mockReturnValue(true);
+          if (options?.successRedirect) {
+            return _res.redirect(options.successRedirect);
+          }
+        }
+        
+        next();
+      };
+    });
+  })
+
+
 
   describe('Google OAuth', () => {
-    it('应该重定向到Google认证页面', async () => {
+    it('should redirect to Google authentication page', async () => {
       const response = await request(app).get('/auth/google');
 
       expect(passport.authenticate).toHaveBeenCalledWith('google', {
@@ -107,7 +147,7 @@ describe('OAuth Authentication Flow', () => {
       expect(response.status).toBe(200);
     });
 
-    it('应该处理Google回调并重定向到首页', async () => {
+    it('should handle Google callback and redirect to home page', async () => {
       const response = await request(app).get('/auth/google/callback');
 
       expect(passport.authenticate).toHaveBeenCalledWith('google', {
@@ -117,7 +157,7 @@ describe('OAuth Authentication Flow', () => {
       expect(response.headers.location).toBe('/');
     });
 
-    it('应该在认证失败时重定向到登录页面', async () => {
+    it('should redirect to login page on authentication failure', async () => {
       const response = await request(app).get(
         '/auth/google/callback?error=access_denied'
       );
@@ -128,7 +168,7 @@ describe('OAuth Authentication Flow', () => {
   });
 
   describe('Facebook OAuth', () => {
-    it('应该重定向到Facebook认证页面', async () => {
+    it('should redirect to Facebook authentication page', async () => {
       const response = await request(app).get('/auth/facebook');
 
       expect(passport.authenticate).toHaveBeenCalledWith('facebook', {
@@ -137,7 +177,7 @@ describe('OAuth Authentication Flow', () => {
       expect(response.status).toBe(200);
     });
 
-    it('应该处理Facebook回调并重定向到首页', async () => {
+    it('should handle Facebook callback and redirect to home page', async () => {
       const response = await request(app).get('/auth/facebook/callback');
 
       expect(passport.authenticate).toHaveBeenCalledWith('facebook', {
@@ -149,19 +189,14 @@ describe('OAuth Authentication Flow', () => {
   });
 
   describe('Protected Routes', () => {
-    it('应该允许已认证用户访问受保护的路由', async () => {
+    it('should allow authenticated users to access protected routes', async () => {
       const agent = request.agent(app);
 
       // 模拟用户已登录
       (passport.session as jest.Mock).mockImplementation(() => {
-        return (req: Request, res: Response, next: NextFunction) => {
-          req.user = {
-            id: 'test-user-id',
-            email: 'test@example.com',
-            name: 'Test User',
-            role: 'user',
-          };
-          req.isAuthenticated = jest.fn().mockReturnValue(true);
+        return (_req: Request, _res: Response, next: NextFunction) => {
+         (_req as any).user = createMockUser();
+          (_req as any).isAuthenticated = jest.fn().mockReturnValue(true);
           next();
         };
       });
@@ -173,13 +208,15 @@ describe('OAuth Authentication Flow', () => {
       expect(response.body.user).toHaveProperty('email', 'test@example.com');
     });
 
-    it('应该阻止未认证用户访问受保护的路由', async () => {
+    it('should prevent unauthenticated users from accessing protected routes', async () => {
       const agent = request.agent(app);
 
       // 模拟用户未登录
       (passport.session as jest.Mock).mockImplementation(() => {
-        return (req: Request, res: Response, next: NextFunction) => {
-          req.isAuthenticated = jest.fn().mockReturnValue(false);
+        return (_req: Request, _res: Response, next: NextFunction) => {
+
+
+          (_req as any).isAuthenticated = jest.fn().mockReturnValue(false);
           next();
         };
       });
@@ -193,7 +230,17 @@ describe('OAuth Authentication Flow', () => {
   });
 
   describe('handleOAuthUser Service', () => {
-    it('应该正确处理新用户', async () => {
+    it('should throw error when OAuth provider returns invalid data', async () => {
+      const invalidProfile = {
+        id: null,
+        emails: []
+      };
+
+      await expect(handleOAuthUser(invalidProfile, 'facebook'as unknown as OAuthTokenInfo))
+        .rejects
+        .toThrow('Invalid profile data from OAuth provider');
+    });
+    it('should handle new users correctly', async () => {
       const mockProfile = {
         id: 'google-123',
         provider: 'google',
@@ -211,13 +258,13 @@ describe('OAuth Authentication Flow', () => {
       const mockUser = {
         id: 'new-user-id',
         email: 'new@example.com',
-        name: 'New User',
+        username: 'New User',
         googleId: 'google-123',
         profilePhoto: 'https://example.com/photo.jpg',
         role: 'user',
       };
 
-      (handleOAuthUser as jest.Mock).mockResolvedValue(mockUser);
+      (handleOAuthUser as jest.Mock).mockResolvedValue(mockUser as unknown as never);
 
       const result = await handleOAuthUser(mockProfile, mockTokenInfo);
 
@@ -225,7 +272,7 @@ describe('OAuth Authentication Flow', () => {
       expect(result).toEqual(mockUser);
     });
 
-    it('应该正确处理现有用户', async () => {
+    it('should handle existing users correctly', async () => {
       const mockProfile = {
         id: 'google-456',
         provider: 'google',
@@ -241,13 +288,13 @@ describe('OAuth Authentication Flow', () => {
       const mockUser = {
         id: 'existing-user-id',
         email: 'existing@example.com',
-        name: 'Existing User',
+        username: 'Existing User',
         googleId: 'google-456',
         role: 'user',
       };
 
-      (User.findOne as jest.Mock).mockResolvedValue(mockUser);
-      (handleOAuthUser as jest.Mock).mockResolvedValue(mockUser);
+      (User.findOne as jest.Mock).mockResolvedValue(mockUser as unknown as never);
+      (handleOAuthUser as jest.Mock).mockResolvedValue(mockUser as unknown as never);
 
       const result = await handleOAuthUser(mockProfile, mockTokenInfo);
 
@@ -255,7 +302,7 @@ describe('OAuth Authentication Flow', () => {
       expect(result).toEqual(mockUser);
     });
 
-    it('应该处理无效的配置文件数据', async () => {
+    it('should handle invalid profile data', async () => {
       const mockProfile = {
         // 缺少 id 和 provider
         displayName: 'Invalid User',
@@ -267,7 +314,7 @@ describe('OAuth Authentication Flow', () => {
       };
 
       (handleOAuthUser as jest.Mock).mockRejectedValue(
-        new Error('Invalid profile data')
+        new Error('Invalid profile data') as unknown as never
       );
 
       await expect(
