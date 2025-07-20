@@ -13,6 +13,13 @@ export class PasswordService {
     return token ?? null;
   }
 
+   async hashPassword(password: string): Promise<string> {
+    return await userService.hashPassword(password);
+  }
+  async comparePassword(password: string, hash: string): Promise<boolean> {
+    return await userService.comparePassword(password, hash);
+  }
+
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
     const user = await userService.getUserByResetToken(token);
     if (

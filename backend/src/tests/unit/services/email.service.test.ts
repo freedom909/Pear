@@ -1,6 +1,6 @@
-import { sendEmail } from '../../../services/email.service';
+import  emailService  from '../../../services/email.service';
 import nodemailer from 'nodemailer';
-import { expect, describe, it, beforeAll, afterAll } from '@jest/globals';
+import { expect, describe, it, beforeEach, afterAll ,jest} from '@jest/globals';
 jest.mock('nodemailer');
 
 describe('Email Service', () => {
@@ -16,12 +16,12 @@ describe('Email Service', () => {
   });
 
   it('should send email successfully', async () => {
-    const mockSendMail = jest.fn().mockResolvedValueOnce(true);
+    const mockSendMail = jest.fn().mockResolvedValueOnce(true as unknown as never);
     (nodemailer.createTransport as jest.Mock).mockReturnValueOnce({
       sendMail: mockSendMail
     });
 
-    await sendEmail(testEmail);
+    await emailService.sendEmail(testEmail);
     
     expect(nodemailer.createTransport).toHaveBeenCalledWith({
       host: process.env.EMAIL_HOST,
@@ -39,17 +39,17 @@ describe('Email Service', () => {
 
   it('should throw error when email fails to send', async () => {
     const mockSendMail = jest.fn().mockRejectedValueOnce(
-      new Error('Email failed')
+      new Error('Email failed') as unknown as never
     );
     (nodemailer.createTransport as jest.Mock).mockReturnValueOnce({
       sendMail: mockSendMail
     });
     
-    await expect(sendEmail(testEmail)).rejects.toThrow('Email failed');
+    await expect(emailService.sendEmail(testEmail)).rejects.toThrow('Email failed');
   });
 
   it('should use default from address when not provided', async () => {
-    const mockSendMail = jest.fn().mockResolvedValueOnce(true);
+    const mockSendMail = jest.fn().mockResolvedValueOnce(true as unknown as never);
     (nodemailer.createTransport as jest.Mock).mockReturnValueOnce({
       sendMail: mockSendMail
     });
@@ -60,7 +60,7 @@ describe('Email Service', () => {
       text: 'This is a test email'
     };
 
-    await sendEmail(emailWithoutFrom);
+    await emailService.sendEmail(emailWithoutFrom);// This expression is not callable.
     
     expect(mockSendMail).toHaveBeenCalledWith({
       from: process.env.EMAIL_FROM,

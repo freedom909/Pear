@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+        mongodb-version: [6.0]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Start MongoDB
+      uses: supercharge/mongodb-github-action@1.10.0
+      with:
+        mongodb-version: ${{ matrix.mongodb-version }}
+
+    # Backend
+    - name: Install backend dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Lint backend
+      working-directory: ./backend
+      run: npm run lint
+
+    - name: Build backend
+      working-directory: ./backend
+      run: npm run build
+
+    - name: Test backend
+      working-directory: ./backend
+      run: npm test
+      env:
+        NODE_ENV: test
+        JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret' }}
+        JWT_EXPIRES_IN: 1d
+        MONGODB_URI: mongodb://localhost:27017/test
+        PORT: 5000
+        CLIENT_URL: http://localhost:3000
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID || 'mock-google-client-id' }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET || 'mock-google-client-secret' }}
+        FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID || 'mock-facebook-app-id' }}
+        FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET || 'mock-facebook-app-secret' }}
+
+    # Frontend
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Lint frontend
+      working-directory: ./frontend
+      run: npm run lint
+
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID || 'mock-google-client-id' }}
+        NEXT_PUBLIC_FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID || 'mock-facebook-app-id' }}
+
+    - name: Test frontend
+      working-directory: ./frontend
+      run: npm test
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api

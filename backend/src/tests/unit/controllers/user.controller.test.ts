@@ -6,6 +6,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../../errors/appError';
 import User from '../../../models/user/user.model';
 import { jest,describe,it,expect,beforeEach } from '@jest/globals';
+import { UserDocument } from '../../../models/user/user.types';
 
 jest.mock('../../../models/user/user.model');
 
@@ -27,7 +28,7 @@ describe('User Controller', () => {
 
   beforeEach(() => {
     mockRequest = {
-      user: { id: 'user123' },
+      user: { id: 'user123' } as unknown as UserDocument,
       body: {}
     };
     mockResponse = {

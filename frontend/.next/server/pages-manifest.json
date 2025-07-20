@@ -2,10 +2,9 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/login": "pages/login.js",
-  "/register": "pages/register.js",
-  "/dashboard": "pages/dashboard.js",
+  "/": "pages/index.js",
   "/404": "pages/404.js",
-  "/oauth/facebook-callback": "pages/oauth/facebook-callback.js",
-  "/oauth/google-callback": "pages/oauth/google-callback.js"
+  "/login": "pages/login.js",
+  "/dashboard": "pages/dashboard.js",
+  "/oauth/facebook-callback": "pages/oauth/facebook-callback.js"
 }

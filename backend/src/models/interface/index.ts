@@ -154,7 +154,7 @@ export interface OAuthConfig {
   // _oauth2: OAuthConfig;
 }
 
-export interface IUserProfile {
+export interface OAuthStrategy {
   authenticate: (req: any, options: any, callback: any) => void;
   userProfile: (
     accessToken: string,

@@ -23,8 +23,8 @@ describe('Token Model', () => {
 
     expect(savedToken._id).toBeDefined();
     expect(savedToken.token).toBe(testToken.token);
-    expect(savedToken.user).toEqual(testToken.user);
-    expect(savedToken.expires).toEqual(testToken.expires);
+    expect(savedToken.get('user')).toEqual(testToken.user);
+    expect(savedToken.get('expires')).toEqual(testToken.expires);
   });
 
   it('should fail when required fields are missing', async () => {
@@ -37,7 +37,7 @@ describe('Token Model', () => {
     const token = new Token(testToken);
     const savedToken = await token.save();
     
-    expect(savedToken.createdAt).toBeDefined();
+    expect(savedToken.get('createdAt')).toBeDefined();
   });
 
   it('should create index for token field', async () => {

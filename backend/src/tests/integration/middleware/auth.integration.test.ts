@@ -22,14 +22,13 @@ import {
   adminMiddleware,
   optionalAuthMiddleware as optionalAuth,
 } from '../../../middleware/auth.middleware';
-import { errorHandler } from '../../../middleware/errorHandler';
 import { describe, expect, it, beforeEach } from '@jest/globals';
 
 
 // 定义测试中使用的中间件函数
 const hasRole = (roles: string[]): ((req: Request, res: Response, next: NextFunction) => Response | void) => {
   return (req: Request, res: Response, next: NextFunction): Response | void => {
-    if (!req.isAuthenticated || !(req as any).isAuthenticated()) {
+    if (!req.user|| !(req as any).isAuthenticated()) {
       return res.status(401).json({ 
         status: 'error',
         code: 'UNAUTHORIZED',
@@ -52,7 +51,7 @@ const hasRole = (roles: string[]): ((req: Request, res: Response, next: NextFunc
 
 const isResourceOwner = (getResourceOwnerId: (req: Request) => Promise<string | undefined>): ((req: Request, res: Response, next: NextFunction) => Promise<Response | void>) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
-    if (!req.isAuthenticated || !(req as any).isAuthenticated()) {
+    if (!req.user || !(req as any).isAuthenticated()) {
       return res.status(401).json({ 
         status: 'error',
         code: 'UNAUTHORIZED',
@@ -130,7 +129,12 @@ const createTestApp = () => {
         return next();
       }
 
+      // Bug fix: Ensure token exists before using it
       const token = authHeader.split(' ')[1];
+      if (!token) {
+        return next();
+      }
+      
       const userId = Object.keys(mockUsers).find(key => 
         mockUsers[key as keyof typeof mockUsers].id === token
       );
@@ -147,7 +151,7 @@ const createTestApp = () => {
       if (res.headersSent) {
         return next(err);
       }
-      res.status(500).json({
+      res.status(500).json({ 
         status: 'error',
         message: 'Internal server error'
       });
@@ -193,19 +197,41 @@ const createTestApp = () => {
   );
 
   // 4. 可选认证
-  app.get('/api/public', optionalAuth, (req: Request, res: Response) => {
-    if (req.isAuthenticated()) {
-      res.json({ message: '已认证用户访问', user: req.user });
-    } else {
-      res.json({ message: '匿名用户访问' });
-    }
+  app.get('/api/public', optionalAuth, (req: Request, res: Response) => { 
+    if ((req as any).isAuthenticated()) { 
+      res.json({ message: '已认证用户访问', user: req.user }); 
+    } else { 
+      res.json({ message: '匿名用户访问' }); 
+    } 
   });
 
-  // 添加错误处理中间件
-  app.use(errorHandler);
-
   return app;
-};
+}
+
+// Add test cases here to run the tests
+
+// Example test for protected route
+describe('Auth Middleware Tests', () => { 
+  let app: express.Application; 
+
+  beforeEach(() => { 
+    app = createTestApp(); 
+  }); 
+
+  it('should allow authenticated users to access protected route', async () => { 
+    const response = await request(app) 
+      .get('/api/auth/protected') 
+      .set('Authorization', 'Bearer admin-id'); 
+    expect(response.status).toBe(200); 
+  }); 
+
+  it('should deny access to unauthenticated users', async () => { 
+    const response = await request(app).get('/api/auth/protected'); 
+    expect(response.status).toBe(401); 
+  }); 
+});
+
+// 添加错误处理中间件
 
 describe('Auth Middleware Integration Tests', () => {
   let app: express.Application;

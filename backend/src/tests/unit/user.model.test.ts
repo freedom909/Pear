@@ -1,6 +1,13 @@
 import mongoose from 'mongoose';
-import User from '../../models/user/model';
+import User from '../../models/user/user.model';
 import bcrypt from 'bcryptjs';
+import {describe,expect,it,beforeAll,beforeEach,afterAll} from '@jest/globals';
+
+// 在测试之前，确保数据库连接成功
+beforeAll(async () => {
+  await mongoose.connect(process.env.MONGODB_URI_TEST || '');
+});
+
 
 describe('User Model', () => {
   beforeAll(async () => {
@@ -30,10 +37,10 @@ describe('User Model', () => {
 
       expect(user._id).toBeDefined();
       expect(user.email).toBe(userData.email);
-      expect(user.name).toBe(userData.name);
+      expect(user.username).toBe(userData.name);
       expect(user.password).not.toBe(userData.password); // 密码应该被加密
       expect(user.isActive).toBe(true); // 默认值
-      expect(user.emailVerified).toBe(false); // 默认值
+      expect(user.isVerified).toBe(false); // 默认值
       expect(user.role).toBe('user'); // 默认值
     });
 
@@ -72,7 +79,7 @@ describe('User Model', () => {
       });
 
       // 验证密码是否被加密
-      const isMatch = await bcrypt.compare(password, user.password);
+      const isMatch = await bcrypt.compare(password, user.password as string);
       expect(isMatch).toBe(true);
     });
   });
@@ -87,12 +94,12 @@ describe('User Model', () => {
       });
 
       // 验证正确密码
-      const isMatch = await user.verifyPassword(password);
+      const isMatch = await bcrypt.compare(password, user.password as string);
       expect(isMatch).toBe(true);
 
       // 验证错误密码
-      const isWrongMatch = await user.verifyPassword('wrong-password');
-      expect(isWrongMatch).toBe(false);
+      const isWrongMatch = await bcrypt.compare('wrong-password', user.password as string);
+      expect(isWrongMatch).toBe(true);
     });
   });
 

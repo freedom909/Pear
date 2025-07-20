@@ -107,5 +107,5 @@ class EmailService {
     return this.sendEmail({ to: email, subject, text, html });
   }
 }
-
-export default new EmailService();
+const emailService = new EmailService()
+export default emailService ;

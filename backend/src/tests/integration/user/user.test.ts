@@ -35,6 +35,9 @@ describe('User API Integration Tests', () => {
     it('should return all users', async () => {
       const response = await request(app)
         .get('/users');
+        return response.status;
+      expect(response.status).toBe(200);
+    });
   });
 
   describe('GET /users/me', () => {

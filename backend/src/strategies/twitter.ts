@@ -12,8 +12,8 @@ import { logger } from '../utils/logger';
  */
 export class TwitterOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: OAuthConfig, userService: any): void {
-    if (logger && logger.info) {
-      logger.info('Initializing Twitter OAuth strategy');
+    if (logger && logger.debug) {
+      logger.debug('Initializing Twitter OAuth strategy');
     }
 
     passport.use(
@@ -26,7 +26,7 @@ export class TwitterOAuthStrategy extends BaseStrategy {
           // passReqToCallback: config.passReqToCallback || true,
         },
         async (_accessToken, _refreshToken, profile, done) => {
-          logger.info('Twitter OAuth callback received', {
+          logger.debug('Twitter OAuth callback received', {
             profileId: profile.id,
           });
 
@@ -65,7 +65,7 @@ export class TwitterOAuthStrategy extends BaseStrategy {
               }
 
               // 4. No user by ID or email, create a new one
-              logger.info('Creating new user from Twitter profile', {
+              logger.debug('Creating new user from Twitter profile', {
                 profileId: profile.id,
               });
               
@@ -96,7 +96,7 @@ export class TwitterOAuthStrategy extends BaseStrategy {
                 }
               });
             } else {
-              logger.info('Found existing user with Twitter profile', {
+              logger.debug('Found existing user with Twitter profile', {
                 userId: user.id,
                 profileId: profile.id,
               });
@@ -111,6 +111,6 @@ export class TwitterOAuthStrategy extends BaseStrategy {
       )
     );
 
-    logger.info('Twitter OAuth strategy initialized');
+    logger.debug('Twitter OAuth strategy initialized');
   }
 }

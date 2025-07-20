@@ -1,7 +1,8 @@
-import { validate } from '../../../middleware/validate';
+import { validate } from '../../../validators/validate';
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../../../errors/appError';
 import Joi from 'joi';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
 describe('Validation Middleware', () => {
   let mockRequest: Partial<Request>;
@@ -57,7 +58,7 @@ describe('Validation Middleware', () => {
 
     validate(testSchema)(mockRequest as Request, mockResponse as Response, nextFunction);
     
-    expect(nextFunction).toHave beenCalledWith(expect.any(AppError));
+    expect(nextFunction).toHaveBeenCalledWith(expect.any(AppError));
     expect(nextFunction).toHaveBeenCalledWith(
       expect.objectContaining({
         statusCode: 400,

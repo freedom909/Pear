@@ -15,7 +15,7 @@ describe('roleValidator', () => {
     const next = jest.fn() as NextFunction;
 
     const validator = roleValidator(field);
-    await validator[0](req, res, next);
+    await validator[0](req as any, res, next);
     const result = validationResult(req);
 
     return {

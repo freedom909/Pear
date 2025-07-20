@@ -1,6 +1,6 @@
 import app from '../../app';
 import request from 'supertest';
-import {jest,describe,it,expect} from '@jest/globals';
+import {describe,it,expect} from '@jest/globals';
 
 // Compare this snippet from backend/src/tests/unit/app.test.ts:
 // import app from '../../app';

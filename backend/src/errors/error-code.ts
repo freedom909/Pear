@@ -37,6 +37,7 @@ export enum ErrorCode {
   REGISTRATION_FAILED = 'E100010',
 
   // 输入验证错误 (200)
+  
   VALIDATION_ERROR = 'E200001',
   INVALID_FORMAT = 'E200002',
   REQUIRED_FIELD_MISSING = 'E200003',
@@ -45,6 +46,7 @@ export enum ErrorCode {
   INVALID_EMAIL = 'E200006',
   INVALID_PHONE = 'E200007',
   INVALID_PASSWORD = 'E200008',
+  
 
   // 业务逻辑错误 (300)
   DUPLICATE_ENTRY = 'E300001',
@@ -80,6 +82,7 @@ export enum ErrorCode {
   NETWORK_ERROR = 'E600006',
   // 测试错误 (700)
   TEST_ERROR = 'E700001',
+  VALIDATION_FAILED = "VALIDATION_FAILED",
 }
 
 /**
@@ -107,6 +110,7 @@ export const ErrorCodeToStatusCode: Record<ErrorCode, number> = {
   [ErrorCode.REGISTRATION_FAILED]: 500,
 
   // 输入验证错误
+  [ErrorCode.VALIDATION_FAILED]: 422,
   [ErrorCode.VALIDATION_ERROR]: 422,
   [ErrorCode.INVALID_FORMAT]: 400,
   [ErrorCode.REQUIRED_FIELD_MISSING]: 400,

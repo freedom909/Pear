@@ -1,3 +1,4 @@
+//src/services/user.service.ts
 import User from '../models/user/user.model';
 import ErrorCode from '../errors/error-code';
 import { AppError } from '../errors/appError';

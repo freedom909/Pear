@@ -1,6 +1,6 @@
 import { LocalAuthStrategy as LocalStrategy } from '../../../strategies/local';
 import userService from '../../../services/user.service';
-import { AppError } from '../../../errors/appError';
+
 import ErrorCode from '../../../errors/error-code';
 import { UserDocument } from '../../../models/user/user.types';
 import { Request } from 'express';

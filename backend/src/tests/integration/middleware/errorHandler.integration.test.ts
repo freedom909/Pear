@@ -4,7 +4,6 @@ import notFoundHandler from '../../../middleware/notFoundHandler';
 import { asyncHandler } from '../../../middleware/asyncHandler';
 import errorHandler from '../../../middleware/errorHandler';
 import { AppError } from '../../../errors/appError';
-import { ErrorCode } from '../../../errors/error-code';
 import assert from 'node:assert/strict';
 import { describe, beforeEach, it } from 'node:test';
 
@@ -98,7 +97,7 @@ describe('Error Handler Integration Tests', () => {
 
   beforeEach(() => {
     app = createTestApp();
-    process.env.NODE_ENV = 'development';
+    process.env.NODE_ENV === 'development';
   });
 
   it('应该正确处理BadRequestError', async () => {

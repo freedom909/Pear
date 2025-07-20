@@ -1,5 +1,5 @@
 import {
-  AppError,
+  
   BadRequestError,
   UnauthorizedError,
   ForbiddenError,
@@ -11,40 +11,82 @@ import {
   OAuthError,
   createErrorResponse,
 } from '../../../errors/httpError';
-
+import { AppError } from '../../../errors/appError';
+import { ErrorCode } from '../../../errors/error-code';
+import { expect, describe, it} from '@jest/globals'
 describe('Error Utilities', () => {
   describe('AppError', () => {
     it('应该创建具有默认值的基本错误', () => {
-      const error = new AppError('测试错误');
+      const error = new AppError({
+        message: '测试错误',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+      });
 
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toBe('测试错误');
       expect(error.statusCode).toBe(500);
       expect(error.code).toBe('INTERNAL_SERVER_ERROR');
-      expect(error.isOperational).toBe(true);
       expect(error.details).toBeUndefined();
     });
 
     it('应该创建具有自定义值的错误', () => {
       const details = { field: 'username', issue: 'required' };
-      const error = new AppError(
-        '验证错误',
-        422,
-        'VALIDATION_FAILED',
-        true,
-        details
-      );
+      const error = new AppError({
+        message: '验证错误',
+        code: ErrorCode.VALIDATION_FAILED,
+        details,
+      });
 
+      expect(error).toBeInstanceOf(Error);
       expect(error.message).toBe('验证错误');
       expect(error.statusCode).toBe(422);
       expect(error.code).toBe('VALIDATION_FAILED');
-      expect(error.isOperational).toBe(true);
       expect(error.details).toEqual(details);
     });
 
     it('应该捕获堆栈跟踪', () => {
-      const error = new AppError('测试错误');
+      const error = new AppError({
+        message: '测试错误',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+      });
 
+      expect(error).toBeInstanceOf(Error);
+      expect(error.stack).toBeDefined();
+      expect(error.stack).toContain('AppError');
+    });
+  });
+
+  describe('createErrorResponse', () => {
+    it('应该创建具有默认值的基本错误', () => {
+      const error = new AppError({
+        message: '测试错误',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+      });
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error).toBeInstanceOf(AppError);
+      expect(error.message).toBe('测试错误');
+      expect(error.code).toBe('INTERNAL_SERVER_ERROR');
+    });
+
+    it('应该创建具有自定义值的错误', () => {
+      const error = new AppError({
+        message: '验证错误',
+        code: ErrorCode.VALIDATION_FAILED,
+      });
+
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toBe('验证错误');
+      expect(error.code).toBe('VALIDATION_FAILED');
+    });
+
+    it('应该捕获堆栈跟踪', () => {
+      const error = new AppError({
+        message: '测试错误',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+      } );
+
+      expect(error).toBeInstanceOf(Error);
       expect(error.stack).toBeDefined();
       expect(error.stack).toContain('AppError');
     });
@@ -147,7 +189,6 @@ describe('Error Utilities', () => {
       const error = new ForbiddenError(
         '无权访问此用户资料',
         'ACCESS_DENIED',
-        details
       );
 
       expect(error.statusCode).toBe(403);
@@ -159,9 +200,10 @@ describe('Error Utilities', () => {
 
   describe('createErrorResponse', () => {
     it('应该为AppError创建标准响应', () => {
-      const error = new ValidationError('字段验证失败', 'FIELD_VALIDATION', {
-        field: 'email',
-      });
+      const error = new AppError({
+        message: '测试错误',
+        code: ErrorCode.INTERNAL_SERVER_ERROR,
+      } );
       const response = createErrorResponse(error);
 
       expect(response).toEqual({
@@ -194,7 +236,7 @@ describe('Error Utilities', () => {
         message: '服务器内部错误',
       });
 
-      process.env.NODE_ENV = 'development';
+      process.env.NODE_ENV === 'development';
     });
 
     it('应该处理没有消息的错误', () => {

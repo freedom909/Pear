@@ -9,18 +9,29 @@ describe('emailValidator', () => {
       body: { email: value },
       method: 'POST',
       path: '/test',
-    } as Request;
+    } as unknown as Request;
 
-    const res = {} as Response;
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    } as unknown as Response;
+
     const next = jest.fn() as NextFunction;
 
-    const validator = emailValidator();
-    await validator[0](req, res, next);
+    const validatorChain = emailValidator();
+
+    // Run all validator middleware functions in the chain
+    for (const validator of validatorChain) {
+      await validator(req, res, next);
+    }
+
     const result = validationResult(req);
+    const errors = result.array();
 
     return {
-      errors: result.array(),
-      nextCalled: next.mock.calls.length > 0,
+      errors,
+      nextCalled: (next as jest.Mock).mock.calls.length > 0,
+      res,
     };
   };
 
@@ -42,7 +53,7 @@ describe('emailValidator', () => {
 
     it('should reject undefined email', async () => {
       const { errors } = await simulateValidation(undefined);
-      expect(errors[0].msg).toBe('邮箱不能为空');
+      expect(errors[0].msg).toBe('必须提供有效的邮箱地址');
     });
 
     it('should reject invalid email formats', async () => {
@@ -51,6 +62,7 @@ describe('emailValidator', () => {
         'missing@domain',
         'invalid@.com',
         '@missingusername.com',
+        'spaces in email.com',
         'spaces in@email.com'
       ];
 

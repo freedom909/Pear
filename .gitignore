@@ -58,3 +58,6 @@ uploads/*
 # Project specific
 config/*.json
 !config/*.example.json.env
+*.js
+*.js.map
+*.json

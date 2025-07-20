@@ -25,16 +25,16 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+       res.status(401).json({
         status: 'error',
         code: 'UNAUTHORIZED',
         message: 'Access denied. No token provided.'
       });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader?.split(' ')[1];
     if (!token) {
-      return res.status(401).json({
+       res.status(401).json({
         status: 'error',
         code: 'UNAUTHORIZED',
         message: 'Access denied. No token provided.'

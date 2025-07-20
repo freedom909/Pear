@@ -1,124 +1,86 @@
-# Frontend Documentation
+# Pear Application
 
-## Project Overview
+## Docker Setup
 
-This is a Next.js application that provides authentication functionality with a responsive layout. The frontend integrates with a backend API for user management and authentication.
+This repository includes Docker configuration for both frontend and backend services, making it easy to run the entire application with a single command.
 
-## Component Structure
+### Prerequisites
 
-The frontend is organized into reusable components located in `/components`:
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-```
-components/
-├── ErrorMessage.js          # Displays error messages
-├── Footer.js                # Main application footer
-├── FormElements.js          # Reusable form components
-├── Layout.js                # Main application layout
-├── LoadingSpinner.js        # Loading indicator
-├── Navbar.js                # Main navigation bar
-├── Navigation.js           # Navigation menu
-├── ProtectedRoute.js       # Route protection for auth
-├── SuccessMessage.js       # Displays success messages
-```
+### Running the Application
 
-## Key Components
-
-### Layout.js
-
-The main application layout component that provides:
-
-- Responsive header with navigation
-- User menu for authenticated users
-- Mobile-friendly navigation
-- Consistent footer across all pages
-
-**Props:**
-
-- `title` (string): Page title (default: "Authentication App")
-- `description` (string): Meta description (default: "A secure authentication solution")
-- `children`: Page content
-
-### ProtectedRoute.js
-
-Protects routes that require authentication. Redirects to login if user is not authenticated.
-
-### FormElements.js
-
-Contains reusable form components with consistent styling:
-
-- Input fields
-- Buttons
-- Validation messages
-
-## Usage Examples
-
-### Using the Layout Component
-
-```jsx
-import Layout from '../components/Layout';
-
-export default function HomePage() {
-  return (
-    <Layout title="Home Page" description="Welcome to our app">
-      <h1>Welcome to our application</h1>
-      {/* Page content */}
-    </Layout>
-  );
-}
-```
-
-### Using ProtectedRoute
-
-```jsx
-import ProtectedRoute from '../components/ProtectedRoute';
-
-function Dashboard() {
-  return (
-    <ProtectedRoute>
-      <h1>User Dashboard</h1>
-      {/* Protected content */}
-    </ProtectedRoute>
-  );
-}
-```
-
-## Development Setup
-
-1. Install dependencies:
+To run the entire application (frontend, backend, and MongoDB):
 
 ```bash
-npm install
+docker-compose up
 ```
 
-2. Run development server:
+This will:
+- Build and start the frontend service (accessible at http://localhost:3000)
+- Build and start the backend service (accessible at http://localhost:3001)
+- Start a MongoDB instance (accessible at mongodb://localhost:27017)
+
+### Running Individual Services
+
+#### Frontend
+
+To run only the frontend service:
 
 ```bash
-npm run dev
+cd frontend
+docker-compose up
 ```
 
-3. Build for production:
+#### Backend
+
+To run only the backend service (note: this requires MongoDB to be running):
 
 ```bash
-npm run build
+cd backend
+docker build -t pear-backend .
+docker run -p 3001:3001 pear-backend
 ```
 
-## Styling Approach
+### Development Workflow
 
-The application uses CSS Modules for component-scoped styling:
+For development, you can use Docker Compose with volume mounts to enable hot-reloading:
 
-- Each component has its own `.module.css` file
-- Global styles are defined in `/styles/global.css`
-- Responsive design using media queries
-- Consistent theming with CSS variables
-
-## Environment Variables
-
-The frontend requires these environment variables:
-
-- `NEXT_PUBLIC_API_URL`: Backend API base URL
-- `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: Google OAuth client ID
-- `NEXT_PUBLIC_FACEBOOK_APP_ID`: Facebook OAuth app ID
-
+```bash
+docker-compose up
 ```
 
+Any changes you make to the frontend or backend code will be automatically reflected in the running containers.
+
+### Production Deployment
+
+For production deployment, you can build optimized Docker images:
+
+```bash
+# Build frontend image
+docker build -t pear-frontend:latest ./frontend
+
+# Build backend image
+docker build -t pear-backend:latest ./backend
 ```
+
+These images can be pushed to a container registry and deployed to your production environment.
+
+## GitHub Actions
+
+This repository includes GitHub Actions workflows that automatically build and test Docker images for both frontend and backend services. When changes are pushed to the main branch, the workflows also publish the images to GitHub Container Registry.
+
+### Published Images
+
+- Frontend: `ghcr.io/[repository-owner]/pear/frontend:latest`
+- Backend: `ghcr.io/[repository-owner]/pear/backend:latest`
+
+To use these images:
+
+```bash
+docker pull ghcr.io/[repository-owner]/pear/frontend:latest
+docker pull ghcr.io/[repository-owner]/pear/backend:latest
+```
+
+Replace `[repository-owner]` with your GitHub username or organization name.
