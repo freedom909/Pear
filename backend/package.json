@@ -62,7 +62,7 @@
     "dotenv": "^16.6.1",
     "envalid": "^8.0.0",
     "errorhandler": "^1.5.1",
-    "express": "^4.18.2",
+    "express": "^5.1.0",
     "express-flash": "^0.0.2",
     "express-joi-validation": "^6.1.0",
     "express-mongo-sanitize": "^2.2.0",
