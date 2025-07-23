@@ -6,6 +6,7 @@ import { AuthStrategyFactory } from '../strategies/auth.factory';
 import { OAuthConfiguration } from '../config/oauth';
 import logger from '../middleware/logger';
 import { UserDocument } from '../models/user/user.types';
+import User from '../models/user/user.model';
 
 export class PassportConfig {
   private static oauthFactory: AuthStrategyFactory;
@@ -30,7 +31,7 @@ passport.use(
     { usernameField: "email" },
     async (email, password, done): Promise<void> => {
       try {
-        const user = (await userService.findOne({
+        const user = (await User.findOne({
           email: email.toLowerCase(),
         })) as unknown as UserDocument;
 
@@ -56,7 +57,7 @@ passport.use(
     passport.serializeUser((user: any, done) => done(null, user.id));
     passport.deserializeUser(async (id, done) => {
       try {
-        const user = await userService.findById(id as string);
+        const user = await User.findById(id as string);
         done(null, user || null);
       } catch (error) {
         done(error);

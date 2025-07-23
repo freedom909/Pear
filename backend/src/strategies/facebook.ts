@@ -1,3 +1,5 @@
+import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
 import { PassportStatic } from 'passport';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { BaseStrategy } from './base';

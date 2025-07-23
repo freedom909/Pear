@@ -2,8 +2,9 @@
 
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import authService from '../../services/auth.service'; // your JWT‐issuing service
+import { AuthService} from '../../services/auth.service'; // your JWT‐issuing service
 import { UserDocument } from '../../models/user/user.types'; // for typing
+import { container } from 'tsyringe';
 
 /**
  * Step 1: Redirect to Google for consent.
@@ -21,6 +22,8 @@ export const googleLogin = (
   );
 };
 
+
+const authService = container.resolve(AuthService) as unknown as AuthService;
 /**
  * Step 2: Handle Google callback.
  * Route: GET /api/v1/auth/Google/callback

@@ -7,43 +7,29 @@ import { FacebookOAuthStrategy } from '../strategies/facebook';
 import { TwitterOAuthStrategy } from '../strategies/twitter';
 import User from '../models/user/user.model';
 import { OAuthConfiguration } from '../config/oauth';
+import { container } from 'tsyringe';
+import  UserService  from '../services/user.service';
 
 export function initPassportStrategies() {
   const oauthConfig = OAuthConfiguration.getConfigs();
 
-  const userService = {
-    // Since findOrCreate doesn't exist on IUserModel, we'll implement a simple findOrCreate logic
-    findOrCreate: async (query: any, defaults: any) => {
-      let user = await User.findOne(query);
-      if (!user) {
-        user = await User.create({ ...query, ...defaults });
-      }
-      return user;
-    },
-    findById: User.findById.bind(User),
-    update: User.findOneAndUpdate.bind(User),
-  };
+  const userService = container.resolve(UserService);
 
-  new AppleOAuthStrategy().init(passport, oauthConfig.apple, userService as any );
+  new AppleOAuthStrategy().init(passport, oauthConfig.apple, userService);
   new GoogleOAuthStrategy().init(passport, oauthConfig.google, userService);
   new FacebookOAuthStrategy().init(passport, oauthConfig.facebook, userService);
   new TwitterOAuthStrategy().init(passport, oauthConfig.twitter, userService);
 
-  // ✅ Add the local strategy here:
   passport.use(
     new LocalStrategy(
       { usernameField: 'email' },
       async (email, password, done) => {
         try {
           const user = await User.findOne({ email: email.toLowerCase() });
-          if (!user) {
-            return done(null, false, { message: 'Incorrect email.' });
-          }
+          if (!user) return done(null, false, { message: 'Incorrect email.' });
 
           const isMatch = await (user as any).comparePassword(password);
-          if (!isMatch) {
-            return done(null, false, { message: 'Incorrect password.' });
-          }
+          if (!isMatch) return done(null, false, { message: 'Incorrect password.' });
 
           return done(null, user as unknown as UserDocument);
         } catch (error) {
@@ -53,7 +39,6 @@ export function initPassportStrategies() {
     )
   );
 
-  // Also configure serialize/deserialize:
   passport.serializeUser((user: any, done: any) => done(null, user.id));
   passport.deserializeUser(async (id: any, done: any) => {
     try {

@@ -1,8 +1,9 @@
 // src/controllers/oauth/apple.controller.ts
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import { authService } from '../../services/auth.service';
 import { UserDocument } from '../../models/user/user.types';
+import { container } from 'tsyringe';
+import { AuthService } from '@/services/auth.service';
 
 /**
  * Initiate Apple login
@@ -10,7 +11,7 @@ import { UserDocument } from '../../models/user/user.types';
 export const appleLogin = passport.authenticate('apple', {
   scope: ['email', 'name'], // Apple allows name and email
 });
-
+const authService = container.resolve(AuthService) as unknown as AuthService;
 /**
  * Handle Apple OAuth callback
  */

@@ -3,7 +3,10 @@ import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 
 import config from './config';
 import logger from '../middleware/logger';
-import userService from '@/services/user.service';
+import UserService from '@/services/user.service';
+import { container } from 'tsyringe';
+
+const userService=container.resolve(UserService)
 
 // JWT选项
 const opts = {
@@ -16,7 +19,7 @@ passport.use(
   new JwtStrategy(opts, async (jwt_payload, done) => {
     try {
       // 查找用户
-      const user = await userService.findById(jwt_payload.sub);
+      const user = await userService.getUserById(jwt_payload.id);
 
       if (user) {
         return done(null, user);

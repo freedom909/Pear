@@ -16,6 +16,8 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  clearResetToken: () => void;
+  getUserByResetToken(token: string): Promise<IUser>;
 }
 
 /**
@@ -109,7 +111,16 @@ userSchema.methods.comparePassword = async function (candidatePassword: string):
     throw error;
   }
 };
-
+userSchema.statics.getUserByResetToken = async function (token: string) {
+  return this.findOne({
+    passwordResetToken: token,
+    resetPasswordExpiresIn: { $gt: new Date() } // 确保 token 还没过期
+  });
+};
+userSchema.methods.clearResetToken = function () {
+  this.passwordResetToken = undefined;
+  this.resetPasswordExpiresIn = undefined;
+};
 /**
  * Create and export User model
  */

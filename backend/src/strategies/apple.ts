@@ -1,24 +1,28 @@
 // src/strategies/apple.ts
+import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
 import { BaseStrategy } from './base';
 import { PassportStatic } from 'passport';
 import {
   Strategy as AppleStrategy,
-  VerifyFunctionWithRequest, 
+  VerifyFunctionWithRequest,
 } from 'passport-apple';
 import { OAuthConfig } from '../models/interface/index';
-import { UserService } from '../services/user.service';
+//import { container } from 'tsyringe';
+import UserService from '../services/user.service';
 import logger from '../middleware/logger';
 
 
 export class AppleOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: OAuthConfig, userService: UserService): void {
+    // const userService = container.resolve(UserService);
     logger.info('Initializing Apple OAuth strategy');
 
     const verify: VerifyFunctionWithRequest = async (
       _req,
       _accessToken,
       _refreshToken,
-      idToken,
+      _idToken,
       profile,
       done
     ) => {
@@ -43,38 +47,30 @@ export class AppleOAuthStrategy extends BaseStrategy {
 
         if (!user) {
           logger.debug(`Creating new user from Apple profile: ${profile.id}`);
- 
-                        const emailVerified = profile.email_verified || false;
-                        // Ensure we have valid firstname and lastname
-                        const firstname = profile.name?.firstname || 'Apple';
-                        const lastname = profile.name?.lastname || 'User';
-                        
-                        logger.debug('Name fields from Apple profile:', {
-                          firstname,
-                          lastname,
-                          displayName: profile.displayName
-                        });
-                        
-                        user = await userService.createUserFromOAuthProfile(
-                      {
-                        id: profile.id,
-                        name: {
-                          firstname: firstname,
-                          lastname: lastname
-                        },
-                        emails: profile.emails ?? [],
-                        username: profile.username || '',
-                        avatar: profile.photos?.[0]?.value || '',
-                        provider: 'apple',
-                        isVerified: emailVerified,
-                        oauth: {
-                          apple: {
-                            id: profile.id,
-                            token: idToken
-                          }
-                        }
-                      },
-          
+
+          const emailVerified = profile.email_verified || false;
+          // Ensure we have valid firstname and lastname
+          const firstname = profile.name?.firstname || 'Apple';
+          const lastname = profile.name?.lastname || 'User';
+
+          logger.debug('Name fields from Apple profile:', {
+            firstname,
+            lastname,
+            displayName: profile.displayName
+          });
+
+          user = await userService.createUserFromOAuthProfile(
+            {
+              id: profile.id,
+              name: {
+                givenName: firstname,
+                familyName: lastname
+              },
+              email: profile.emails?.[0]?.value || '',
+              avatar: profile.photos?.[0]?.value || '',
+              provider: 'apple',
+              isVerified: emailVerified,
+            },
           );
         }
 

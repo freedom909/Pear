@@ -2,9 +2,11 @@
 
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import authService from '../../services/auth.service'; // your JWT‐issuing service
+import {AuthService} from '../../services/auth.service'; // your JWT‐issuing service
 import { UserDocument } from '../../models/user/user.types'; // for typing
+import { container } from 'tsyringe';
 
+const authService =container.resolve(AuthService);
 /**
  * Step 1: Redirect to Facebook for consent.
  * Route: GET /api/v1/auth/Facebook

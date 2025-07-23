@@ -1,4 +1,7 @@
 // auth.controller.ts
+import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
+
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -7,11 +10,19 @@ import { AppError } from '../errors/appError';
 import ErrorCode from '../errors/error-code';
 import logger from '../middleware/logger';
 import { UserDocument } from '../models/user/user.types';
+
 import { UserResponseDTO } from '../dtos/userDTO';
 import { asyncHandler } from '../middleware/asyncHandler';
-import userService from '../services/user.service';
-import { UserRole } from '@/middleware/role';
 
+
+import { sendTokenResponse } from '../middleware/sendTokenResponse';
+import { verifyToken } from '../middleware/jwt';
+import UserService from '@/services/user.service';
+import { container } from 'tsyringe';
+
+// interface RegisterRequestBody {
+//   firstname: string;
+//   lastname: string;
 interface RegisterRequestBody {
   firstname: string;
   lastname: string;
@@ -20,6 +31,7 @@ interface RegisterRequestBody {
   passwordConfirm: string;
 }
 
+const userService = container.resolve(UserService);
 export const register = async (
   req: Request<{}, {}, RegisterRequestBody>,
   res: Response,
@@ -27,7 +39,7 @@ export const register = async (
 ) => {
   const { firstname, lastname, email, password, passwordConfirm } = req.body;
   try {
-   
+
     if (!firstname || !firstname.trim() || !lastname || !lastname.trim() || !email || !password || !passwordConfirm) {
       return next(
         new AppError({
@@ -36,18 +48,20 @@ export const register = async (
         })
       );
     }
- const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     // Continue creating user
-    const user = await userService.createUser({
+    const user = await userService.createLocalUser({
       firstname: firstname.trim(),
       lastname: lastname.trim(),
       email: email.trim(),
       password: hashedPassword,
-      photo: 'avatar-default.png',
-      role: UserRole.USER,
-      status: 'active',
-      verified: false,
-      
+    });
+    // Send response
+    res.status(201).json({
+      success: true,
+      data: new UserResponseDTO(user),
+
+
     });
 
     sendTokenResponse(user, 201, res);
@@ -268,36 +282,54 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 
-/**
- * Helper to create JWT
- */
-// function createToken(id: string): string {
-//   return jwt.sign({ id }, process.env.JWT_SECRET || 'secure-random-string-here', { expiresIn: '1h' });
-// }
+
 
 /**
  * Helper to send token response
  */
-function sendTokenResponse(user: UserDocument, statusCode: number, res: Response) {
-  const token = user.getSignedJwtToken();
-  const refreshToken = generateRefreshToken(user);
-  const tokenExpiry = Math.floor(Date.now() / 1000) + 60 * 60;
 
-  res
-    .status(statusCode)
-    .cookie('token', token, {
-      expires: new Date(Date.now() + 3600000),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    })
-    .cookie('refreshToken', refreshToken, {
-      expires: new Date(Date.now() + 7 * 24 * 3600000),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    })
-    .json({ success: true, token, refreshToken, tokenExpiry });
-}
+export const oauthCallbackHandler = (provider: 'facebook' | 'google') =>
+  async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const redirectUri = (req.session as any)?.redirectUri || `${process.env.FRONTEND_URL}/oauth/${provider}-callback`;
 
-function generateRefreshToken(user: UserDocument): string {
-  return jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET || 'another-secure-random-string-here', { expiresIn: '7d' });
-}
+      if (req.session) delete (req.session as any).redirectUri;
+
+      const token = user.getSignedJwtToken();
+      const redirectUrl = new URL(redirectUri);
+      redirectUrl.searchParams.append('token', token);
+
+      logger.info(`${provider} auth success`, { userId: user._id });
+      res.redirect(redirectUrl.toString());
+    } catch (err) {
+      logger.error(`${provider} callback error`, err);
+      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?code=server_error`);
+    }
+  };
+
+
+
+export const checkStatus = async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.json({ authenticated: false });
+
+    const decoded = await verifyToken(token); // assuming this is synchronous
+
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.json({ authenticated: false });
+
+    return res.json({
+      authenticated: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.username,
+      },
+    });
+  } catch (err) {
+    logger.debug('Auth status check failed', err);
+    return res.json({ authenticated: false });
+  }
+};

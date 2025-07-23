@@ -108,20 +108,13 @@ const UserSchema = new Schema<UserDocument>(
     },
   }
 );
+// Hash password 
+UserSchema.methods.hashPassword = async function () {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(this.password, salt);
+};
 
-// Hash password before saving
-UserSchema.pre<UserDocument>('save', async function (next) {
-  if (!this.isModified('password') || !this.password) return next();
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
-  }
-});
-
-// Update passwordChangedAt timestamp
+// Update password ChangedAt timestamp
 UserSchema.pre<UserDocument>('save', function (next) {
   if (!this.isModified('password') || this.isNew || !this.password) return next();
   this.passwordChangedAt = new Date(Date.now() - 1000);
@@ -147,13 +140,29 @@ UserSchema.methods.getResetPasswordToken = function (): string {
   return resetToken;
 };
 
+// Method: Clear reset token
+UserSchema.methods.clearResetToken = function () {
+  this.passwordResetToken = undefined;
+  this.passwordResetExpires = undefined;
+};
 // Method: Generate signed JWT token
 UserSchema.methods.getSignedJwtToken = function (): string {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET || 'secure-string', {
+  return jwt.sign({ id: this._id }, process.env.JWT_SECRET || 'secure-random-string-here', {
     expiresIn: '1h',
   });
 };
 
+UserSchema.statics.getUserByResetToken = async function (token: string) {
+  return this.findOne({
+    passwordResetToken: token,
+    passwordResetExpires: { $gt: new Date() }, // 确保 token 还没过期
+  });
+}
+UserSchema.methods.generateRefreshToken = function (): string { 
+  return jwt.sign({ id: this._id }, process.env.JWT_SECRET || 'secure-random-string-here', {
+    expiresIn: '7d',
+  });
+};
 // Indexes
 UserSchema.index({ provider: 1, providerId: 1 }, { unique: true, sparse: true });
 
@@ -161,4 +170,5 @@ UserSchema.index({ provider: 1, providerId: 1 }, { unique: true, sparse: true })
  * Model
  */
 const User = mongoose.model<UserDocument>('User', UserSchema);
+
 export default User;

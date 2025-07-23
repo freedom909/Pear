@@ -1,19 +1,22 @@
 // src/middleware/auth.ts
+import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import {asyncHandler} from '../middleware/asyncHandler';
 import { AppError } from '../errors/appError';
 import { ErrorCode } from '../errors/error-code';
-import userService from '../services/user.service';
+import UserService from '../services/user.service';
 import { UserRole } from '../models/user/user.types';
 import { UserDocument } from '../models/user/user.types';
+import { container } from 'tsyringe';
 // Use the same JWT secret as in tests
 const jwtSecret = 'secure-random-string-here';
 
 export interface AuthRequest extends Request {
   user?: UserDocument;
 }
-
+const userService =container.resolve(UserService);
 /**
  * Middleware: Protect routes
  * - Verifies JWT

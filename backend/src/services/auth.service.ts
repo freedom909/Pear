@@ -1,194 +1,69 @@
-//backend/src/services/auth.service.ts
+import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
+import { inject, injectable } from 'tsyringe';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../errors/appError';
 import config from '../config/config';
-import User from '../models/user/user.model';
-import {  UserDocument } from '../models/user/user.types';
-import userService from '../services/user.service';
-import { UnauthorizedError } from '../errors/httpError';
+//import { AuthRepository } from '../repositories/auth.repository';
+import UserService  from './user.service';
+import { RegisterUserDTO } from '../dtos/userDTO';
+import { AuthResponse, TokenPayload } from './interface/auth.interface';
+import { UserRole, UserDocument } from '../models/user/user.types';
+import { OAuthProfile } from '../models/interface/index';
 import { ErrorCode } from '../errors/error-code';
-import { UserRole } from '../models/user/user.types';
+import { UnauthorizedError } from '../errors/httpError';
+import { container } from 'tsyringe';
 
-export interface RegisterDTO {
-  firstname: string;
-  lastname: string;
-  email: string;
-  password: string;
-}
+const userService=container.resolve(UserService);
+@injectable()
+export class AuthService {
+  constructor(
+   // @inject(AuthRepository) private readonly authRepository: AuthRepository,
+    @inject(UserService) private readonly userService: UserService
+  ) {}
 
-export interface AuthResponse {
-  user: {
-    id: string;
-    username: {
-      firstname: string;
-      lastname: string;
+ async generateJwtForUser(user: UserDocument) : Promise<string>{
+    const payload: TokenPayload = {
+      id: user.id,
+      role: user.role as UserRole,
+      email: user.email,
     };
-    email: string;
-    role: string;
-  };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-  };
-}
-
-interface TokenPayload {
-  id: string;
-  email: string;
-  role: UserRole;
-}
-
-class AuthService {
-  /**
-   * Register new user
-   */
-  async register(data: RegisterDTO): Promise<AuthResponse> {
-    const existingUsername = await userService.findOne({ 
-      firstname: data.firstname, 
-      lastname: data.lastname 
+    return jwt.sign(payload, config.jwt.secret, {
+      expiresIn: '1h',
     });
-    if (existingUsername) {
-      throw AppError.badRequest('用户名已被使用');
-    }
+ }
 
-    const existingEmail = await User.findOne({ email: data.email });
-    if (existingEmail) {
-      throw AppError.badRequest('邮箱已被注册');
-    }
+  async register(data: RegisterUserDTO): Promise<AuthResponse> {
+    const exists = await this.userService.findUserByName(data.firstname, data.lastname);
+    if (exists) throw AppError.badRequest('用户名已被使用');
 
-    const user = await User.create({ 
-      firstname: data.firstname,
-      lastname: data.lastname,
-      username: `${data.firstname} ${data.lastname}`,
-      email: data.email,
-      password: data.password,
-        provider: 'local',
-        
-    });
-      user.providerId = user.id.toString();
-    return this.buildAuthResponse(user as unknown as UserDocument);
-  }
+    const emailUsed = await userService.findUserByEmail(data.email);
+    if (emailUsed) throw AppError.badRequest('邮箱已被注册');
 
-  /**
-   * Login with username/email + password
-   */
-  async login(identifier: string, password: string): Promise<AuthResponse> {
-    const user = (await User.findOne({
-      $or: [{ username: identifier }, { email: identifier }],
-    }).select('+password')) as UserDocument;
-    if (!user) {
-      throw AppError.unauthorized('无效的凭据');
-    }
-
-    if (!(await user.comparePassword(password))) {
-      throw AppError.unauthorized('无效的凭据');
-    }
+    const user = await this.userService.createLocalUser(data);
     return this.buildAuthResponse(user);
   }
 
-  /**
-   * OAuth login or register
-   */
-  async oauthLogin(provider: string, profile: any): Promise<AuthResponse> {
-    let user = await userService.findUserByProvider(provider, profile.id);
-
-    if (!user) {
-      user = await userService.findUserByEmail(profile.email);
-
-      if (user) {
-        // Link the provider account
-        const id = user.id ;
-        await userService.linkProvider(
-          id,
-          provider,
-          profile.id,
-          profile.displayName,
-          profile.avatarUrl
-        );
-      } else {
-        const newUser = await userService.createOAuthUser(profile);
-        if (!newUser) {
-          throw new AppError({
-            message: '创建用户失败',
-            code: ErrorCode.INTERNAL_SERVER_ERROR,
-            details: { user: newUser, provider: provider, profile: profile },
-          });
-        }
-      }
-    }
-
-    return this.buildAuthResponse(user as unknown as UserDocument);
+  async login(identifier: string, password: string): Promise<AuthResponse> {
+    const user = await this.userService.findByIdentifier(identifier, password);
+    return this.buildAuthResponse(user);
   }
 
-  /**
-   * Generate auth tokens
-   */
-  private generateTokens(user: UserDocument) {
-    return {
-      accessToken: user.generateAuthToken(),
-      refreshToken: user.generateRefreshToken(),
-    };
+  async oauthLogin(provider: string, profile: OAuthProfile): Promise<AuthResponse> {
+    const user = await this.userService.handleOAuthLogin(provider, profile);
+    return this.buildAuthResponse(user);
   }
-  async generateJwtForUser(user: UserDocument): Promise<string> {
-    const payload: TokenPayload = {
-      id: user._id as unknown as string,
-      email: user.email,
-      role: user.role as UserRole,
-    };
-    return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.expiresIn as unknown as number,
-    });
-  }
-  /**
-   * Build auth response
-   */
-  private buildAuthResponse(user: UserDocument): AuthResponse {
-    const tokens = this.generateTokens(user);
-    return {
-      user: {
-        id: user._id as string,
-        username: { firstname: '', lastname: '' },
-        email: user.email,
-        role: user.role,
-      },
-      tokens,
-    };
-  }
-  /**
-   * Refresh token
-   */
+
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
     const decoded = jwt.verify(refreshToken, config.jwt.secret) as TokenPayload;
-    const user = await User.findById(decoded.id);// if I select userId as the token, then Property 'id' does not exist on type 'TokenPayload'.
-    if (!user) {
-      throw AppError.unauthorized('无效的刷新令牌');
-    }
-    return this.buildAuthResponse(user as unknown as UserDocument);
+    const user = await this.userService.findUserById(decoded.id);
+    if (!user) throw AppError.unauthorized('无效的刷新令牌');
+    return this.buildAuthResponse(user);
   }
 
-  /**
-   * Logout
-   */
-  async logout(): Promise<void> {
-    // Implement any cleanup, token blacklist, etc.
-    return;
-  }
-
-  /**
-   * Logout all
-   */
-  async logoutAll(): Promise<void> {
-    return;
-  }
-
-  /**
-   * Verify access token
-   */
   verifyAccessToken(token: string): Promise<TokenPayload | undefined> {
     try {
-      return Promise.resolve(
-        jwt.verify(token, config.jwt.secret) as TokenPayload
-      );
+      return Promise.resolve(jwt.verify(token, config.jwt.secret) as TokenPayload);
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new UnauthorizedError(ErrorCode.TOKEN_EXPIRED, 'Token expired');
@@ -197,40 +72,18 @@ class AuthService {
     }
   }
 
-  /**
-   * Generate access token
-   */
-  // private generateAccessToken(user: UserDocument): string {
-  //   const payload: TokenPayload = {
-  //     userId: user.id as unknown as string,
-  //     email: user.email,
-  //     role: user.role
-  //   };
-
-  //   return jwt.sign(payload, config.jwt.secret, {
-  //     expiresIn: config.jwt.expiresIn as unknown as number,
-  //   });
-  // }
-
-  /**
-   * Generate refresh token
-   */
-  // private async generateRefreshToken(user: UserDocument): Promise<string> {
-  //   const payload: TokenPayload = {
-  //     userId: user._id as unknown as string,
-  //     email: user.email,
-  //     role: user.role
-  //   };
-
-  //   const token = jwt.sign(payload, config.jwt.secret, {
-  //     expiresIn: config.jwt.expiresIn as unknown as number,
-  //   });
-
-  //   // Add refresh token to user's refresh tokens
-  //   await user.addRefreshToken(token);
-
-  //   return token;
+  private buildAuthResponse(user: UserDocument): AuthResponse {
+    return {
+      user: {
+        id: user.id.toString(),
+        username: { firstname: user.firstname, lastname: user.lastname },
+        email: user.email,
+        role: user.role,
+      },
+      tokens: {
+        accessToken: user.generateAuthToken(),
+        refreshToken: user.generateRefreshToken(),
+      },
+    };
+  }
 }
-export const authService = new AuthService();
-// Export singleton instance
-export default authService;

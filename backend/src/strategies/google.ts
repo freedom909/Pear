@@ -1,3 +1,5 @@
+import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
 import { PassportStatic } from 'passport';
 import { Strategy as GoogleStrategy, Profile, VerifyCallback } from 'passport-google-oauth20';
 import { BaseStrategy } from './base';
@@ -8,7 +10,10 @@ import { AppError } from '../errors/appError';
 import ErrorCode from '../errors/error-code';
 import { AuthProvider } from '../models/user/user.types';
 import { UserDocument } from '../models/user/user.types';
+// import { UserRepository } from '@/repositories/user.repository';
+// import { container } from 'tsyringe';
 
+// const userRepository=container.resolve(UserRepository);
 export class GoogleOAuthStrategy extends BaseStrategy {
   private userService: {
     findUserByEmail: (email: string) => Promise<UserDocument | null>;
@@ -32,7 +37,7 @@ export class GoogleOAuthStrategy extends BaseStrategy {
     }
     
     // Verify all required methods exist
-    const requiredMethods = ['findUserByEmail', 'findUserByProviderId', 'createUser'];
+    const requiredMethods = ['findUserByEmail', 'findUserByProviderId', 'createUserFromOAuthProfile'];
     requiredMethods.forEach(method => {
       if (typeof userService[method] !== 'function') {
         throw new Error(`userService.${method} must be a function`);
@@ -149,6 +154,8 @@ export class GoogleOAuthStrategy extends BaseStrategy {
       next();
     })(req, res, next);
   }
+
+  
 }
 
 // Export with the name expected by tests

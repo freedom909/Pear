@@ -37,10 +37,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/login.js"
     ],
-    "/oauth/facebook-callback": [
+    "/register": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/oauth/facebook-callback.js"
+      "static/chunks/pages/register.js"
     ]
   },
   "ampFirstPages": []

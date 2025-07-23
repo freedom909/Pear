@@ -1,3 +1,5 @@
+import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
 import { Strategy as LocalStrategy } from 'passport-local';
 import { PassportStatic } from 'passport';
 import { BaseStrategy } from './base';
@@ -5,12 +7,30 @@ import logger from '../middleware/logger';
 import { AppError } from '../errors/appError';
 import ErrorCode from '../errors/error-code';
 import { Request, Response, NextFunction } from 'express';
+import UserService from '@/services/user.service';
+import { container } from 'tsyringe';
 
 export class LocalAuthStrategy extends BaseStrategy {
-  private userServiceInstance: any;
-  protected passport!: PassportStatic; // Use definite assignment assertion
+  private userServiceInstance: UserService;// what  it should be
+  protected passport!: PassportStatic; 
 
+    constructor() {
+    super();
+    this.userServiceInstance = container.resolve(UserService); // ← 正しく依存解決
+  }
   // Add a validate method that can be tested
+  /**
+   * Validates user credentials using local authentication strategy.
+   * 
+   * @param email - User's email address
+   * @param password - User's password
+   * @param done - Passport.js callback function
+   * @returns Promise resolving to void, calls done with either error or authenticated user
+   * @throws AppError with appropriate error code for various failure cases:
+   *   - NOT_FOUND when user doesn't exist
+   *   - UNAUTHORIZED when password doesn't match
+   *   - INTERNAL_SERVER_ERROR for other failures
+   */
   async validate(email: string, password: string, done: Function): Promise<void> {
     try {
       // Find user by email
@@ -86,7 +106,7 @@ export class LocalAuthStrategy extends BaseStrategy {
     passport.deserializeUser(
       async (id: string, done) => {
         try {
-          const user = await userService.findById(id);
+          const user = await this.userServiceInstance.findUserById(id);
           done(null, user);
         } catch (error) {
           done(error);

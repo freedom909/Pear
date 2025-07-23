@@ -1,6 +1,5 @@
 // models/user/user.types.ts
-import { Document, Model } from 'mongoose';
-
+import {Schema, Document, Model } from 'mongoose';
 /**
  * User roles
  */
@@ -40,6 +39,7 @@ export interface IUser {
   lastname: string;
   username?: string;
   password?: string;
+  hashPassword(): Promise<string>;
   isVerified?: boolean;
   isActive?: boolean;
   // Roles and status
@@ -55,9 +55,10 @@ export interface IUser {
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   resetPasswordToken?: string;
-  resetPasswordExpiresIn?: number;
-  // Optional: versioning tokens
+  resetPasswordExpiresIn?: Date;
+  clearResetToken: () => void;
   tokenVersion?: number;
+  getUserByResetToken(token: string): Promise<IUser>;
 }
 
 /**
@@ -80,4 +81,20 @@ export interface UserDocument extends Document, Omit<IUser, 'resetPasswordExpire
 /**
  * Mongoose Model interface (for future static methods)
  */
-export interface IUserModel extends Model<UserDocument> {}
+const UserSchema = new Schema<IUser>({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  passwordResetToken: { type: String },
+  resetPasswordExpiresIn: { type: Date }
+});
+
+// 清除 token 的方法
+UserSchema.methods.clearResetToken = function () {
+  this.passwordResetToken = undefined;
+  this.resetPasswordExpiresIn = undefined;
+};
+
+// ✅ 添加静态方法
+
+export interface IUserModel extends Model<UserDocument> {
+}

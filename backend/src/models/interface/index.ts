@@ -9,12 +9,11 @@ export const UserRole = {
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
-export const UserStatus = {
-  status: 'status' as const,
-  ACTIVE: 'active' as const,
-  INACTIVE: 'inactive' as const,
-  SUSPENDED: 'suspended' as const,
-};
+export enum UserStatus {
+  ACTIVE= 'active',
+  INACTIVE='inactive',
+  SUSPENDED='suspended',
+}
 
 export interface JwtTokens {
   accessToken: string;
@@ -33,7 +32,7 @@ export interface IUserProfile {
   email?: string;
   password?: string;
   role?: UserRole;
-  status?: typeof UserStatus;
+  status?: UserStatus;
   firstname?: string;
   lastname?: string;
   avatar?: string;
@@ -123,12 +122,19 @@ export interface IUserFilters {
 export interface OAuthProfile {
   id: string;
   provider: string;
-  emails?: Array<{ value: string }>;
-  photos?: Array<{ value: string }>;
+  email:string,
+  avatar?: string;
   name?: {
     givenName?: string;
     familyName?: string;
   };
+  status?: UserStatus;
+  role?: UserRole;
+  //providerId?: string;
+  profile?: Partial<IUserProfile>;
+  isVerified?: boolean;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 /**
@@ -146,12 +152,6 @@ export interface OAuthConfig {
   privateKey?: string;
   privateKeyLocation?: string;
   passReqToCallback?: boolean;
-  // authorizationParams: { [key: string]: any };
-  // name?: string;
-  // scopeSeparator?: string;
-  // state?: boolean;
-  // customHeaders?: { [key: string]: any };
-  // _oauth2: OAuthConfig;
 }
 
 export interface OAuthStrategy {

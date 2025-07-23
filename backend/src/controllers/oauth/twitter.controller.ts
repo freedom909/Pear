@@ -2,8 +2,9 @@
 
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
-import { authService } from '../../services/auth.service';
+import  {AuthService} from '../../services/auth.service';
 import { UserDocument } from '../../models/user/user.types';
+import { container } from 'tsyringe';
 
 /**
  * Step 1: Redirect to Google for consent.
@@ -12,7 +13,7 @@ import { UserDocument } from '../../models/user/user.types';
 export const twitterLogin = passport.authenticate('twitter', {
   scope: ['profile', 'email'],
 });
-
+const authService =container.resolve(AuthService);
 /**
  * Step 2: Handle Google callback.
  * Route: GET /api/v1/auth/google/callback
@@ -38,7 +39,7 @@ export const twitterCallback = (
       }
       try {
         // Here you generate a JWT or start a session
-        const token = await authService.generateJwtForUser(user as any);
+        const token = await (authService as unknown as AuthService).generateJwtForUser(user);
         // Return user + token (or set as cookie, etc.)
         return res.json({ success: true, user, token });
       } catch (e) {

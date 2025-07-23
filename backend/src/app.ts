@@ -21,12 +21,14 @@ import { initRedis } from './middleware/redis';
 import { connectDB } from './config/database';
 import { setupSessionSerialization } from './strategies/session'; // ✅ your helper function
 import { AuthStrategyFactory } from './strategies/auth.factory';
-import userService from './services/user.service';
+import UserService from './services/user.service';
 import apiRoutes from './routes/index';
 
 import { OAuthConfiguration } from './config/oauth';
 import { protectedRouter, publicRouter } from './routes/auth.routes';
+import { container } from 'tsyringe';
 const oauthConfigs = OAuthConfiguration.getConfigs();
+const userService=container.resolve(UserService)
 // Initialize DB
 connectDB();
 

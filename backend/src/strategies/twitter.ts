@@ -2,9 +2,7 @@ import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { PassportStatic } from 'passport';
 import { BaseStrategy } from './base';
 import { OAuthConfig} from '../models/interface';
-
-
-import { logger } from '../utils/logger';
+import  logger  from '../middleware/logger';
 
 
 /**

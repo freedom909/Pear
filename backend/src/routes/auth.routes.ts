@@ -4,7 +4,7 @@ import passport from "passport";
 import jwt from "jsonwebtoken";
 
 import { protect } from "../middleware/auth";
-import { logger } from "../utils/logger";
+import logger from "../middleware/logger";
 import { register, login } from "../controllers/auth.controller";
 
 import User from "../models/user/user.model";

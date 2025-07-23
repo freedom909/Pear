@@ -1,21 +1,24 @@
+
 import { PassportStatic } from 'passport';
 import { GoogleOAuthStrategy } from './google';
 import { FacebookOAuthStrategy } from './facebook';
 import { TwitterOAuthStrategy } from './twitter';
 import { AppleOAuthStrategy } from './apple';
 import { LocalAuthStrategy } from './local';
-import userService from '../services/user.service';
+import UserService from '../services/user.service';
 import { BaseStrategy } from './base';
 import { OAuthConfig } from '../models/interface/index';
 import logger from '../middleware/logger';
+
 
 /**
  * Authentication strategy factory class
  */
 export class AuthStrategyFactory {
+ 
   protected strategies: Map<string, BaseStrategy> = new Map();
   protected passport: PassportStatic;
-  protected userService: typeof userService;
+  protected userService:  UserService;
   protected configs: Record<string, OAuthConfig>;
 
   constructor(
