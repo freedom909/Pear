@@ -63,10 +63,10 @@ export class AppleOAuthStrategy extends BaseStrategy {
             {
               id: profile.id,
               name: {
-                givenName: firstname,
-                familyName: lastname
+                firstname,
+                lastname
               },
-              email: profile.emails?.[0]?.value || '',
+              emails: profile.emails?.[0]?.value || '',
               avatar: profile.photos?.[0]?.value || '',
               provider: 'apple',
               isVerified: emailVerified,

@@ -1,113 +1,82 @@
-import { login, logout } from '../../../controllers/auth.controller';
 import { Request, Response, NextFunction } from 'express';
+import { register } from '../../../controllers/auth.controller';
 import { AppError } from '../../../errors/appError';
-import { signToken } from '../../../utils/jwt';
-import User from '../../../models/user/user.model';
-import { jest,describe,it,expect,beforeEach } from '@jest/globals';
+import { ErrorCode } from '../../../errors/error-code';
+import { container } from 'tsyringe';
+import { AuthService } from '../../../services/auth.service';
 
-jest.mock('../../../models/user/user.model');
-jest.mock('../../../utils/jwt');
+// Mock AuthService
+jest.mock('../../../services/auth.service');
 
-describe('Auth Controller', () => {
+describe('Auth Controller - Register', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let nextFunction: NextFunction;
-
-  const testUser = {
-    _id: 'user123',
-    email: 'test@example.com',
-    password: 'hashedPassword',
-    name: 'Test User',
-    comparePassword: jest.fn()
-  };
+  let mockNext: jest.MockedFunction<NextFunction>;
+  let authService: jest.Mocked<AuthService>;
 
   beforeEach(() => {
-    mockRequest = {
-      body: {}
-    };
+    mockRequest = {};
     mockResponse = {
-      status: jest.fn().mockReturnThis() as unknown as any,
-      json: jest.fn() as unknown as any
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     };
-    nextFunction = jest.fn();
+    mockNext = jest.fn();
+    authService = container.resolve(AuthService) as jest.Mocked<AuthService>;
+  });
+
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('login', () => {
-    it('should login user with valid credentials', async () => {
-      mockRequest.body = {
-        email: 'test@example.com',
-        password: 'password123'
-      };
-      
-      (User.findOne as jest.Mock).mockResolvedValueOnce(testUser as never);
-      testUser.comparePassword.mockResolvedValueOnce(true as never);
-      (signToken as jest.Mock).mockReturnValueOnce('testToken');
+  it('should return 400 if required fields are missing', async () => {
+    mockRequest.body = {
+      firstname: '',
+      lastname: '',
+      email: '',
+      password: '',
+      passwordConfirm: '',
+    };
 
-      await login(mockRequest as Request, mockResponse as Response, nextFunction);
-      
-      expect(User.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
-      expect(testUser.comparePassword).toHaveBeenCalledWith('password123');
-      expect(signToken).toHaveBeenCalledWith({ id: 'user123', email: 'test@example.com' });
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        token: 'testToken',
-        user: {
-          id: 'user123',
-          email: 'test@example.com',
-          name: 'Test User'
-        }
-      });
-    });
+    await register(
+      mockRequest as Request,
+      mockResponse as Response,
+      mockNext
+    );
 
-    it('should throw error for invalid credentials', async () => {
-      mockRequest.body = {
-        email: 'test@example.com',
-        password: 'wrongPassword'
-      };
-      
-      (User.findOne as jest.Mock).mockResolvedValueOnce(testUser as never);
-      testUser.comparePassword.mockResolvedValueOnce(false as never);
-
-      await login(mockRequest as Request, mockResponse as Response, nextFunction);
-      
-      expect(nextFunction).toHaveBeenCalledWith(expect.any(AppError));
-      expect(nextFunction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          statusCode: 401,
-          message: 'Invalid credentials'
-        })
-      );
-    });
-
-    it('should throw error for non-existent user', async () => {
-      mockRequest.body = {
-        email: 'nonexistent@example.com',
-        password: 'password123'
-      };
-      
-      (User.findOne as jest.Mock).mockResolvedValueOnce(null as unknown as never);
-
-      await login(mockRequest as Request, mockResponse as Response, nextFunction);
-      
-      expect(nextFunction).toHaveBeenCalledWith(expect.any(AppError));
-      expect(nextFunction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          statusCode: 401,
-          message: 'Invalid credentials'
-        })
-      );
-    });
+    expect(mockNext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Please provide all required fields',
+        code: ErrorCode.BAD_REQUEST,
+      })
+    );
   });
 
-  describe('logout', () => {
-    it('should logout user successfully', async () => {
-      await logout(mockRequest as Request, mockResponse as Response, nextFunction);
-      
-      expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        message: 'Logged out successfully'
-      });
+  it('should call AuthService.register and return success response', async () => {
+    mockRequest.body = {
+      firstname: 'Test',
+      lastname: 'User',
+      email: 'test@example.com',
+      password: 'password123',
+      passwordConfirm: 'password123',
+    };
+
+    authService.register.mockResolvedValueOnce({
+      token: 'mockToken',
+      user: {
+        id: '1',
+        email: 'test@example.com',
+        role: 'user',
+      },
     });
+
+    await register(
+      mockRequest as Request,
+      mockResponse as Response,
+      mockNext
+    );
+
+    expect(authService.register).toHaveBeenCalledWith(mockRequest.body);
+    expect(mockResponse.status).toHaveBeenCalledWith(201);
+    expect(mockResponse.json).toHaveBeenCalled();
   });
 });

@@ -148,7 +148,7 @@ describe('BaseStrategy', () => {
       );
       
       // Mock the logIn method to call its callback with an error
-      (mockReq.logIn as jest.Mock).mockImplementation((user, options, callback) => {
+      (mockReq.logIn as jest.Mock).mockImplementation((_, __, callback) => {
         (callback as (error: Error) => void)(loginError);
       });
       

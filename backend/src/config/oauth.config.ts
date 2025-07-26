@@ -5,6 +5,7 @@ export interface OAuthProviders {
   facebook?: OAuthConfig<any>;
   twitter?: OAuthConfig<any>;
   apple?: OAuthConfig<any>;
+  local?: OAuthConfig<any>;
 }
 
 export function getOAuthConfig(): OAuthProviders {

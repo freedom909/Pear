@@ -46,6 +46,7 @@ export class UpdateUserInput {
  * 注册用户DTO
  */
 export class RegisterUserDTO {
+  
   @IsNotEmpty({ message: '姓不能为空' })
   @IsString({ message: '姓必须是字符串' })
   firstname!: string;

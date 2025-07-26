@@ -5,15 +5,10 @@ import {describe,expect,it,beforeAll,beforeEach,afterAll} from '@jest/globals';
 
 // 在测试之前，确保数据库连接成功
 beforeAll(async () => {
-  await mongoose.connect(process.env.MONGODB_URI_TEST || '');
+  await mongoose.connect(process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/test');
 });
 
-
 describe('User Model', () => {
-  beforeAll(async () => {
-    // 连接到测试数据库
-    await mongoose.connect(process.env.MONGODB_URI_TEST || '');
-  });
 
   beforeEach(async () => {
     // 清空用户集合

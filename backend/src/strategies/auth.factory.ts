@@ -11,6 +11,7 @@ import { OAuthConfig } from '../models/interface/index';
 import logger from '../middleware/logger';
 
 
+
 /**
  * Authentication strategy factory class
  */
@@ -101,7 +102,7 @@ export class AuthStrategyFactory {
             appleStrategy.init(
               this.passport,
               this.configs.apple,
-              this.userService as unknown as any
+              this.userService,
             );
             this.strategies.set('apple', appleStrategy);
             logger.info('Apple OAuth strategy initialized');
@@ -115,7 +116,7 @@ export class AuthStrategyFactory {
 
       // Initialize Local authentication strategy
       const localStrategy = new LocalAuthStrategy();
-      localStrategy.init(this.passport, {}, this.userService);
+      localStrategy.init(this.passport, {});
       this.strategies.set('local', localStrategy);
       logger.info('Local authentication strategy initialized');
 

@@ -2,6 +2,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import mongoose from 'mongoose';
 import User from '../../../models/user/user.model';
 import { OAuthError, ValidationError } from '../../../errors/httpError';
+import { ErrorCode } from '../../../errors/error-code';
 import { 
   handleOAuthUser, 
   linkOAuthToUser, 
@@ -44,6 +45,7 @@ describe('OAuth User Services', () => {
       };
       
       const tokenInfo: OAuthTokenInfo = {
+        provider: 'google' as OAuthProvider,
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       };
@@ -58,11 +60,11 @@ describe('OAuth User Services', () => {
           email: 'test@example.com',
           googleAccessToken: 'access-token',
           googleRefreshToken: 'refresh-token'
-        })
+        } as unknown as never)
       };
       
       // 模拟 User.findOne 返回已存在的用户
-      (User.findOne as jest.Mock).mockResolvedValueOnce(mockUser);
+      (User.findOne as jest.Mock).mockResolvedValueOnce(mockUser as unknown as never);
       
       // 执行测试
       const result = await handleOAuthUser(profile, tokenInfo);
@@ -87,6 +89,7 @@ describe('OAuth User Services', () => {
       };
       
       const tokenInfo: OAuthTokenInfo = {
+        provider: 'google' as OAuthProvider,
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       };
@@ -100,13 +103,13 @@ describe('OAuth User Services', () => {
           email: 'test@example.com',
           googleAccessToken: 'access-token',
           googleRefreshToken: 'refresh-token'
-        })
+        } as unknown as never)
       };
       
       // 模拟 User.findOne 第一次返回 null，第二次返回用户（通过邮箱查找）
       (User.findOne as jest.Mock)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(mockUser);
+        .mockResolvedValueOnce(null as unknown as never)
+        .mockResolvedValueOnce(mockUser as unknown as never);
       
       // 执行测试
       const result = await handleOAuthUser(profile, tokenInfo);
@@ -129,6 +132,7 @@ describe('OAuth User Services', () => {
       };
       
       const tokenInfo: OAuthTokenInfo = {
+        provider: 'google' as OAuthProvider,
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       };
@@ -146,10 +150,10 @@ describe('OAuth User Services', () => {
       };
       
       // 模拟 User.findOne 返回 null（用户不存在）
-      (User.findOne as jest.Mock).mockResolvedValue(null);
+      (User.findOne as jest.Mock).mockResolvedValue(null as unknown as never);
       
       // 模拟 User.create 创建新用户
-      (User.create as jest.Mock).mockResolvedValue(newUser);
+      (User.create as jest.Mock).mockResolvedValue(newUser as unknown as never);
       
       // 执行测试
       const result = await handleOAuthUser(profile, tokenInfo);
@@ -182,11 +186,12 @@ describe('OAuth User Services', () => {
       };
       
       const tokenInfo: OAuthTokenInfo = {
+        provider: 'google' as OAuthProvider,
         accessToken: 'access-token'
       };
       
       // 模拟 User.findOne 返回 null（用户不存在）
-      (User.findOne as jest.Mock).mockResolvedValue(null);
+      (User.findOne as jest.Mock).mockResolvedValue(null as unknown as never);
       
       // 模拟 User.create 创建新用户
       (User.create as jest.Mock).mockImplementation(userData => Promise.resolve(userData));
@@ -213,7 +218,7 @@ describe('OAuth User Services', () => {
       };
       
       // 模拟 User.findOne 抛出错误
-      (User.findOne as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (User.findOne as jest.Mock).mockRejectedValue(new Error('Database error') as any as never);//how to mock error
       
       // 执行测试
       await expect(handleOAuthUser(profile, {} as OAuthTokenInfo))
@@ -243,7 +248,7 @@ describe('OAuth User Services', () => {
       };
       
       // 模拟 User.findOne 返回已存在的用户
-      (User.findOne as jest.Mock).mockResolvedValue(existingUser);
+      (User.findOne as jest.Mock).mockResolvedValue(existingUser as unknown as never);
       
       // 执行测试
       await expect(linkOAuthToUser(VALID_ID, profile, {} as OAuthTokenInfo))
@@ -260,10 +265,10 @@ describe('OAuth User Services', () => {
       };
       
       // 模拟 User.findOne 返回 null（OAuth 账号未被关联）
-      (User.findOne as jest.Mock).mockResolvedValue(null);
+      (User.findOne as jest.Mock).mockResolvedValue(null as unknown as never);
       
       // 模拟 User.findById 返回 null（用户不存在）
-      (User.findById as jest.Mock).mockResolvedValue(null);
+      (User.findById as jest.Mock).mockResolvedValue(null as unknown as never);
       
       // 执行测试
       await expect(linkOAuthToUser(VALID_ID, profile, {} as OAuthTokenInfo))
@@ -280,6 +285,7 @@ describe('OAuth User Services', () => {
       };
       
       const tokenInfo: OAuthTokenInfo = {
+        provider: 'google' as OAuthProvider,
         accessToken: 'access-token',
         refreshToken: 'refresh-token'
       };
@@ -291,14 +297,14 @@ describe('OAuth User Services', () => {
           googleId: 'google-123',
           googleAccessToken: 'access-token',
           googleRefreshToken: 'refresh-token'
-        })
+        } as unknown as never)
       };
       
       // 模拟 User.findOne 返回 null（OAuth 账号未被关联）
-      (User.findOne as jest.Mock).mockResolvedValue(null);
+      (User.findOne as jest.Mock).mockResolvedValue(null as unknown as never);
       
       // 模拟 User.findById 返回用户
-      (User.findById as jest.Mock).mockResolvedValue(mockUser);
+      (User.findById as jest.Mock).mockResolvedValue(mockUser as unknown as never);
       
       // 执行测试
       const result = await linkOAuthToUser(VALID_ID, profile, tokenInfo);
@@ -318,7 +324,7 @@ describe('OAuth User Services', () => {
       };
       
       // 模拟 User.findOne 抛出错误
-      (User.findOne as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (User.findOne as jest.Mock).mockRejectedValue(new Error('Database error') as never);
       
       // 执行测试
       await expect(linkOAuthToUser(VALID_ID, profile, {} as OAuthTokenInfo))
@@ -329,7 +335,7 @@ describe('OAuth User Services', () => {
   describe('unlinkOAuthFromUser', () => {
     it('should throw ValidationError if user does not exist', async () => {
       // 模拟 User.findById 返回 null
-      (User.findById as jest.Mock).mockResolvedValue(null);
+      (User.findById as jest.Mock).mockResolvedValue(null as unknown as never);
       
       // 执行测试
       await expect(unlinkOAuthFromUser(VALID_ID, 'google'))
@@ -346,11 +352,12 @@ describe('OAuth User Services', () => {
         googleId: 'google-123',
         facebookId: null,
         twitterId: null,
-        appleId: null
-      };
+        appleId: null,
+        save: jest.fn()
+      } as unknown as never;
       
       // 模拟 User.findById 返回用户
-      (User.findById as jest.Mock).mockResolvedValue(mockUser);
+      (User.findById as jest.Mock).mockResolvedValue(mockUser as unknown as never);
       
       // 执行测试
       await expect(unlinkOAuthFromUser(VALID_ID, 'google'))
@@ -370,12 +377,13 @@ describe('OAuth User Services', () => {
           password: 'hashed-password',
           googleId: null,
           googleAccessToken: null,
-          googleRefreshToken: null
-        })
+          googleRefreshToken: null,
+          save: jest.fn()
+        } as unknown as never)
       };
       
       // 模拟 User.findById 返回用户
-      (User.findById as jest.Mock).mockResolvedValue(mockUser);
+      (User.findById as jest.Mock).mockResolvedValue(mockUser as unknown as never);
       
       // 执行测试
       const result = await unlinkOAuthFromUser(VALID_ID, 'google');
@@ -389,10 +397,11 @@ describe('OAuth User Services', () => {
     
     it('should handle errors gracefully', async () => {
       // 模拟 User.findById 抛出错误
-      (User.findById as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (User.findById as jest.Mock).mockRejectedValue(new Error('Database error') as unknown as never);
       
       // 执行测试
       await expect(unlinkOAuthFromUser(VALID_ID, 'google'))
         .rejects.toThrow(OAuthError);
     });
   });
+});

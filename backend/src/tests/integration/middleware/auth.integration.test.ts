@@ -124,12 +124,20 @@ const createTestApp = () => {
   // 模拟用户认证
     app.use((req: Request & { user?: any }, _res: Response, next: NextFunction) => {
       const authHeader = req.headers.authorization;
+      const userIdHeader = req.headers['x-user-id'];
       
+      // 优先使用 x-user-id 头模拟用户
+      if (userIdHeader) {
+        req.user = mockUsers[userIdHeader as keyof typeof mockUsers];
+        (req as any).isAuthenticated = () => true;
+        return next();
+      }
+      
+      // 否则使用 Authorization 头
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return next();
       }
 
-      // Bug fix: Ensure token exists before using it
       const token = authHeader.split(' ')[1];
       if (!token) {
         return next();
@@ -141,6 +149,7 @@ const createTestApp = () => {
       
       if (userId) {
         req.user = mockUsers[userId as keyof typeof mockUsers];
+        (req as any).isAuthenticated = () => true;
       }
       
       next();

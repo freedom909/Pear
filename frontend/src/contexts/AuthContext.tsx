@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       try {
         const res = await axios.get('http://localhost:5000/api/v1/auth/verify-token', {
+          withCredentials: true,
           headers: {
             Authorization: `Bearer ${authToken}`,
           },

@@ -32,7 +32,7 @@ describe('Auth Integration Tests', () => {
 
   describe('POST /api/auth/register', () => {
     it('应该成功注册新用户', async () => {
-      const response = await request(app).post('/api/auth/register').send({
+      const response = await request(app).post('/api/v1/auth/register').send({
         email: 'test@example.com',
         password: 'password123',
         name: 'Test User',
@@ -46,7 +46,7 @@ describe('Auth Integration Tests', () => {
     });
 
     it('应该拒绝无效的邮箱格式', async () => {
-      const response = await request(app).post('/api/auth/register').send({
+      const response = await request(app).post('/api/v1/auth/register').send({
         email: 'invalid-email',
         password: 'password123',
         name: 'Test User',
@@ -58,7 +58,7 @@ describe('Auth Integration Tests', () => {
     });
 
     it('应该拒绝过短的密码', async () => {
-      const response = await request(app).post('/api/auth/register').send({
+      const response = await request(app).post('/api/v1/auth/register').send({
         email: 'test@example.com',
         password: 'short',
         name: 'Test User',
@@ -77,7 +77,7 @@ describe('Auth Integration Tests', () => {
         name: 'Existing User',
       });
 
-      const response = await request(app).post('/api/auth/register').send({
+      const response = await request(app).post('/api/v1/auth/register').send({
         email: 'test@example.com',
         password: 'password123',
         name: 'Test User',
@@ -100,7 +100,7 @@ describe('Auth Integration Tests', () => {
     });
 
     it('应该成功登录', async () => {
-      const response = await request(app).post('/api/auth/login').send({
+      const response = await request(app).post('/api/v1/auth/login').send({
         email: 'test@example.com',
         password: 'password123',
       });
@@ -112,7 +112,7 @@ describe('Auth Integration Tests', () => {
     });
 
     it('应该拒绝错误的密码', async () => {
-      const response = await request(app).post('/api/auth/login').send({
+      const response = await request(app).post('/api/v1/auth/login').send({
         email: 'test@example.com',
         password: 'wrong-password',
       });
@@ -123,7 +123,7 @@ describe('Auth Integration Tests', () => {
     });
 
     it('应该拒绝不存在的用户', async () => {
-      const response = await request(app).post('/api/auth/login').send({
+      const response = await request(app).post('/api/v1/auth/login').send({
         email: 'nonexistent@example.com',
         password: 'password123',
       });
@@ -141,6 +141,8 @@ describe('Auth Integration Tests', () => {
         email: 'test@example.com',
         password: await hash('password123', 10),
         name: 'Test User',
+        _id: new mongoose.Types.ObjectId(),
+        role: 'user',
       });
 
       // 生成JWT令牌

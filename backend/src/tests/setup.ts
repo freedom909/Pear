@@ -9,7 +9,7 @@ jest.setTimeout(30000);
 config({ path: '.env.test' });
 
 // Mock logger to prevent test logs from cluttering output
-jest.mock('../utils/logger', () => ({
+jest.mock('../middleware/logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),

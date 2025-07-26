@@ -1,56 +1,32 @@
-import { GetServerSideProps } from 'next';
-import jwt from 'jsonwebtoken';
-import LogoutButton from "../components/LogoutButton";
+import { useEffect, useState } from 'react';
+import axiosInstance from '../utils/axios'; // your configured Axios
+import Dashboard from '../components/Dashboard';
 
-interface DashboardProps {
-  userEmail: string | null;
-}
+const DashboardPage = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-export default function Dashboard({ userEmail }: DashboardProps) {
-  if (!userEmail) {
-    // Fallback if somehow rendered without redirect
-    return <p>Not authenticated.</p>;
-  }
+ useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const res = await axiosInstance.get('/auth/status', {
+        withCredentials: true,
+      });
+      setIsAuthenticated(res.data.authenticated);
+    } catch (err) {
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  checkAuth();
+}, []);
 
-  return (
-    <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-      <h1>Welcome to your dashboard!</h1>
-      <p>Your email: {userEmail}</p>
-        <LogoutButton />
-    </div>
-  );
-}
 
-// This runs **server-side** on every request:
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  const { auth_token } = req.cookies;
+  if (isLoading) return <p>Loading...</p>;
+  if (!isAuthenticated) return <p>Not authenticated</p>;
 
-  console.log('📦 Incoming cookies:', req.cookies);
-
-  if (!auth_token) {
-    console.warn('⚠️ No auth_token cookie found');
-    return {
-      redirect: {
-        destination: '/login',
-        permanent: false,
-      },
-    };
-  }
-
-  try {
-    const decoded = jwt.verify(auth_token, process.env.JWT_SECRET!);
-    console.log('✅ Decoded JWT:', decoded);
-
-    return { props: { userEmail: (decoded as any).email || null } };
-  } catch (error: any) {
-    console.error('❌ JWT verification failed:', error.message);
-    return {
-      redirect: {
-        destination: '/login',
-        permanent: false,
-      },
-    };
-  }
+  return <Dashboard />;
 };
 
-
+export default DashboardPage;

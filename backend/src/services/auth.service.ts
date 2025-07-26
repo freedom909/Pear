@@ -4,21 +4,25 @@ import { inject, injectable } from 'tsyringe';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../errors/appError';
 import config from '../config/config';
-//import { AuthRepository } from '../repositories/auth.repository';
-import UserService  from './user.service';
+import { AuthRepository } from '../repositories/auth.repository';
+// import UserService  from './user.service';
 import { RegisterUserDTO } from '../dtos/userDTO';
 import { AuthResponse, TokenPayload } from './interface/auth.interface';
 import { UserRole, UserDocument } from '../models/user/user.types';
-import { OAuthProfile } from '../models/interface/index';
+
 import { ErrorCode } from '../errors/error-code';
 import { UnauthorizedError } from '../errors/httpError';
 import { container } from 'tsyringe';
+import UserService  from './user.service';
 
-const userService=container.resolve(UserService);
+
+const authRepository = container.resolve(AuthRepository);
+
 @injectable()
 export class AuthService {
   constructor(
    // @inject(AuthRepository) private readonly authRepository: AuthRepository,
+    @inject(AuthRepository) private readonly authRepository: AuthRepository,
     @inject(UserService) private readonly userService: UserService
   ) {}
 
@@ -34,23 +38,19 @@ export class AuthService {
  }
 
   async register(data: RegisterUserDTO): Promise<AuthResponse> {
-    const exists = await this.userService.findUserByName(data.firstname, data.lastname);
-    if (exists) throw AppError.badRequest('用户名已被使用');
 
-    const emailUsed = await userService.findUserByEmail(data.email);
+    const emailUsed = await authRepository.findUserByEmail(data.email);
     if (emailUsed) throw AppError.badRequest('邮箱已被注册');
 
-    const user = await this.userService.createLocalUser(data);
+    const user = await this.authRepository.registerUser(data);
     return this.buildAuthResponse(user);
   }
 
-  async login(identifier: string, password: string): Promise<AuthResponse> {
-    const user = await this.userService.findByIdentifier(identifier, password);
-    return this.buildAuthResponse(user);
-  }
-
-  async oauthLogin(provider: string, profile: OAuthProfile): Promise<AuthResponse> {
-    const user = await this.userService.handleOAuthLogin(provider, profile);
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const user = await this.authRepository.findUserByEmail(email);
+    if (!user) throw AppError.unauthorized('邮箱或密码错误');
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) throw AppError.unauthorized('邮箱或密码错误');
     return this.buildAuthResponse(user);
   }
 

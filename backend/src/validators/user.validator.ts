@@ -46,14 +46,26 @@ export const validateQuery = (schema: Joi.ObjectSchema) => {
  * 创建用户验证模式
  */
 export const createUserSchema = Joi.object({
-  username: Joi.string()
-    .min(3)
+  firstname: Joi.string()
+    .min(1)
     .max(20)
     .pattern(/^[a-zA-Z0-9_]+$/)
     .required()
     .messages({
       'string.empty': '用户名不能为空',
-      'string.min': '用户名长度至少为3个字符',
+      'string.min': '用户名长度至少为1个字符',
+      'string.max': '用户名长度不能超过20个字符',
+      'string.pattern.base': '用户名只能包含字母、数字和下划线',
+      'any.required': '用户名是必填项',
+    }),
+    lastname: Joi.string()
+    .min(1)
+    .max(20)
+    .pattern(/^[a-zA-Z0-9_]+$/)
+    .required()
+    .messages({
+      'string.empty': '用户名不能为空',
+      'string.min': '用户名长度至少为1个字符',
       'string.max': '用户名长度不能超过20个字符',
       'string.pattern.base': '用户名只能包含字母、数字和下划线',
       'any.required': '用户名是必填项',
@@ -63,14 +75,18 @@ export const createUserSchema = Joi.object({
     'string.email': '请输入有效的邮箱地址',
     'any.required': '邮箱是必填项',
   }),
-  password: Joi.string().min(6).required().messages({
+  password: Joi.string().min(8).required().messages({
     'string.empty': '密码不能为空',
-    'string.min': '密码长度不能少于6个字符',
+    'string.min': '密码长度不能少于8个字符',
     'any.required': '密码是必填项',
   }),
-  role: Joi.string().valid('user', 'admin').default('user').messages({
-    'any.only': '角色必须是 user 或 admin',
-  }),
+  passwordConfirm: Joi.string()
+    .valid(Joi.ref('password'))
+    .required()
+    .messages({
+      'any.only': '密码确认值必须与密码相同',
+      'any.required': '密码确认值是必填项',
+    }),
 });
 
 /**

@@ -1,6 +1,4 @@
 import * as jwt from 'jsonwebtoken';
-import { AppError } from '../errors/appError';
-import { ErrorCode } from '../errors/error-code';
 import config from '../config/config';
 
 interface TokenPayload {
@@ -9,30 +7,34 @@ interface TokenPayload {
   role?: string;
 }
 
-const JWT_SECRET = config.jwt.secret;
-const JWT_EXPIRES_IN = config.jwt.expiresIn;
+const jwtSecret = config.jwt.secret;
+const expiresIn = config.jwt.expiresIn;
 const JWT_COOKIE_EXPIRES = '90d';
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET is not defined in config');
+if (!jwtSecret) {
+  throw new Error('jwtSecret is not defined in config');
 }
 
 export const signToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, jwtSecret, {
     expiresIn: '90d'
   });
 };
 
-export const verifyToken = (token: string): TokenPayload => {
+export const verifyToken = (req: any, res: any, next: any) => {
+  const token = req.cookies.auth_token || req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
-  } catch (error) {
-    throw new AppError(
-        { message: 'Invalid or expired token',
-             code: ErrorCode.INVALID_TOKEN,
-             details: error 
-            });
-        
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error('Auth status check failed', err);
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
 
@@ -57,6 +59,6 @@ export default {
   verifyToken,
   decodeToken,
   getTokenFromHeaders,
-  JWT_EXPIRES_IN,
+  JWT_EXPIRES_IN: expiresIn,
   JWT_COOKIE_EXPIRES
 };

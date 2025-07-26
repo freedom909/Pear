@@ -43,12 +43,29 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
     // Mock user for testing
     if (process.env.NODE_ENV === 'test') {
-      req.user = { 
-        id: 'test-user', 
-        role: 'admin',
-        _id: 'test-user-id',
-        email: 'test@example.com'
-      } as unknown as UserDocument;
+      const userId = req.headers['x-user-id'];
+      if (userId === 'admin') {
+        req.user = { 
+          id: 'admin-id', 
+          role: 'admin',
+          _id: 'admin-id',
+          email: 'admin@example.com'
+        } as unknown as UserDocument;
+      } else if (userId === 'user') {
+        req.user = { 
+          id: 'user-id', 
+          role: 'user',
+          _id: 'user-id',
+          email: 'user@example.com'
+        } as unknown as UserDocument;
+      } else {
+        req.user = { 
+          id: 'test-user', 
+          role: 'admin',
+          _id: 'test-user-id',
+          email: 'test@example.com'
+        } as unknown as UserDocument;
+      }
       (req as any).isAuthenticated = () => true;
       return next();
     }

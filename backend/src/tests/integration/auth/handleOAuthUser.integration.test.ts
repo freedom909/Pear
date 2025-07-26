@@ -9,23 +9,43 @@ import {
 import { OAuthTokenInfo } from '../../../models/interface/index';
 import { ValidationError, OAuthError } from '../../../errors/httpError';
 import { expect, describe, it,beforeEach, beforeAll, afterAll } from '@jest/globals';
-import { UserDocument } from '../../../models/user/user.types';
+
 
 describe('OAuth User Services Integration Tests', () => {
+  jest.setTimeout(60000); // 设置全局测试超时时间为60秒
   let mongoServer: MongoMemoryServer;
   let userId: string;
 
   // 在所有测试之前设置内存数据库
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    jest.setTimeout(60000); // 设置超时时间为 60 秒
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        port: 27017,
+        ip: '127.0.0.1',
+      },
+      binary: {
+        version: '6.0.5',
+      },
+// Remove the 'autoStart' property as it does not exist in type 'MongoMemoryServerOpts'
+    });
+    await mongoServer.start();
     const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, { 
+      serverSelectionTimeoutMS: 60000,
+      socketTimeoutMS: 60000,
+      connectTimeoutMS: 60000 
+    });
   });
 
   // 在所有测试之后关闭连接
   afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+    }
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
   });
 
   // 在每个测试之前清理数据库

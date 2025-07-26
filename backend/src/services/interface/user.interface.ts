@@ -1,6 +1,6 @@
 
 import { OAuthTokenInfo } from '../../models/interface/index';
-import  IUserProfile  from '../../models/user/user.model';
+
 //import { PassportProfile } from '../../models/interface/index';
 import { UserDocument } from '../../models/user/user.types';
 import { UserRole } from '@/middleware/role';
@@ -22,9 +22,17 @@ export interface CreateUserFromOAuthProfileInput {
 
 export interface PassportProfile {
   id: string;
-  name: { firstname: string; lastname: string };
-  emails: { value: string }[];
+  displayName: string;
+  name: {
+    familyName: string;
+    givenName: string;
+    middleName?: string;
+  };
+  emails: { value: string; type?: string }[];
+  avatar: string;
+  provider: 'local' | 'apple' | 'google' | 'facebook' | 'twitter' | 'github';
 }
+
 
 export interface IUserService {
   linkProvider(
@@ -41,7 +49,7 @@ export interface IUserService {
   generateResetPasswordToken(user: UserDocument): Promise<string>;
   linkOAuthProviderToUser(
     existingUserByEmail: UserDocument,
-    provider: string,
+    provider: 'local' | 'apple' | 'google' | 'facebook' | 'twitter' | 'github',
     providerId: string,
     profile: PassportProfile,
     isVerified: boolean
@@ -51,7 +59,7 @@ export interface IUserService {
     input: CreateUserFromOAuthProfileInput
   ): Promise<UserDocument>
 
-  createOAuthUser(userData: UserDocument): Promise<typeof IUserProfile>;
+  createOAuthUser(userData: UserDocument): Promise<UserDocument>;
   updateUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;
 
   updateOAuthUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;
@@ -64,6 +72,8 @@ export interface IUserService {
     provider: string,
     providerId: string
   ): Promise<UserDocument | null>;
+
+  getUsers(page: number, limit: number): Promise<IUsersResponse>;
 
   findOneOrCreate(
     profile: any,
@@ -88,24 +98,14 @@ export interface FilterQuery {
   providerId?: string;
 }
 
-// 创建用户DTO
-export interface CreateUserDTO {
-  firstname: string;
-  lastname: string;
-  status: 'active' | 'inactive';
-  verified: boolean;
-  photo?: string;
-  email: string;
-  password: string;
-  role?: 'user' | 'admin';
-}
+
 
 // 更新用户DTO
 export interface UpdateUserDTO {
   username?: string;
   email?: string;
   password?: string;
-  role?: 'user' | 'admin';
+  role?: UserRole.USER|'user';
 }
 
 // 用户响应

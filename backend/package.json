@@ -51,7 +51,7 @@
     "@types/validator": "^13.15.1",
     "@types/yup": "^0.29.14",
     "async": "^3.2.6",
-    "axios": "^1.9.0",
+    "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.7.2",
     "class-transformer": "^0.5.1",

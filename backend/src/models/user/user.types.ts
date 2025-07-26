@@ -1,5 +1,7 @@
 // models/user/user.types.ts
 import {Schema, Document, Model } from 'mongoose';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 /**
  * User roles
  */
@@ -93,6 +95,21 @@ UserSchema.methods.clearResetToken = function () {
   this.passwordResetToken = undefined;
   this.resetPasswordExpiresIn = undefined;
 };
+
+// 实例方法
+UserSchema.methods.comparePassword = async function (candidatePassword: string) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+UserSchema.methods.getSignedJwtToken = function () {
+  return `${process.env.JWT_SECRET_KEY}.${this._id}`; 
+};
+
+UserSchema.methods.generateAuthToken = function () {
+  const payload = { _id: this._id, email: this.email };
+  return jwt.sign(payload, process.env.JWT_SECRET || 'this is another secure random string here', { expiresIn: 300 });
+};
+
 
 // ✅ 添加静态方法
 

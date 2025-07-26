@@ -1,6 +1,7 @@
 // auth.controller.ts
 import 'reflect-metadata'; // ← これをファイルの一番上に追加
-
+import dot from 'dotenv';
+dot.config();
 
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
@@ -10,19 +11,21 @@ import { AppError } from '../errors/appError';
 import ErrorCode from '../errors/error-code';
 import logger from '../middleware/logger';
 import { UserDocument } from '../models/user/user.types';
-
 import { UserResponseDTO } from '../dtos/userDTO';
 import { asyncHandler } from '../middleware/asyncHandler';
 
-
 import { sendTokenResponse } from '../middleware/sendTokenResponse';
 import { verifyToken } from '../middleware/jwt';
-import UserService from '@/services/user.service';
+// import UserService from '@/services/user.service';
 import { container } from 'tsyringe';
+//import { UserRepository } from '@/repositories/user.repository';
+import { AuthRepository } from '@/repositories/auth.repository';
 
-// interface RegisterRequestBody {
-//   firstname: string;
-//   lastname: string;
+import { createUserSchema } from '@/validators/user.validator';
+import { EmailValidator } from '@/validators/email.validator';
+import { passwordValidator } from '@/validators/password.validator';
+
+
 interface RegisterRequestBody {
   firstname: string;
   lastname: string;
@@ -31,40 +34,39 @@ interface RegisterRequestBody {
   passwordConfirm: string;
 }
 
-const userService = container.resolve(UserService);
+const jwtSecret = process.env.JWT_SECRET || 'another-secure-random-string-here';
+const authRepository = container.resolve(AuthRepository);
+// const userService = container.resolve(UserService);
 export const register = async (
   req: Request<{}, {}, RegisterRequestBody>,
   res: Response,
   next: NextFunction
 ) => {
-  const { firstname, lastname, email, password, passwordConfirm } = req.body;
+  const { firstname, lastname, email, password } = req.body;
   try {
-
-    if (!firstname || !firstname.trim() || !lastname || !lastname.trim() || !email || !password || !passwordConfirm) {
+    const { error } = createUserSchema.validate(req.body, { abortEarly: false });
+    if (error) {
       return next(
         new AppError({
-          message: 'Please provide all required fields',
+          message: error.details[0].message,
           code: ErrorCode.BAD_REQUEST,
         })
       );
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     // Continue creating user
-    const user = await userService.createLocalUser({
+    const user = await authRepository.registerUser({
       firstname: firstname.trim(),
       lastname: lastname.trim(),
       email: email.trim(),
       password: hashedPassword,
     });
     // Send response
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: new UserResponseDTO(user),
-
-
     });
-
-    sendTokenResponse(user, 201, res);
   } catch (error) {
     logger.error(error);
     return next(new AppError({
@@ -73,36 +75,94 @@ export const register = async (
       details: { error: (error as Error).message },
     }));
   }
-  // ...
 };
 
 
 /**
  * 🔐 Login user
  */
-export const login = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   const { email, password } = req.body;
+  logger.debug('Login attempt:', { email });
 
-  if (!email || !password) {
+  // Set timeout for the request (10 seconds)
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(504).json({ success: false, message: 'Request timeout' });
+    }
+  }, 10000);
+
+  try {
+    if (!email || !password) {
+      clearTimeout(timeout);
+      logger.debug('Login failed: Missing email or password');
+      return next(new AppError({
+        message: 'Please enter email and password',
+        code: ErrorCode.BAD_REQUEST,
+      }));
+    }
+
+    EmailValidator.validate(email);
+    const validationChains = passwordValidator();
+    for (const chain of validationChains) {
+      if (typeof chain === 'function') {
+        await new Promise((resolve, reject) => {
+          chain(req, res, (err) => {
+            if (err) reject(err);
+            else resolve(null);
+          });
+        });
+      }
+    }
+    logger.debug('Validating user credentials...');
+    const user = await authRepository.loginUser(email, password);
+
+    if (!user) {
+      clearTimeout(timeout);
+      logger.debug('Login failed: Invalid email or password');
+      return next(new AppError({
+        message: 'Invalid email or password',
+        code: ErrorCode.UNAUTHORIZED,
+      }));
+    }
+
+    logger.debug('User authenticated, generating JWT...');
+    const token = jwt.sign({ id: user._id }, jwtSecret, {
+      expiresIn: '7d',
+    });
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    clearTimeout(timeout);
+    logger.debug('Login successful');
+    res.status(200).json({ message: 'Login successful', user });
+
+  } catch (error) {
+    clearTimeout(timeout);
+    logger.error('Login error:', {
+      error:( error as unknown as Error).message,
+      stack: (error as unknown as Error).stack,
+      input: { email }
+    });
     return next(new AppError({
-      message: 'Please provide email and password',
-      code: ErrorCode.BAD_REQUEST,
-      details: { email, password },
+      message: '登录失败',
+      code: ErrorCode.INTERNAL_SERVER_ERROR,
+      details: { error: (error as Error).message },
     }));
   }
+};
 
-  const user = (await User.findOne({ email }).select('+password')) as UserDocument;
 
-  if (!user || !(await user.comparePassword(password))) {
-    return next(new AppError({
-      message: 'Invalid email or password',
-      code: ErrorCode.UNAUTHORIZED,
-      details: { email },
-    }));
-  }
 
-  sendTokenResponse(user, 200, res);
-});
 
 /**
  * 🔄 Refresh Token
@@ -264,15 +324,17 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
 });
 
 
+
 /**
  * 🚪 Logout
  */
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
-  res.cookie('token', 'none', {
+  res.cookie('token', 'jwtToken', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
   });
+
   res.cookie('refreshToken', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
@@ -310,15 +372,26 @@ export const oauthCallbackHandler = (provider: 'facebook' | 'google') =>
 
 
 
-export const checkStatus = async (req: Request, res: Response) => {
+export const checkStatus = async (req: Request, res: Response) => { 
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.json({ authenticated: false });
+    if (!token) {
+      logger.debug('Auth status check failed: Missing token');
+      return res.status(401).json({ 
+        authenticated: false, 
+        error: 'Missing authentication token' 
+      });
+    }
 
-    const decoded = await verifyToken(token); // assuming this is synchronous
-
+    const decoded = await verifyToken(token);
     const user = await User.findById(decoded.id).select('-password');
-    if (!user) return res.json({ authenticated: false });
+    if (!user) {
+      logger.debug('Auth status check failed: User not found');
+      return res.status(401).json({ 
+        authenticated: false, 
+        error: 'User not found' 
+      });
+    }
 
     return res.json({
       authenticated: true,
@@ -329,7 +402,16 @@ export const checkStatus = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    logger.debug('Auth status check failed', err);
-    return res.json({ authenticated: false });
+    logger.error('Auth status check failed:', err);
+    if ((err as unknown as Error).name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        authenticated: false, 
+        error: 'Invalid token format' 
+      });
+    }
+    return res.status(500).json({ 
+      authenticated: false, 
+      error: 'Internal server error' 
+    });
   }
 };

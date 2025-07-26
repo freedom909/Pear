@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/router';
-
+import axios from '@/utils/axios'; // adjust path if needed
 import { useAuth } from '../contexts/AuthContext';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
@@ -107,29 +107,34 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoginError('');
 
-    if (validateForm()) {
-      setIsSubmitting(true);
-      try {
-        // Example: Call your login function
-        // await login(formData);
-        // Simulate success for now
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1000);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Login failed. Please try again.';
-        setLoginError(errorMessage);
-        setIsSubmitting(false);
-      }
-    }
-  };
+
+const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setLoginError('');
+
+  if (!validateForm()) return;
+
+  setIsSubmitting(true);
+  try {
+    const res = await axios.post('/auth/login', formData); // 🎯 baseURL already set
+    console.log('Login response:', res.data); // if using Axios
+    const { token } = res.data;
+
+    setAuthToken(token); // local state
+    localStorage.setItem('authToken', token); // persistent
+    router.push('/dashboard');
+  } catch (error: any) {
+    console.error('Login error:', error);
+
+    const message =
+      error.response?.data?.message?.error || error.response?.data?.message || 'Login failed';
+    setLoginError(message);
+    setIsSubmitting(false);
+  }
+};
+
+
 
   const handleSocialLogin = (provider: 'google' | 'facebook') => {
     setIsLoadingSocial(true);
@@ -198,9 +203,8 @@ export default function Login() {
               autoComplete="email"
               value={formData.email}
               onChange={handleChange}
-              className={`${styles.formInput} ${
-                errors.email ? styles.inputError : ''
-              }`}
+              className={`${styles.formInput} ${errors.email ? styles.inputError : ''
+                }`}
               placeholder="you@example.com"
             />
             {errors.email && (
@@ -219,9 +223,8 @@ export default function Login() {
               autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
-              className={`${styles.formInput} ${
-                errors.password ? styles.inputError : ''
-              }`}
+              className={`${styles.formInput} ${errors.password ? styles.inputError : ''
+                }`}
               placeholder="••••••••"
             />
             {errors.password && (
@@ -248,7 +251,8 @@ export default function Login() {
             variant="contained"
             color="primary"
             fullWidth
-            disabled={isSubmitting}
+            disabled={isSubmitting} 
+            className={styles.button}
             sx={{ mt: 2 }}
           >
             {isSubmitting ? (

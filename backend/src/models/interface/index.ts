@@ -1,5 +1,7 @@
 //models/interface/index.ts
 
+import { AuthProvider } from "../user/user.types";
+
 
 export const UserRole = {
   SUPER_ADMIN: 'super_admin' as const,
@@ -121,8 +123,9 @@ export interface IUserFilters {
 
 export interface OAuthProfile {
   id: string;
-  provider: string;
-  email:string,
+  provider: AuthProvider;
+  email:string;
+
   avatar?: string;
   name?: {
     givenName?: string;

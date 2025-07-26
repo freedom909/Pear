@@ -79,11 +79,6 @@ export const isAuthenticated = (req: AuthRequest, _res: Response, next: NextFunc
 };
 
 
-
-
-
-
-
 /**
  * Middleware: Authorize roles
  */

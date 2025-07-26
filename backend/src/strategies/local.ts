@@ -1,3 +1,4 @@
+//src/strategies/local.ts
 import 'reflect-metadata'; // ← これをファイルの一番上に追加
 
 import { Strategy as LocalStrategy } from 'passport-local';
@@ -11,14 +12,14 @@ import UserService from '@/services/user.service';
 import { container } from 'tsyringe';
 
 export class LocalAuthStrategy extends BaseStrategy {
-  private userServiceInstance: UserService;// what  it should be
+  private userServiceInstance: UserService;
   protected passport!: PassportStatic; 
 
     constructor() {
     super();
     this.userServiceInstance = container.resolve(UserService); // ← 正しく依存解決
   }
-  // Add a validate method that can be tested
+  
   /**
    * Validates user credentials using local authentication strategy.
    * 
@@ -82,9 +83,9 @@ export class LocalAuthStrategy extends BaseStrategy {
     })(req, res, next);
   }
 
-  init(passport: PassportStatic, _config: any, userService: any): void {
+  init(passport: PassportStatic, _config: any): void {
     // Store the userService instance for use in validate method
-    this.userServiceInstance = userService;
+    
     this.passport = passport;
     
     passport.use(
@@ -106,7 +107,7 @@ export class LocalAuthStrategy extends BaseStrategy {
     passport.deserializeUser(
       async (id: string, done) => {
         try {
-          const user = await this.userServiceInstance.findUserById(id);
+          const user = await this.userServiceInstance.findById(id);
           done(null, user);
         } catch (error) {
           done(error);

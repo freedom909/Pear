@@ -8,6 +8,7 @@ import logger from "../middleware/logger";
 import { register, login } from "../controllers/auth.controller";
 
 import User from "../models/user/user.model";
+import { authenticateJWTMiddleware } from "@/middleware/authenticateJWTMiddleware";
 
 
 const publicRouter = express.Router();
@@ -31,11 +32,13 @@ const generateToken = (user: any): string => {
     { expiresIn: '7d' }
   );
 };
-// 注册路由
-publicRouter.post("/register", register);
 
-// 登录路由（如果需要）
-publicRouter.post("/login", login);
+// GET /api/v1/auth/verify-token
+publicRouter.get('/verify-token', authenticateJWTMiddleware, (req, res) => {
+  res.status(200).json({ message: 'Token is valid', user: req.user });
+});
+
+
 // Facebook Debug
 publicRouter.get("/facebook/debug", (_req, res) => {
   const config = {

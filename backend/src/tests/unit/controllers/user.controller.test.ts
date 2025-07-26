@@ -11,7 +11,10 @@ import { UserDocument } from '../../../models/user/user.types';
 jest.mock('../../../models/user/user.model');
 
 describe('User Controller', () => {
-  let mockRequest: Partial<Request>;
+  interface AuthRequest extends Request {
+  user: UserDocument;
+}
+let mockRequest: Partial<AuthRequest>;
   let mockResponse: Partial<Response>;
   let nextFunction: NextFunction;
 
@@ -41,7 +44,11 @@ describe('User Controller', () => {
 
   describe('getCurrentUser', () => {
     it('should return current user', async () => {
-      (User.findById as jest.Mock).mockResolvedValueOnce(testUser as unknown as never);
+      (User.findById as jest.Mock).mockImplementation(() => ({
+      select: jest.fn().mockResolvedValue(testUser as unknown as never)
+    }))({
+      select: jest.fn().mockResolvedValue(testUser as unknown as never)
+    });
 
       await getCurrentUser(mockRequest as Request, mockResponse as Response, nextFunction);
       
@@ -82,7 +89,16 @@ describe('User Controller', () => {
       };
       
       mockRequest.body = { name: 'Updated Name' };
-      (User.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce(updatedUser as unknown as never);
+      (User.findByIdAndUpdate as jest.Mock).mockImplementation((_id, update, _options) => {
+      if ((_id as unknown as string)=== 'user123' && (update as unknown as any).name === 'Updated Name' && (update as unknown as any).email === 'test@example.com' && (_options as unknown as any).new === true &&((_options as unknown as any).runValidators === true&& (_options as unknown as any).context === 'query')) {
+        return {
+          select: jest.fn().mockResolvedValue(updatedUser as unknown as never)
+        };
+      }
+      return {
+        select: jest.fn().mockResolvedValue(null as unknown as never)
+      };
+    });
 
       await updateCurrentUser(mockRequest as Request, mockResponse as Response, nextFunction);
       
@@ -101,7 +117,9 @@ describe('User Controller', () => {
 
     it('should throw error when update fails', async () => {
       mockRequest.body = { name: 'Updated Name' };
-      (User.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce(null as unknown as never);
+      (User.findByIdAndUpdate as jest.Mock).mockImplementation(() => ({
+      select: jest.fn().mockResolvedValue(null as unknown as never)
+    }));
 
       await updateCurrentUser(mockRequest as Request, mockResponse as Response, nextFunction);
       

@@ -21,6 +21,7 @@ describe('User Model', () => {
 
   it('should create and save user successfully', async () => {
     const user = new User(testUser);
+    user.password = await user.hashPassword();
     const savedUser = await user.save();
 
     expect(savedUser._id).toBeDefined();
@@ -47,6 +48,7 @@ describe('User Model', () => {
 
   it('should automatically set createdAt and updatedAt timestamps', async () => {
     const user = new User(testUser);
+    user.password = await user.hashPassword();
     const savedUser = await user.save();
     
     expect(savedUser.createdAt).toBeInstanceOf(Date);
@@ -55,6 +57,7 @@ describe('User Model', () => {
 
   it('should hash the password before saving', async () => {
     const user = new User(testUser);
+    user.password = await user.hashPassword();
     const savedUser = await user.save();
     
     expect(savedUser.password).not.toBe(testUser.password);
@@ -63,6 +66,7 @@ describe('User Model', () => {
 
   it('should compare passwords correctly', async () => {
     const user = new User(testUser);
+    user.password = await user.hashPassword();
     const savedUser = await user.save();
     
     const isMatch = await savedUser.comparePassword(testUser.password);
@@ -74,6 +78,7 @@ describe('User Model', () => {
 
   it('should generate reset password token', async () => {
     const user = new User(testUser);
+    user.password = await user.hashPassword();
     const savedUser = await user.save();
     
     const resetToken = savedUser.getResetPasswordToken();
@@ -84,6 +89,7 @@ describe('User Model', () => {
 
   it('should generate JWT token', async () => {
     const user = new User(testUser);
+    user.password = await user.hashPassword();
     const savedUser = await user.save();
     
     const token = savedUser.getSignedJwtToken();
@@ -93,6 +99,7 @@ describe('User Model', () => {
 
   it('should update passwordChangedAt when password is modified', async () => {
     const user = new User(testUser);
+    user.password = await user.hashPassword();
     const savedUser = await user.save();
     
     savedUser.password = 'newPassword123!';

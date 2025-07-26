@@ -35,7 +35,6 @@ describe('User API Integration Tests', () => {
     it('should return all users', async () => {
       const response = await request(app)
         .get('/users');
-        return response.status;
       expect(response.status).toBe(200);
     });
   });
@@ -75,7 +74,5 @@ describe('User API Integration Tests', () => {
       // Verify update in database
       const user = await User.findOne({ email: testUser.email });
       expect(user?.username).toBe(updatedData.name);
-    })
     });
-      });
-    });
+  });
