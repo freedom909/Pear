@@ -30,7 +30,7 @@
     "types": "file:../../lib/cors-middleware"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^13.5.0",
     "@types/jsonwebtoken": "^9.0.10",
