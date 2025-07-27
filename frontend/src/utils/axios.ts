@@ -1,16 +1,14 @@
 // utils/axios.ts
 import axios from 'axios';
 
-const axiosInstance = axios.create({
-  baseURL: 'http://localhost:5000/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: false, // ✅ if you're using cookies (optional)
+
+const instance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1',
+  withCredentials: true, // ✅ This ensures cookies (like auth_token) are sent
 });
 
 // ✅ Add token automatically if in localStorage
-axiosInstance.interceptors.request.use((config) => {
+instance.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -18,7 +16,7 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-axiosInstance.interceptors.response.use(
+instance.interceptors.response.use(
 (res) => res,
   (error) => {
     if (error.response?.status === 401) {
@@ -30,4 +28,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export default axiosInstance;
+export default instance;

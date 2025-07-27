@@ -88,6 +88,7 @@ export const login = async (
   next: NextFunction,
 ) => {
   const { email, password } = req.body;
+  console.log('Login route hit:', req.body);
   logger.debug('Login attempt:', { email });
 
   // Set timeout for the request (10 seconds)
@@ -144,7 +145,7 @@ export const login = async (
 
     clearTimeout(timeout);
     logger.debug('Login successful');
-    res.status(200).json({ message: 'Login successful', user });
+   return  res.status(200).json({ message: 'Login successful', user, token });
 
   } catch (error) {
     clearTimeout(timeout);
@@ -374,7 +375,7 @@ export const oauthCallbackHandler = (provider: 'facebook' | 'google') =>
 
 export const checkStatus = async (req: Request, res: Response) => { 
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.cookies.auth_token || req.headers.authorization?.split(' ')[1];
     if (!token) {
       logger.debug('Auth status check failed: Missing token');
       return res.status(401).json({ 
@@ -402,7 +403,11 @@ export const checkStatus = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    logger.error('Auth status check failed:', err);
+    logger.error('Auth status check failed:', {
+      error: (err as Error).message,
+      stack: (err as Error).stack,
+      token: req.cookies.auth_token || req.headers.authorization// is anyting wrong?
+    });
     if ((err as unknown as Error).name === 'JsonWebTokenError') {
       return res.status(401).json({ 
         authenticated: false, 
@@ -414,4 +419,5 @@ export const checkStatus = async (req: Request, res: Response) => {
       error: 'Internal server error' 
     });
   }
-};
+}
+   

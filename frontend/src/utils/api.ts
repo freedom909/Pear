@@ -42,13 +42,7 @@ class ApiService {
 
     // Request interceptor to attach token
     this.api.interceptors.request.use(
-      (config) => {
-        const token = this.getToken();
-        if (token && config.headers) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
+      (config) =>config,
       (error) => Promise.reject(error)
     );
 

@@ -13,7 +13,7 @@ import { authenticateJWTMiddleware } from "@/middleware/authenticateJWTMiddlewar
 
 const publicRouter = express.Router();
 const protectedRouter = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || 'secure-random-string-here';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // 注册路由
@@ -118,18 +118,28 @@ publicRouter.get("/google/callback",
 // Auth Status Check
 publicRouter.get("/status", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) return res.status(200).json({ authenticated: false });
-    const token = authHeader.split(' ')[1];
+    const token = req.cookies.auth_token;
+    if (!token) return res.status(200).json({ authenticated: false });
+
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select("-password");
+
     if (!user) return res.status(200).json({ authenticated: false });
-    return res.status(200).json({ authenticated: true, user: { id: user._id, email: user.email, name: user.username } });
+
+    return res.status(200).json({
+      authenticated: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.username,
+      },
+    });
   } catch (error) {
-    logger.debug('Auth status check failed', error);
+    logger.debug("Auth status check failed", error);
     return res.status(200).json({ authenticated: false });
   }
 });
+
 
 // Auth Failure
 publicRouter.get("/failure", (req, res) => {

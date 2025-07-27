@@ -11,7 +11,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import CircularProgress from '@mui/material/CircularProgress';
 import styles from '../styles/Auth.module.css';
-
+import instance from '@/utils/axios';
 interface LoginFormData {
   email: string;
   password: string;
@@ -24,7 +24,7 @@ interface FormErrors {
 }
 
 export default function Login() {
-  const { setAuthToken } = useAuth(); // ✅ RIGHT PLACE!
+  const { setAuthToken } = useAuth(); // 
   const router = useRouter();
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -53,7 +53,7 @@ export default function Login() {
       if (token && typeof token === 'string') {
         if (isMounted) {
           setAuthToken(token);
-          localStorage.setItem('token', token);
+          localStorage.setItem('authToken', token);
           setHandledToken(true);
           await router.replace('/dashboard');
         }
@@ -117,13 +117,18 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
   setIsSubmitting(true);
   try {
-    const res = await axios.post('/auth/login', formData); // 🎯 baseURL already set
-    console.log('Login response:', res.data); // if using Axios
-    const { token } = res.data;
+   // login.tsx
 
-    setAuthToken(token); // local state
-    localStorage.setItem('authToken', token); // persistent
+  const res = await instance.post('http://localhost:5000/api/v1/auth/login', { email: formData.email, password: formData.password }, {
+    withCredentials: true,
+  });
+  if (res.status >= 200 && res.status < 300) {
+    // 不需要设置 localStorage，也不需要手动管理 token
     router.push('/dashboard');
+  }
+
+
+
   } catch (error: any) {
     console.error('Login error:', error);
 

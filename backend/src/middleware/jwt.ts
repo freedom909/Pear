@@ -96,14 +96,8 @@ export class JwtUtil {
     } catch (error) {
       return null;
     }
-  }
+    }
 }
-
-
-
-
-
-
 
 interface TokenPayload {
   id: string;

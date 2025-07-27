@@ -1,8 +1,7 @@
-import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+// frontend/src/contexts/AuthContext.tsx
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-
-type OAuthProvider = 'google' | 'facebook' | 'twitter' | 'apple';
 
 interface User {
   id: string;
@@ -14,98 +13,83 @@ interface User {
 }
 
 interface AuthContextType {
-  authToken: string |  null;
   user: User | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  loading: boolean;
-  login: (provider: OAuthProvider) => void;
+  loginRedirect: (provider: 'google' | 'facebook' | 'twitter' | 'apple' | 'local') => void;
   logout: () => void;
-  setAuthToken: (token: string | null) => void;
+  refetchUser: () => void;
+  setAuthToken: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  // Start with null until browser loads token
-  const [authToken, setAuthTokenState] = useState<string | null>(null);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
+  
   const router = useRouter();
 
-  const setAuthToken = (token: string | null) => {
-    setAuthTokenState(token);
-    if (typeof window !== 'undefined') {
-      if (token) {
-        localStorage.setItem('token', token); // Change 'authToken' to 'token'
+  const fetchUser = async () => {
+    setIsLoading(true);
+    try {
+      const res = await axios.get('http://localhost:5000/api/v1/auth/status', {
+        withCredentials: true,
+      });
+
+      if (res.data.authenticated) {
+        setIsAuthenticated(true);
+        setUser(res.data.user); // 注意：你后端 `/auth/status` 需要返回 `user` 对象
       } else {
-        localStorage.removeItem('token'); // Change 'authToken' to 'token'
+        setIsAuthenticated(false);
+        setUser(null);
       }
+    } catch (err) {
+      setIsAuthenticated(false);
+      setUser(null);
+      setError('Authentication check failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Load token after mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        setAuthTokenState(storedToken);
-      } else {
-        setIsLoading(false); // Only set loading false if no token exists
-      }
-    }
+    fetchUser();
   }, []);
 
-  // Fetch user when token changes
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!authToken) {
-        setIsLoading(false); // No token means we're done loading
-        return;
-      }
-      
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await axios.get('http://localhost:5000/api/v1/auth/verify-token', {
-          withCredentials: true,
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-        setUser(res.data.user);
-      } catch (err) {
-        console.error('Failed to fetch user:', err);
-        setError('Unauthorized');
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, [authToken]);
-
-  const login = (provider: OAuthProvider) => {
+  const loginRedirect = (provider: 'google' | 'facebook' | 'twitter' | 'apple' | 'local') => {
     window.location.href = `http://localhost:5000/api/v1/auth/${provider}`;
   };
 
-  const logout = () => {
-    setAuthToken(null);
+  const logout = async () => {
+    await axios.post('http://localhost:5000/api/v1/auth/logout', {}, {
+      withCredentials: true,
+    });
+    setUser(null);
+    setIsAuthenticated(false);
     router.push('/login');
   };
 
   const value: AuthContextType = {
-    authToken,
     user,
+    isAuthenticated,
     isLoading,
     error,
-    loading: isLoading,
-    login,
+    loginRedirect,
     logout,
-    setAuthToken,
+    refetchUser: fetchUser,
+    setAuthToken: (token: string | null) => {
+      if (typeof window !== 'undefined') {
+        if (token) {
+          localStorage.setItem('authToken', token);
+        } else {
+          localStorage.removeItem('authToken');
+        }
+      }
+    },
   };
 
   return (
@@ -113,12 +97,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {!isLoading && children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

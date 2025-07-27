@@ -52,11 +52,12 @@ app.set('trust proxy', false);
 // Security middlewares
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN,
+  origin: 'http://localhost:3000',
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  methods: process.env.CORS_METHODS?.split(',') || ['GET', 'POST', 'PUT', 'DELETE']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'], // ❗❗ 显式列出 headers，不能用 "*"
 }));
+app.options('*', cors());
 app.use(mongoSanitize());
 app.use(hpp());
 
