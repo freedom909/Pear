@@ -567,15 +567,12 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
         provider: input.provider,
         error: error instanceof Error ? error.message : String(error),
         input: {
-          id: input.id,
-          
+          id: input.id,         
             firstname: input.name?.firstname,
-            lastname: input.name?.lastname,
-          
+            lastname: input.name?.lastname,          
           email:input.emails?.[0]?.value,
           emails: input.emails,
-          avatar: input.avatar,
-          
+          avatar: input.avatar,        
           hasEmail: !!input.emails?.[0]?.value
         }
       });
@@ -588,7 +585,7 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
   }
 
   async findUserByEmail(email: string): Promise<UserDocument> {
-    return User.findOne({ email }) as unknown as UserDocument;
+    return User.findOne({ email }).select('+password');
   }
 
   async linkProvider(
@@ -847,10 +844,6 @@ async findUserById(id: string): Promise<UserDocument | null> {
     const total = await User.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
     return { users, total, page, totalPages };
-  }
-
-  static async findUserByEmail(email: string): Promise<UserDocument | null> {
-    return await User.findOne({ email });
   }
 
   async findUserByProviderId(

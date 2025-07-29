@@ -115,9 +115,11 @@ UserSchema.methods.hashPassword = async function () {
 };
 
 // Update password ChangedAt timestamp
-UserSchema.pre<UserDocument>('save', function (next) {
-  if (!this.isModified('password') || this.isNew || !this.password) return next();
-  this.passwordChangedAt = new Date(Date.now() - 1000);
+UserSchema.pre<UserDocument>('save', async function (next) {
+  if (!this.isModified('password') ||  !this.password) return next();
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
@@ -128,6 +130,7 @@ UserSchema.methods.comparePassword = async function (
   if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
+
 
 // Method: Generate reset token
 UserSchema.methods.getResetPasswordToken = function (): string {

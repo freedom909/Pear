@@ -1,10 +1,10 @@
 // auth.controller.ts
-import 'reflect-metadata'; // ← これをファイルの一番上に追加
+
 import dot from 'dotenv';
 dot.config();
-
+import 'reflect-metadata'; 
 import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcryptjs';
+
 import jwt from 'jsonwebtoken';
 import User from '../models/user/user.model';
 import { AppError } from '../errors/appError';
@@ -20,10 +20,11 @@ import { verifyToken } from '../middleware/jwt';
 import { container } from 'tsyringe';
 //import { UserRepository } from '@/repositories/user.repository';
 import { AuthRepository } from '@/repositories/auth.repository';
-
-import { createUserSchema } from '@/validators/user.validator';
+// import { passwordValidator } from '@/validators/password.validator';
 import { EmailValidator } from '@/validators/email.validator';
+import { createUserSchema } from '@/validators/user.validator';
 import { passwordValidator } from '@/validators/password.validator';
+import UserService from '@/services/user.service';
 
 
 interface RegisterRequestBody {
@@ -36,13 +37,15 @@ interface RegisterRequestBody {
 
 const jwtSecret = process.env.JWT_SECRET || 'another-secure-random-string-here';
 const authRepository = container.resolve(AuthRepository);
+const userService=container.resolve(UserService)
 // const userService = container.resolve(UserService);
 export const register = async (
   req: Request<{}, {}, RegisterRequestBody>,
   res: Response,
   next: NextFunction
 ) => {
-  const { firstname, lastname, email, password } = req.body;
+
+  const { firstname, lastname, email, password} = req.body;
   try {
     const { error } = createUserSchema.validate(req.body, { abortEarly: false });
     if (error) {
@@ -54,13 +57,13 @@ export const register = async (
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    
     // Continue creating user
     const user = await authRepository.registerUser({
       firstname: firstname.trim(),
       lastname: lastname.trim(),
       email: email.trim(),
-      password: hashedPassword,
+      password,
     });
     // Send response
     return res.status(201).json({
@@ -76,8 +79,6 @@ export const register = async (
     }));
   }
 };
-
-
 /**
  * 🔐 Login user
  */
@@ -121,13 +122,14 @@ export const login = async (
       }
     }
     logger.debug('Validating user credentials...');
-    const user = await authRepository.loginUser(email, password);
-
-    if (!user) {
-      clearTimeout(timeout);
-      logger.debug('Login failed: Invalid email or password');
+    const user = await userService.findUserByEmail(email);
+    logger.debug('Starting password comparison...', { userId: (user._id as unknown as string).toString() } );
+    const isMatch = await user.comparePassword(password);
+    logger.debug('Password comparison result:', { isMatch });
+    if (!isMatch) {
+      logger.debug('Login failed: Invalid credentials');
       return next(new AppError({
-        message: 'Invalid email or password',
+        message: 'Invalid credentials',
         code: ErrorCode.UNAUTHORIZED,
       }));
     }
@@ -145,7 +147,12 @@ export const login = async (
 
     clearTimeout(timeout);
     logger.debug('Login successful');
-   return  res.status(200).json({ message: 'Login successful', user, token });
+   return res.status(200).json({ 
+  message: 'Login successful', 
+  user: new UserResponseDTO(user), 
+  token 
+});
+
 
   } catch (error) {
     clearTimeout(timeout);
@@ -330,7 +337,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
  * 🚪 Logout
  */
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
-  res.cookie('token', 'jwtToken', {
+  res.cookie('auth_token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -375,7 +382,7 @@ export const oauthCallbackHandler = (provider: 'facebook' | 'google') =>
 
 export const checkStatus = async (req: Request, res: Response) => { 
   try {
-    const token = req.cookies.auth_token || req.headers.authorization?.split(' ')[1];
+    const token = req.cookies.auth_token;
     if (!token) {
       logger.debug('Auth status check failed: Missing token');
       return res.status(401).json({ 
@@ -399,7 +406,12 @@ export const checkStatus = async (req: Request, res: Response) => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.username,
+        name: {
+          firstname: user.firstname,
+          
+          lastname: user.lastname,
+          
+        },
       },
     });
   } catch (err) {

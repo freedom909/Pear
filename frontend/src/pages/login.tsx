@@ -124,16 +124,15 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   });
   if (res.status >= 200 && res.status < 300) {
     // 不需要设置 localStorage，也不需要手动管理 token
-    router.push('/dashboard');
+  console.log('Before push');
+await router.push('/dashboard');
+console.log('After push');
   }
-
-
-
-  } catch (error: any) {
+  } catch (error: any) { // it throws an AxiosError type error"'Login failed1"
     console.error('Login error:', error);
 
     const message =
-      error.response?.data?.message?.error || error.response?.data?.message || 'Login failed';
+      error.response?.data?.message?.error || error.response?.data?.data?.message || 'Login failed1';
     setLoginError(message);
     setIsSubmitting(false);
   }

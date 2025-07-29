@@ -61,7 +61,7 @@ export class RegisterUserDTO {
 
   @IsNotEmpty({ message: '密码不能为空' })
   @IsString({ message: '密码必须是字符串' })
-  @MinLength(6, { message: '密码长度不能少于6个字符' })
+  @MinLength(8, { message: '密码长度不能少于8个字符' })
   @Matches(/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*/, {
     message: '密码必须包含至少一个大写字母、一个小写字母和一个数字',
   })

@@ -1,6 +1,5 @@
 // models/user/user.types.ts
-import {Schema, Document, Model } from 'mongoose';
-import bcrypt from 'bcryptjs';
+import {Schema, Document, Model} from 'mongoose';
 import jwt from 'jsonwebtoken';
 /**
  * User roles
@@ -53,6 +52,7 @@ export interface IUser {
 
   lastLogin?: Date;
   passwordChangedAt?: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 
   passwordResetToken?: string;
   passwordResetExpires?: Date;
@@ -69,7 +69,7 @@ export interface IUser {
 export interface UserDocument extends Document, Omit<IUser, 'resetPasswordExpiresIn'> {
   createdAt: Date;
   updatedAt: Date;
-  comparePassword(candidatePassword: string): Promise<boolean>;
+
   getResetPasswordToken(): string;
   getSignedJwtToken(): string;
   generateAuthToken(): string;
@@ -78,6 +78,7 @@ export interface UserDocument extends Document, Omit<IUser, 'resetPasswordExpire
   clearResetToken(): void;
   generateAccessToken(): string;
   generateResetPasswordToken(): string;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 /**
@@ -97,9 +98,6 @@ UserSchema.methods.clearResetToken = function () {
 };
 
 // 实例方法
-UserSchema.methods.comparePassword = async function (candidatePassword: string) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
 
 UserSchema.methods.getSignedJwtToken = function () {
   return `${process.env.JWT_SECRET_KEY}.${this._id}`; 

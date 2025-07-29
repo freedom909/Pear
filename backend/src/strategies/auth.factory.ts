@@ -10,8 +10,6 @@ import { BaseStrategy } from './base';
 import { OAuthConfig } from '../models/interface/index';
 import logger from '../middleware/logger';
 
-
-
 /**
  * Authentication strategy factory class
  */
