@@ -12,6 +12,11 @@
   ],
   "rootMainFiles": [],
   "pages": {
+    "/": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/index.js"
+    ],
     "/404": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
@@ -37,10 +42,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/login.js"
     ],
-    "/register": [
+    "/oauth/facebook-callback": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/register.js"
+      "static/chunks/pages/oauth/facebook-callback.js"
     ]
   },
   "ampFirstPages": []

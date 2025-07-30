@@ -33,6 +33,7 @@ export const facebookCallback = [
     failureRedirect: '/api/v1/auth/login?error=oauth_failed',
   }),
   async (req: Request, res: Response, next: NextFunction) => {
+    console.log('👉 Facebook authenticated user:', req.user);
     try {
       const user = req.user as unknown as UserDocument;
       if (!user) {
@@ -40,7 +41,8 @@ export const facebookCallback = [
       }
       const token = await authService.generateJwtForUser(user);
       console.log('Generated JWT token:', token);
-      const redirectUrl = `http://localhost:3000/dashboard?token=${token}`;
+      const redirectUrl = `http://localhost:3000/dashboard`;
+
       res.cookie('auth_token', token, {
   httpOnly: true,
   secure: false,        // ⚠️ set to false for localhost

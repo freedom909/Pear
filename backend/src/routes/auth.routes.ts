@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 
 import { protect } from "../middleware/auth";
 import logger from "../middleware/logger";
-import { register, login } from "../controllers/auth.controller";
+import { register, login, authStatus } from "../controllers/auth.controller";
 
 import User from "../models/user/user.model";
 import { authenticateJWTMiddleware } from "@/middleware/authenticateJWTMiddleware";
@@ -15,7 +15,7 @@ const publicRouter = express.Router();
 const protectedRouter = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'secure-random-string-here';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-
+publicRouter.get('/status', authStatus);
 // 注册路由
 publicRouter.post("/register", register);
 

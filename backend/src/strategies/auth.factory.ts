@@ -4,7 +4,7 @@ import { GoogleOAuthStrategy } from './google';
 import { FacebookOAuthStrategy } from './facebook';
 import { TwitterOAuthStrategy } from './twitter';
 import { AppleOAuthStrategy } from './apple';
-import { LocalAuthStrategy } from './local';
+//import { LocalAuthStrategy } from './local';
 import UserService from '../services/user.service';
 import { BaseStrategy } from './base';
 import { OAuthConfig } from '../models/interface/index';
@@ -113,9 +113,9 @@ export class AuthStrategyFactory {
       }
 
       // Initialize Local authentication strategy
-      const localStrategy = new LocalAuthStrategy();
-      localStrategy.init(this.passport, {});
-      this.strategies.set('local', localStrategy);
+      // const localStrategy = new LocalAuthStrategy();
+      // localStrategy.init(this.passport, {});
+      // this.strategies.set('local', localStrategy);
       logger.info('Local authentication strategy initialized');
 
       logger.info('Authentication strategies initialization completed');

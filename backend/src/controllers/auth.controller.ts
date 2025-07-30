@@ -352,6 +352,23 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 
+// backend/src/controllers/auth.controller.ts
+export const authStatus = (req: Request, res: Response) => {
+  const token = req.cookies['auth_token'];
+  if (!token) {
+    return res.status(200).json({ authenticated: false });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    return res.status(200).json({
+      authenticated: true,
+      user: decoded, // or a DB-fetched user if preferred
+    });
+  } catch (err) {
+    return res.status(200).json({ authenticated: false });
+  }
+};
 
 
 /**

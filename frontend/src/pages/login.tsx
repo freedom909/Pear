@@ -122,7 +122,7 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   const res = await instance.post('http://localhost:5000/api/v1/auth/login', { email: formData.email, password: formData.password }, {
     withCredentials: true,
   });
-  if (res.status >= 200 && res.status < 300) {
+  if (res.status >= 200 ) {
     // 不需要设置 localStorage，也不需要手动管理 token
   console.log('Before push');
 await router.push('/dashboard');
