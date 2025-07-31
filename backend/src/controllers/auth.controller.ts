@@ -123,7 +123,7 @@ export const login = async (
     }
     logger.debug('Validating user credentials...');
     const user = await userService.findUserByEmail(email);
-    logger.debug('Starting password comparison...', { userId: (user._id as unknown as string).toString() } );
+    logger.debug('Starting password comparison...', { userId: user._id });
     const isMatch = await user.comparePassword(password);
     logger.debug('Password comparison result:', { isMatch });
     if (!isMatch) {
@@ -352,23 +352,6 @@ export const logout = asyncHandler(async (_req: Request, res: Response) => {
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 
-// backend/src/controllers/auth.controller.ts
-export const authStatus = (req: Request, res: Response) => {
-  const token = req.cookies['auth_token'];
-  if (!token) {
-    return res.status(200).json({ authenticated: false });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    return res.status(200).json({
-      authenticated: true,
-      user: decoded, // or a DB-fetched user if preferred
-    });
-  } catch (err) {
-    return res.status(200).json({ authenticated: false });
-  }
-};
 
 
 /**
@@ -387,10 +370,21 @@ export const oauthCallbackHandler = (provider: 'facebook' | 'google') =>
       const redirectUrl = new URL(redirectUri);
       redirectUrl.searchParams.append('token', token);
 
-      logger.info(`${provider} auth success`, { userId: user._id });
+      logger.info(`${provider} auth success`, { 
+        userId: user._id,
+        provider,
+        redirectUrl: redirectUrl.toString()
+      });
       res.redirect(redirectUrl.toString());
     } catch (err) {
-      logger.error(`${provider} callback error`, err);
+      logger.error(`${provider} callback error`, {
+        error: (err as Error).message,
+        stack: (err as Error).stack,
+        provider,
+        requestUrl: req.url,
+        requestMethod: req.method,
+        requestHeaders: req.headers
+      });
       res.redirect(`${process.env.FRONTEND_URL}/auth/callback?code=server_error`);
     }
   };
@@ -449,4 +443,21 @@ export const checkStatus = async (req: Request, res: Response) => {
     });
   }
 }
+
+export const authStatus = (req: Request, res: Response) => {
+  const token = req.cookies['auth_token'];
+  if (!token) {
+    return res.status(200).json({ authenticated: false });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    return res.status(200).json({
+      authenticated: true,
+      user: decoded, // or a DB-fetched user if preferred
+    });
+  } catch (err) {
+    return res.status(200).json({ authenticated: false });
+  }
+};
    

@@ -11,7 +11,7 @@ import ErrorCode from '../errors/error-code';
 import { AuthProvider } from '../models/user/user.types';
 import { UserDocument } from '../models/user/user.types';
 // import { UserRepository } from '@/repositories/user.repository';
-// import { container } from 'tsyringe';
+//import { container } from 'tsyringe';
 
 // const userRepository=container.resolve(UserRepository);
 export class GoogleOAuthStrategy extends BaseStrategy {
@@ -26,7 +26,14 @@ export class GoogleOAuthStrategy extends BaseStrategy {
     super();
     this.userService = {
       findUserByEmail: () => Promise.resolve(null),
-      findUserByProviderId: () => Promise.resolve(null),
+      findUserByProviderId: async (providerId, provider) => {
+            logger_1.default.info('Searching user by providerId', {providerId, provider});
+            const user = await this.userRepository.findOne({ 
+                where: { providerId, provider } 
+            });
+            logger_1.default.info('User search result', {found: !!user, providerId});
+            return user;
+        },
       createUser: () => Promise.reject(new Error('UserService not initialized'))
     };
   }
@@ -37,7 +44,7 @@ export class GoogleOAuthStrategy extends BaseStrategy {
     }
     
     // Verify all required methods exist
-    const requiredMethods = ['findUserByEmail', 'findUserByProviderId', 'createUserFromOAuthProfile'];
+    const requiredMethods = ['findUserByEmail', 'findUserByProviderId', 'createUser'];
     requiredMethods.forEach(method => {
       if (typeof userService[method] !== 'function') {
         throw new Error(`userService.${method} must be a function`);
@@ -74,6 +81,7 @@ export class GoogleOAuthStrategy extends BaseStrategy {
             logger.info('Processing Google OAuth callback', { profileId: profile.id });
             await this.validate(accessToken, refreshToken, profile, done);
           } catch (error) {
+             console.error("Google Strategy error:", error);
             const err = error instanceof Error ? error : new Error(String(error));
             logger.error('Google OAuth authentication failed', {
               error: err.message,
@@ -90,6 +98,8 @@ export class GoogleOAuthStrategy extends BaseStrategy {
   }
 
   async validate(_accessToken: string, _refreshToken: string, profile: Profile, done: VerifyCallback): Promise<void> {
+    console.log('🔍 Google profile received:', JSON.stringify(profile, null, 2));
+
     try {
       // Test case: should handle profile without email
       if (!profile.emails?.[0]?.value) {
@@ -105,14 +115,16 @@ export class GoogleOAuthStrategy extends BaseStrategy {
       const email = profile.emails[0].value;
       
       // Test case: should return existing user if found by email
-      const existingUser = await this.userService.findUserByEmail(email);
+      console.log('🔍 Checking user by email:', email);
+const existingUser = await this.userService.findUserByEmail(email);
+console.log('✅ Existing user by email:', existingUser);
       if (existingUser) {
         return done(null, existingUser as unknown as any);
       }
 
       // Test case: should return existing user if found by providerId
       const existingByProvider = await this.userService.findUserByProviderId(
-        profile.id, 
+        profile.id,// should it be provider.id?
         AuthProvider.GOOGLE
       );
       if (existingByProvider) {
@@ -137,7 +149,6 @@ export class GoogleOAuthStrategy extends BaseStrategy {
         code: ErrorCode.INTERNAL_SERVER_ERROR,
         details: error instanceof Error ? error : new Error(String(error))
       });
-     
       return done(err, false);
     }
   }
@@ -153,9 +164,7 @@ export class GoogleOAuthStrategy extends BaseStrategy {
       req.user = user;
       next();
     })(req, res, next);
-  }
-
-  
+  } 
 }
 
 // Export with the name expected by tests

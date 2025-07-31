@@ -43,16 +43,14 @@ export const googleCallback = [
       const token = await authService.generateJwtForUser(user);
       console.log('✅ Generated JWT token:', token);
 
-    console.log('✅ Setting cookie for user:', user.email);  // ✅ Set cookie
-res.cookie('auth_token', token, {
-  httpOnly: true,
-  secure: false,        // ⚠️ set to false for localhost
-  sameSite: 'lax',      // ✅ works with HTTP and is secure enough for dev
-  path: '/',
-  maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-});
-
-
+      console.log('✅ Setting cookie for user:', user.email);  // ✅ Set cookie
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        secure: false,        // ⚠️ set to false for localhost
+        sameSite: 'lax',      // ✅ works with HTTP and is secure enough for dev
+        path: '/',
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      });
 
       // ✅ Redirect to frontend dashboard
       return res.redirect(`${process.env.FRONTEND_URL}/dashboard`);

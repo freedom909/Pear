@@ -28,6 +28,9 @@ class UserService implements IUserService {
     // @inject(UserRepository) private readonly userRepository: UserRepository
     
   ) {}
+  createUser(user: Partial<UserDocument>): Promise<UserDocument> {
+    return User.create(user);
+  }
   /**
    * 获取用户列表
    * @param page 页码
@@ -558,7 +561,7 @@ async findOneOrNull(query: Record<string, any>): Promise<UserDocument | null> {
         [`${input.provider}`]: { id: input.id }  // Don't log full OAuth details
       });
 
-      const user = await User.create(userData);
+      const user = await User.create(userData);// create method is suitable for all the CRUD operations?  
       logger.info(`Created OAuth user for ${input.provider}: ${user._id}`);
       
       return user as unknown as UserDocument;

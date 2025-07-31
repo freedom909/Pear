@@ -12,7 +12,6 @@ import { OAuthConfig } from '../models/interface/index';
 import UserService from '../services/user.service';
 import logger from '../middleware/logger';
 
-
 export class AppleOAuthStrategy extends BaseStrategy {
   init(passport: PassportStatic, config: OAuthConfig, userService: UserService): void {
     // const userService = container.resolve(UserService);

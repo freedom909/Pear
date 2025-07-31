@@ -19,7 +19,7 @@ docker-compose up
 
 This will:
 - Build and start the frontend service (accessible at http://localhost:3000)
-- Build and start the backend service (accessible at http://localhost:3001)
+- Build and start the backend service (accessible at http://localhost:5000)
 - Start a MongoDB instance (accessible at mongodb://localhost:27017)
 
 ### Running Individual Services
@@ -40,7 +40,7 @@ To run only the backend service (note: this requires MongoDB to be running):
 ```bash
 cd backend
 docker build -t pear-backend .
-docker run -p 3001:3001 pear-backend
+docker run -p 5000:5000 pear-backend
 ```
 
 ### Development Workflow

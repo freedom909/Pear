@@ -2,7 +2,7 @@
 import { OAuthTokenInfo } from '../../models/interface/index';
 
 //import { PassportProfile } from '../../models/interface/index';
-import { UserDocument } from '../../models/user/user.types';
+import { AuthProvider, UserDocument } from '../../models/user/user.types';
 import { UserRole } from '@/middleware/role';
 
 
@@ -59,6 +59,7 @@ export interface IUserService {
     input: CreateUserFromOAuthProfileInput
   ): Promise<UserDocument>
 
+  createUser(user: Partial<UserDocument>): Promise<UserDocument>;
   createOAuthUser(userData: UserDocument): Promise<UserDocument>;
   updateUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;
 
@@ -68,9 +69,9 @@ export interface IUserService {
 
   deleteUser(id: string): Promise<void>;
   findOne(query: Record<string, any>): Promise<UserDocument>;
-  findUserByProvider(
-    provider: string,
-    providerId: string
+  findUserByProviderId(
+    providerId: string,
+    provider: AuthProvider.APPLE | AuthProvider.GOOGLE | AuthProvider.FACEBOOK | AuthProvider.TWITTER
   ): Promise<UserDocument | null>;
 
   getUsers(page: number, limit: number): Promise<IUsersResponse>;
