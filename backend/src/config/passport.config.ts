@@ -1,12 +1,14 @@
 // src/config/passport.config.ts
 import passport, { PassportStatic } from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import userService from '../services/user.service';
 import { AuthStrategyFactory } from '../strategies/auth.factory';
 import { OAuthConfiguration } from '../config/oauth';
 import logger from '../middleware/logger';
 import { UserDocument } from '../models/user/user.types';
 import User from '../models/user/user.model';
+import { container } from 'tsyringe';
+import UserService from '../services/user.service';
+import { UserRepository } from '@/repositories/user.repository';
 
 export class PassportConfig {
   private static oauthFactory: AuthStrategyFactory;
@@ -15,43 +17,47 @@ export class PassportConfig {
    * Initialize all passport strategies
    */
   static initialize(): void {
+    // Resolve dependencies via tsyringe
+    const resolvedUserService = container.resolve(UserService);
+    const resolvedUserRepository = container.resolve(UserRepository);
+
     // Initialize OAuth strategies
     this.oauthFactory = new AuthStrategyFactory(
       passport,
       OAuthConfiguration.getConfigs(),
-      userService
+      resolvedUserService,
+      resolvedUserRepository // <-- add this argument to your factory constructor
     );
 
     // Register OAuth strategies
     this.oauthFactory.initializeStrategies();
 
     // Initialize Local strategy
-passport.use(
-  new LocalStrategy(
-    { usernameField: "email" },
-    async (email, password, done): Promise<void> => {
-      try {
-        const user = (await User.findOne({
-          email: email.toLowerCase(),
-        })) as unknown as UserDocument;
+    passport.use(
+      new LocalStrategy(
+        { usernameField: 'email' },
+        async (email, password, done): Promise<void> => {
+          try {
+            const user = (await User.findOne({
+              email: email.toLowerCase(),
+            })) as unknown as UserDocument;
 
-        if (!user) {
-          return done(null, false, { message: "Incorrect email." });
+            if (!user) {
+              return done(null, false, { message: 'Incorrect email.' });
+            }
+
+            const isMatch = await user.comparePassword(password);
+            if (!isMatch) {
+              return done(null, false, { message: 'Incorrect password.' });
+            }
+
+            return done(null, user as any);
+          } catch (error) {
+            return done(error);
+          }
         }
-
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-          return done(null, false, { message: "Incorrect password." });
-        }
-
-        return done(null, user as any);
-      } catch (error) {
-        return done(error);
-      }
-    }
-  )
-);
-
+      )
+    );
 
     // Configure serialize/deserialize
     passport.serializeUser((user: any, done) => done(null, user.id));

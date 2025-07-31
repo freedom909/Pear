@@ -27,6 +27,7 @@ import apiRoutes from './routes/index';
 import { OAuthConfiguration } from './config/oauth';
 import { protectedRouter, publicRouter } from './routes/auth.routes';
 import { container } from 'tsyringe';
+import { UserRepository } from './repositories/user.repository';
 const oauthConfigs = OAuthConfiguration.getConfigs();
 const userService=container.resolve(UserService)
 // Initialize DB
@@ -39,7 +40,8 @@ initRedis();
 setupSessionSerialization();
 
 // ✅ Initialize OAuth strategies
-const factory = new AuthStrategyFactory(passport, oauthConfigs, userService);
+const userRepository = container.resolve(UserRepository);
+const factory = new AuthStrategyFactory(passport, oauthConfigs, userService, userRepository);
 factory.initializeStrategies();
 
 // Initialize Express app

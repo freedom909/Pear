@@ -9,25 +9,24 @@ import UserService from '../services/user.service';
 import { BaseStrategy } from './base';
 import { OAuthConfig } from '../models/interface/index';
 import logger from '../middleware/logger';
+import { UserRepository } from '@/repositories/user.repository';
+import { inject, injectable } from 'tsyringe';
 
 /**
  * Authentication strategy factory class
  */
+@injectable()
 export class AuthStrategyFactory {
- 
   protected strategies: Map<string, BaseStrategy> = new Map();
   protected passport: PassportStatic;
-  protected userService:  UserService;
-  protected configs: Record<string, OAuthConfig>;
 
   constructor(
-    passport: PassportStatic,
-    configs: Record<string, OAuthConfig>,
-    userService: any
+    @inject('Passport') passport: PassportStatic,
+    @inject('OAuthConfigs') private configs: Record<string, OAuthConfig>,
+    @inject(UserService) private userService: UserService,
+    @inject(UserRepository) private userRepository: UserRepository, // ✅ this line is key
   ) {
     this.passport = passport;
-    this.configs = configs;
-    this.userService = userService;
   }
   /**
    * Initialize OAuth strategies
@@ -42,7 +41,7 @@ export class AuthStrategyFactory {
           this.configs.google?.clientID &&
           this.configs.google?.clientSecret
         ) {
-          const googleStrategy = new GoogleOAuthStrategy();
+          const googleStrategy = new GoogleOAuthStrategy(this.userRepository);
           googleStrategy.init(
             this.passport,
             this.configs.google,

@@ -10,28 +10,30 @@ import { AppError } from '../errors/appError';
 import ErrorCode from '../errors/error-code';
 import { AuthProvider } from '../models/user/user.types';
 import { UserDocument } from '../models/user/user.types';
-// import { UserRepository } from '@/repositories/user.repository';
-//import { container } from 'tsyringe';
+
+import { UserRepository } from '@/repositories/user.repository';
+
 
 // const userRepository=container.resolve(UserRepository);
-export class GoogleOAuthStrategy extends BaseStrategy {
+export class GoogleOAuthStrategy extends BaseStrategy { 
   private userService: {
     findUserByEmail: (email: string) => Promise<UserDocument | null>;
     findUserByProviderId: (providerId: string, provider: AuthProvider) => Promise<UserDocument | null>;
     createUser: (user: Partial<UserDocument>) => Promise<UserDocument>;
   };
   private passport!: PassportStatic;
-
-  constructor() {
+  private userRepository: UserRepository;
+  constructor(userRepository: UserRepository) {
     super();
+    this.userRepository = userRepository;
     this.userService = {
       findUserByEmail: () => Promise.resolve(null),
       findUserByProviderId: async (providerId, provider) => {
-            logger_1.default.info('Searching user by providerId', {providerId, provider});
+            logger.info('Searching user by providerId', {providerId, provider});
             const user = await this.userRepository.findOne({ 
-                where: { providerId, provider } 
+                $where: { providerId, provider } 
             });
-            logger_1.default.info('User search result', {found: !!user, providerId});
+            logger.info('User search result', {found: !!user, providerId});
             return user;
         },
       createUser: () => Promise.reject(new Error('UserService not initialized'))

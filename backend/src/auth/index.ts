@@ -9,14 +9,15 @@ import User from '../models/user/user.model';
 import { OAuthConfiguration } from '../config/oauth';
 import { container } from 'tsyringe';
 import  UserService  from '../services/user.service';
+import { UserRepository } from '@/repositories/user.repository';
 
 export function initPassportStrategies() {
   const oauthConfig = OAuthConfiguration.getConfigs();
-
   const userService = container.resolve(UserService);
+const userRepository = container.resolve<UserRepository>('UserRepository');
 
   new AppleOAuthStrategy().init(passport, oauthConfig.apple, userService);
-  new GoogleOAuthStrategy().init(passport, oauthConfig.google, userService);
+  new GoogleOAuthStrategy(userRepository).init(passport, oauthConfig.google, userService);
   new FacebookOAuthStrategy().init(passport, oauthConfig.facebook, userService);
   new TwitterOAuthStrategy().init(passport, oauthConfig.twitter, userService);
 
