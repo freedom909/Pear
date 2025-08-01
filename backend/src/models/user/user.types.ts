@@ -78,7 +78,7 @@ export interface UserDocument extends Document, Omit<IUser, 'resetPasswordExpire
   clearResetToken(): void;
   generateAccessToken(): string;
   generateResetPasswordToken(): string;
-  comparePassword(candidatePassword: string): Promise<boolean>;
+  //comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 /**

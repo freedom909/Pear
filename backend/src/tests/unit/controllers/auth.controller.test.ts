@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { register } from '../../../controllers/auth.controller';
-import { AppError } from '../../../errors/appError';
+
 import { ErrorCode } from '../../../errors/error-code';
 import { container } from 'tsyringe';
 import { AuthService } from '../../../services/auth.service';
+import {jest,describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
 // Mock AuthService
 jest.mock('../../../services/auth.service');
@@ -17,10 +18,10 @@ describe('Auth Controller - Register', () => {
   beforeEach(() => {
     mockRequest = {};
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: jest.fn().mockReturnThis() as jest.MockedFunction<Response['status']>,
+      json: jest.fn() as jest.MockedFunction<Response['json']>,
     };
-    mockNext = jest.fn();
+    mockNext = jest.fn() as unknown as jest.MockedFunction<NextFunction>;
     authService = container.resolve(AuthService) as jest.Mocked<AuthService>;
   });
 
@@ -61,8 +62,15 @@ describe('Auth Controller - Register', () => {
     };
 
     authService.register.mockResolvedValueOnce({
-      token: 'mockToken',
+      tokens: {
+        accessToken: 'mockToken',
+        refreshToken: 'mockRefreshToken',
+      },
       user: {
+        username: {
+          firstname: 'Test',
+          lastname: 'User',
+        },
         id: '1',
         email: 'test@example.com',
         role: 'user',

@@ -56,7 +56,7 @@ export class AuthService {
 
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
     const decoded = jwt.verify(refreshToken, config.jwt.secret) as TokenPayload;
-    const user = await this.userService.findUserById(decoded.id);
+    const user = await this.userService.getUserById(decoded.id);
     if (!user) throw AppError.unauthorized('无效的刷新令牌');
     return this.buildAuthResponse(user);
   }

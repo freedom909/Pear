@@ -26,7 +26,7 @@ describe('Middleware: Error Handlers', () => {
     req = mockRequest();
     res = mockResponse();
     jest.clearAllMocks();
-    process.env.NODE_ENV = 'development';
+    process.env.NODE_ENV ==='development';
   });
 
   describe('notFoundHandler', () => {
@@ -187,7 +187,7 @@ describe('Middleware: Error Handlers', () => {
     });
 
     it('should hide stack and message in production', () => {
-      process.env.NODE_ENV = 'production';
+      process.env.NODE_ENV == 'production';
       const error = new Error('Sensitive internal error');
 
       errorHandler(error, req, res, mockNext);

@@ -2,7 +2,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import mongoose from 'mongoose';
 import User from '../../../models/user/user.model';
 import { OAuthError, ValidationError } from '../../../errors/httpError';
-import { ErrorCode } from '../../../errors/error-code';
+    import { ErrorCode } from '../../../errors/error-code';
 import { 
   handleOAuthUser, 
   linkOAuthToUser, 

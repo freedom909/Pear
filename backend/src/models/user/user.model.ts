@@ -4,7 +4,6 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import {
-
   UserDocument,
   UserRole,
   UserStatus,
@@ -99,15 +98,17 @@ const UserSchema = new Schema<UserDocument>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform: (_doc, ret) => {
+      transform: (_doc, ret: Partial<UserDocument> | undefined) => {
+        if (!ret) return;
         delete ret.password;
         delete ret.providerId;
-        delete ret.__v;
+        if ('__v' in ret) delete ret.__v;
         return ret;
       },
     },
   }
 );
+
 // Hash password 
 UserSchema.methods.hashPassword = async function () {
   const salt = await bcrypt.genSalt(10);

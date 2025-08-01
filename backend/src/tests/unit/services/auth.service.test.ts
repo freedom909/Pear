@@ -1,18 +1,20 @@
 import { describe, it, expect, jest } from '@jest/globals';
-import * as authService from '../../../services/auth.service';
-import { User } from '../../../models/user.model';
+import User from '../../../models/user/user.model';
+import { AuthService } from '../../../services/auth.service';
+import { UserDocument } from '../../../models/user/user.types';
+import { container } from 'tsyringe';
 
 // 模拟依赖
 jest.mock('../../../models/user.model');
-
+const authService=container.resolve(AuthService);
 describe('Auth Service', () => {
   describe('login', () => {
     it('should return token on successful login', async () => {
       // 模拟 User.findOne 返回用户
       (User.findOne as jest.Mock).mockResolvedValue({ 
         email: 'test@example.com', 
-        comparePassword: jest.fn().mockResolvedValue(true) 
-      });
+        comparePassword: jest.fn().mockResolvedValue(true as never) 
+      } as never);
       
       const result = await authService.login('test@example.com', 'password123');
       expect(result).toHaveProperty('token');
@@ -22,15 +24,15 @@ describe('Auth Service', () => {
       // 模拟 User.findOne 返回用户，但密码不匹配
       (User.findOne as jest.Mock).mockResolvedValue({ 
         email: 'test@example.com', 
-        comparePassword: jest.fn().mockResolvedValue(false) 
-      });
+        comparePassword: jest.fn().mockResolvedValue(false as never) 
+      } as never);
       
       await expect(authService.login('test@example.com', 'wrongpassword')).rejects.toThrow('Invalid credentials');
     });
 
     it('should throw error if user not found', async () => {
       // 模拟 User.findOne 返回 null
-      (User.findOne as jest.Mock).mockResolvedValue(null);
+      (User.findOne as jest.Mock).mockResolvedValue(null as never);
       
       await expect(authService.login('nonexistent@example.com', 'password123')).rejects.toThrow('User not found');
     });
@@ -39,7 +41,7 @@ describe('Auth Service', () => {
   describe('register', () => {
     it('should create new user', async () => {
       // 模拟 User.create 返回新用户
-      (User.create as jest.Mock).mockResolvedValue({ email: 'new@example.com' });
+      (User.create as jest.Mock).mockResolvedValue({ email: 'new@example.com' } as never);
       
       const result = await authService.register({
         email: 'new@example.com',
@@ -53,7 +55,7 @@ describe('Auth Service', () => {
 
     it('should throw error if email already exists', async () => {
       // 模拟 User.findOne 返回已存在的用户
-      (User.findOne as jest.Mock).mockResolvedValue({ email: 'existing@example.com' });
+      (User.findOne as jest.Mock).mockResolvedValue({ email: 'existing@example.com' }as never);
       
       await expect(authService.register({
         email: 'existing@example.com',
@@ -65,7 +67,7 @@ describe('Auth Service', () => {
 
     it('should validate password strength', async () => {
       // 模拟 User.findOne 返回 null
-      (User.findOne as jest.Mock).mockResolvedValue(null);
+      (User.findOne as jest.Mock).mockResolvedValue(null as never);
       
       await expect(authService.register({
         email: 'new@example.com',

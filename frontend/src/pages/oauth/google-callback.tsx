@@ -27,7 +27,7 @@ export default function GoogleCallback(): React.ReactElement {
     // Store in a cookie (NOT httpOnly)
     document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax`;
     router.replace('/dashboard');
-    return;
+    return
     }
 
     console.error("❌ No token found in query params");

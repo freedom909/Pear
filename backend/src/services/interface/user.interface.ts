@@ -58,7 +58,7 @@ export interface IUserService {
   createUserFromOAuthProfile(
     input: CreateUserFromOAuthProfileInput
   ): Promise<UserDocument>
-
+  
   createUser(user: Partial<UserDocument>): Promise<UserDocument>;
   createOAuthUser(userData: UserDocument): Promise<UserDocument>;
   updateUser(id: string, userData: UpdateUserDTO): Promise<UserDocument>;

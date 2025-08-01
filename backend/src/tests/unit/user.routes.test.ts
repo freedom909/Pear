@@ -22,7 +22,7 @@ describe('User Routes', () => {
   describe('GET /users/:id', () => {
     it('should return 200 and user data', async () => {
       const mockUser = { id: '123', email: 'test@example.com' };
-      (userService.getUserById as jest.Mock).mockResolvedValue(mockUser);
+      (userService.getUserById as jest.Mock).mockResolvedValue(mockUser as unknown as never);
       
       const response = await request(app)
         .get('/users/123')

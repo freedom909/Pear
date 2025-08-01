@@ -12,9 +12,10 @@ import { AuthProvider } from '../models/user/user.types';
 import { UserDocument } from '../models/user/user.types';
 
 import { UserRepository } from '@/repositories/user.repository';
+//import { container } from 'tsyringe';
 
 
-// const userRepository=container.resolve(UserRepository);
+//const userRepository=container.resolve(UserRepository);
 export class GoogleOAuthStrategy extends BaseStrategy { 
   private userService: {
     findUserByEmail: (email: string) => Promise<UserDocument | null>;

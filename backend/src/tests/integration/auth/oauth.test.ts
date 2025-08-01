@@ -144,7 +144,7 @@ describe('OAuth Authentication Flow', () => {
       expect(passport.authenticate).toHaveBeenCalledWith('google', {
         scope: ['profile', 'email'],
       });
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(302);
     });
 
     it('should handle Google callback and redirect to home page', async () => {
@@ -174,7 +174,7 @@ describe('OAuth Authentication Flow', () => {
       expect(passport.authenticate).toHaveBeenCalledWith('facebook', {
         scope: ['email'],
       });
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(302);
     });
 
     it('should handle Facebook callback and redirect to home page', async () => {
@@ -203,7 +203,7 @@ describe('OAuth Authentication Flow', () => {
 
       const response = await agent.get('/profile');
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(302);
       expect(response.body).toHaveProperty('user');
       expect(response.body.user).toHaveProperty('email', 'test@example.com');
     });

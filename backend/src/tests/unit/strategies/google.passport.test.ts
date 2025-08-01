@@ -1,6 +1,5 @@
 import { GoogleStrategy } from '../../../strategies/google';
-import userService from '../../../services/user.service';
-import ErrorCode from '../../../errors/error-code';
+
 import { UserDocument } from '../../../models/user/user.types';
 import { AuthProvider } from '../../../models/user/user.types';
 import { Request, Response } from 'express';
@@ -11,7 +10,17 @@ import { OAuthConfig } from '../../../models/interface';
 
 // Mock dependencies
 jest.mock('../../../services/user.service');
-const mockedUserService = userService as jest.Mocked<typeof userService>;
+const mockedUserRepository = {
+  findOne: jest.fn(),
+  findByIdentifier: jest.fn(),
+  findByProvider: jest.fn(),
+  updateUser: jest.fn(),
+  create: jest.fn(),
+  delete: jest.fn(),
+  findUserByEmail: jest.fn(),
+  findUserByProviderId: jest.fn(),
+  createUser: jest.fn(),
+} as jest.Mocked<typeof userService>;
 
 describe('GoogleStrategy', () => {
   let googleStrategy: GoogleStrategy;
@@ -29,7 +38,16 @@ describe('GoogleStrategy', () => {
     } as Partial<PassportStatic>;
     
     // Create a new instance of GoogleStrategy
-    googleStrategy = new GoogleStrategy();
+    const mockedUserRepository = {
+  findOne: jest.fn(),
+  findByIdentifier: jest.fn(),
+  findByProvider: jest.fn(),
+  updateUser: jest.fn(),
+  create: jest.fn(),
+  delete: jest.fn(),
+};
+
+googleStrategy = new GoogleStrategy(mockedUserRepository);
     
     // Initialize the strategy with mock config
     const config: OAuthConfig = {
@@ -40,7 +58,7 @@ describe('GoogleStrategy', () => {
     };
     
     // Initialize the strategy
-    googleStrategy.init(mockPassport as PassportStatic, config, mockedUserService);
+    googleStrategy.init(mockPassport as PassportStatic, config, mockedUserRepository);
     
     // Mock the done callback
     mockDone = jest.fn();
@@ -74,16 +92,16 @@ describe('GoogleStrategy', () => {
       } as unknown as UserDocument;
       
       mockedUserService.findUserByEmail.mockResolvedValue(null as unknown as UserDocument);
-      mockedUserService.findUserByProviderId.mockResolvedValue(null as unknown as UserDocument);
+      mockedUserService.findByProviderId.mockResolvedValue(null as unknown as UserDocument);
       mockedUserService.createUser.mockResolvedValue(mockNewUser);
       
       // Act
       await googleStrategy.validate(accessToken, refreshToken, profile as Profile, mockDone);
       
       // Assert
-      expect(mockedUserService.findUserByEmail).toHaveBeenCalledWith(profile.emails![0].value);
-      expect(mockedUserService.findUserByProviderId).toHaveBeenCalledWith('google123', AuthProvider.GOOGLE);
-      expect(mockedUserService.createUser).toHaveBeenCalledWith(expect.objectContaining({
+      expect(mockedUserRepository.findOne).toHaveBeenCalledWith({ email: profile.emails![0].value });
+      expect(mockedUserRepository.findByProvider).toHaveBeenCalledWith('google123', AuthProvider.GOOGLE);
+      expect(mockedUserRepository.create).toHaveBeenCalledWith(expect.objectContaining({
         email: profile.emails![0].value,
         firstname: 'Test',
         lastname: 'User',
@@ -119,15 +137,15 @@ describe('GoogleStrategy', () => {
         providerId: 'google123'
       } as unknown as UserDocument;
       
-      mockedUserService.findUserByEmail.mockResolvedValue(mockExistingUser);
+      mockedUserRepository.findOne.mockResolvedValue(mockExistingUser);
       
       // Act
       await googleStrategy.validate(accessToken, refreshToken, profile as Profile, mockDone);
       
       // Assert
-      expect(mockedUserService.findUserByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(mockedUserService.findUserByProviderId).not.toHaveBeenCalled();
-      expect(mockedUserService.createUser).not.toHaveBeenCalled();
+      expect(mockedUserRepository.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(mockedUserRepository.findByProvider).not.toHaveBeenCalled();
+      expect(mockedUserRepository.create).not.toHaveBeenCalled();
       expect(mockDone).toHaveBeenCalledWith(null, mockExistingUser);
     });
     
@@ -156,16 +174,16 @@ describe('GoogleStrategy', () => {
         providerId: 'google123'
       } as unknown as UserDocument;
       
-      mockedUserService.findUserByEmail.mockResolvedValue(null as unknown as UserDocument);
-      mockedUserService.findUserByProviderId.mockResolvedValue(mockExistingUser);
+      mockedUserRepository.findOne.mockResolvedValue(null as unknown as UserDocument);
+      mockedUserRepository.findByProvider.mockResolvedValue(mockExistingUser);
       
       // Act
       await googleStrategy.validate(accessToken, refreshToken, profile as Profile, mockDone);
       
       // Assert
-      expect(mockedUserService.findUserByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(mockedUserService.findUserByProviderId).toHaveBeenCalledWith('google123', AuthProvider.GOOGLE);
-      expect(mockedUserService.createUser).not.toHaveBeenCalled();
+      expect(mockedUserRepository.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(mockedUserRepository.findByProvider).toHaveBeenCalledWith('google123', AuthProvider.GOOGLE);
+      expect(mockedUserRepository.create).not.toHaveBeenCalled();
       expect(mockDone).toHaveBeenCalledWith(null, mockExistingUser);
     });
     
@@ -188,9 +206,9 @@ describe('GoogleStrategy', () => {
       await googleStrategy.validate(accessToken, refreshToken, profile as Profile, mockDone);
       
       // Assert
-      expect(mockedUserService.findUserByEmail).not.toHaveBeenCalled();
-      expect(mockedUserService.findUserByProviderId).not.toHaveBeenCalled();
-      expect(mockedUserService.createUser).not.toHaveBeenCalled();
+      expect(mockedUserRepository.findOne).not.toHaveBeenCalled();
+      expect(mockedUserRepository.findByProvider).not.toHaveBeenCalled();
+      expect(mockedUserRepository.create).not.toHaveBeenCalled();
       expect(mockDone).toHaveBeenCalledWith(
         expect.objectContaining({
           message: 'Google OAuth profile is missing email',
@@ -217,13 +235,13 @@ describe('GoogleStrategy', () => {
       };
       
       const error = new Error('Database connection failed');
-      mockedUserService.findUserByEmail.mockRejectedValue(error);
+      mockedUserRepository.findOne.mockRejectedValue(error);
       
       // Act
       await googleStrategy.validate(accessToken, refreshToken, profile as Profile, mockDone);
       
       // Assert
-      expect(mockedUserService.findUserByEmail).toHaveBeenCalledWith(profile.emails![0].value);
+      expect(mockedUserRepository.findOne).toHaveBeenCalledWith({ email: profile.emails![0].value });
       expect(mockDone).toHaveBeenCalledWith(
         expect.objectContaining({
           message: 'Google OAuth authentication failed',
@@ -255,7 +273,7 @@ describe('GoogleStrategy', () => {
   describe('init', () => {
     it('should throw error if userService is not provided', () => {
       // Arrange
-      const strategy = new GoogleStrategy();
+      const strategy = new GoogleStrategy(mockedUserRepository);
       const config: OAuthConfig = {
         provider: 'google',
         clientID: 'mock-client-id',
@@ -271,27 +289,27 @@ describe('GoogleStrategy', () => {
     
     it('should throw error if required methods are missing from userService', () => {
       // Arrange
-      const strategy = new GoogleStrategy();
+      const strategy = new GoogleStrategy(mockedUserRepository);
       const config: OAuthConfig = {
         provider: 'google',
         clientID: 'mock-client-id',
         clientSecret: 'mock-client-secret',
         callbackURL: 'http://localhost:3000/api/auth/google/callback'
       };
-      const incompleteUserService = {
-        findUserByEmail: jest.fn(),
-        // Missing findUserByProviderId and createUser
+      const incompleteUserRepository = {
+        findOne: jest.fn(),
+        // Missing findByProvider and create
       };
       
       // Act & Assert
       expect(() => {
-        strategy.init(mockPassport as PassportStatic, config, incompleteUserService as any);
-      }).toThrow('userService.findUserByProviderId must be a function');
+        strategy.init(mockPassport as PassportStatic, config, incompleteUserRepository as any);
+      }).toThrow('userRepository.findByProvider must be a function');
     });
     
     it('should throw error if OAuth config is missing required fields', () => {
       // Arrange
-      const strategy = new GoogleStrategy();
+      const strategy = new GoogleStrategy(mockedUserRepository);
       const incompleteConfig: OAuthConfig = {
         provider: 'google',
         clientID: '',  // Empty client ID
